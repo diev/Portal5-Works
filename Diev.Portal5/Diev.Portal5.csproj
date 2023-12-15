@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
+    <Version>8.2023.12.15</Version>
+    <Description>Diev's extensions for Portal5.</Description>
+    <Copyright>Copyright 2022-2023 Dmitrii Evdokimov</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Company>diev</Company>
+  </PropertyGroup>
+
+</Project>
