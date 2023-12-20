@@ -24,7 +24,7 @@ namespace Diev.Portal5;
 /// <summary>
 /// Критерии запроса списка сообщений.
 /// </summary>
-public class MessageFilter
+public class MessagesFilter
 {
     /// <summary>
     /// Наименование задачи

@@ -22,28 +22,28 @@ namespace Diev.Portal5.API;
 /// <summary>
 /// В случае ошибок REST методов из класса HTTP 4XX, в теле ответа передается JSON-объект с описанием ошибки вида.
 /// </summary>
-public class Error4XX
-{
+public record class Error4XX
+(
     /// <summary>
     /// HTTP статус класса 4xx согласно Hypertext Transfer Protocol (HTTP) Status Code Registry.
     /// </summary>
-    public int HTTPStatus { get; set; }
+    int HTTPStatus,
 
     /// <summary>
     /// Внутренний код ошибки Портала. Служит клиенту для автоматизированной обработки ошибок. 
     /// </summary>
-    public string ErrorCode { get; set; }
+    string ErrorCode,
 
     /// <summary>
     /// Расшифровка ошибки. Служит для человеко-читаемой обработки ошибок.
     /// </summary>
-    public string ErrorMessage { get; set; }
+    string ErrorMessage,
 
     /// <summary>
     /// Объект с дополнительно информацией к ошибке, по-умолчанию пустой.
     /// </summary>
-    public object? MoreInfo { get; set; }
-}
+    object? MoreInfo
+);
 
 /*
 {

@@ -17,13 +17,7 @@ limitations under the License.
 */
 #endregion
 
-using System.Net;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
-
-using Diev.Extensions.Http;
-using Diev.Extensions.Smtp;
 
 namespace Diev.Extensions.Settings;
 

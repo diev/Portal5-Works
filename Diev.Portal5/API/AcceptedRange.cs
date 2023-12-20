@@ -19,12 +19,15 @@ limitations under the License.
 
 namespace Diev.Portal5.API;
 
-public class AcceptedRange
-{
-    public required string[] NextExpectedRange { get; set; }
-    public DateTime ExpirationDateTime { get; set; }
-}
+public record class AcceptedRange
+(
+    string[] NextExpectedRange,
+    DateTime ExpirationDateTime
+);
 
 /*
-{"NextExpectedRange":["4096-8191","8192-8713"],"ExpirationDateTime":"2023-11-29T09:38:35Z"}
+{
+  "NextExpectedRange":["4096-8191","8192-8713"],
+  "ExpirationDateTime":"2023-11-29T09:38:35Z"
+}
 */

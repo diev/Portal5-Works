@@ -42,14 +42,16 @@ using Diev.Portal5.API;
 namespace Diev.Portal5.Interfaces;
 
 /// <summary>
-/// ES_transmission_24 (30.09.2023 Описание внешнего взаимодействия. Технические условия внешнего обмена).docx
+/// https://www.cbr.ru/lk_uio/guide/rest_api/ <br/>
+/// 30.09.2023 Описание внешнего взаимодействия. Технические условия внешнего обмена. Версия 2.4 <br/>
+/// ES_transmission_24.docx
 /// </summary>
 public interface IRestAPI
 {
     /* 3.1.3 Отправка сообщений */
 
     // 3.1.3.1 Для создания нового сообщения используется метод POST
-    public Task<Message> PostMessageRequestAsync(Message message);
+    public Task<Message> PostMessageRequestAsync(DraftMessage message);
     // 3.1.3.2 Для создания сессии отправки HTTP используется метод POST
     public Task<UploadInstruction> PostUploadRequestAsync(string messageId, string fileId);
     // 3.1.3.3 Для отправки файла по HTTP используется метод PUT
@@ -61,7 +63,7 @@ public interface IRestAPI
     /* 3.1.4 Получение УИО сообщений, квитанций, файлов и информации. */
 
     // 3.1.4.1 Для получения всех сообщений с учетом необязательного фильтра(не более 100 сообщений за один запрос) используется метод GET.
-    public Task<MessagePages> GetMessagePagesAsync(MessageFilter filter, int page = 1);
+    public Task<MessagesPage> GetMessagesPageAsync(MessagesFilter filter, int page = 1);
     // 3.1.4.2 Для получения данных о конкретном сообщении используется метод GET
     public Task<Message> GetMessage(string messageId);
     // 3.1.4.3 Для скачивания конкретного сообщения используется метод GET
@@ -71,9 +73,9 @@ public interface IRestAPI
     // 3.1.4.5 Для скачивания конкретного файла из конкретного сообщения используется метод GET
     public Task DownloadMessageFileAsync(string messageId, string fileId, string path, bool overwrite = false);
     // 3.1.4.6 Для получения данных о квитанциях на сообщение используется метод GET
-    public Task<Receipts> GetReceiptInfo(string messageId);
+    public Task<List<MessageReceipt>> GetReceipts(string messageId);
     // 3.1.4.7 Для получения данных о квитанции на сообщение используется метод GET
-    public Task<Receipts> GetReceiptInfo(string messageId, string receiptId);
+    public Task<MessageReceipt> GetReceiptInfo(string messageId, string receiptId);
     // 3.1.4.8 Для получения данных о файле квитанции на сообщение используется метод GET
     public Task<MessageFile> GetReceiptFileInfo(string messageId, string receiptId, string fileId);
     // 3.1.4.9 Для скачивания файла квитанции на сообщение используется метод GET
@@ -99,15 +101,15 @@ public interface IRestAPI
     // 3.1.6.4 Для получения информации о технических оповещениях используется метод GET
     public Task<List<Notification>> GetNotificationsAsync();
     // 3.1.6.5 Для получения списка справочников используется метод GET
-    public Task<Levels> GetLevelsAsync(int page = 1);
+    public Task<DictItemsPage> GetLevelsPageAsync(int page = 1);
     // 3.1.6.6 Для получения записей конкретного справочника 1, но не более 100 записей за один запрос, используется метод GET
-    public Task<Levels1> GetLevel1Async(int page = 1, string guid = "238d0426-6f57-4c0f-8983-1d1addf8c47a");
+    public Task<Level1ItemsPage> GetLevels1PageAsync(int page = 1, string guid = "238d0426-6f57-4c0f-8983-1d1addf8c47a");
     // 3.1.6.6 Для получения записей конкретного справочника 2, но не более 100 записей за один запрос, используется метод GET
-    public Task<Levels2> GetLevel2Async(int page = 1, string guid = "25338cfb-5713-4634-bc53-a81129483752");
+    public Task<Level2ItemsPage> GetLevels2PageAsync(int page = 1, string guid = "25338cfb-5713-4634-bc53-a81129483752");
     // 3.1.6.6 Для получения записей конкретного справочника 3, но не более 100 записей за один запрос, используется метод GET
-    public Task<Levels3> GetLevel3Async(int page = 1, string guid = "64529d5a-b1d9-453c-96f3-f380ea577314");
+    public Task<Level3ItemsPage> GetLevels3PageAsync(int page = 1, string guid = "64529d5a-b1d9-453c-96f3-f380ea577314");
     // 3.1.6.7 Для скачивания конкретного справочника в виде файла используется метод GET
-    public Task DownloadLevelFileAsync(string guid, string path, bool overwrite = false);
+    public Task DownloadLevelsFileAsync(string guid, string path, bool overwrite = false);
 
 
     /* 3.1.7 Взаимодействие с ХМЧД */

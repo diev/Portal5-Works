@@ -22,12 +22,12 @@ namespace Diev.Portal5.API;
 /// <summary>
 /// Мой тип для добавления страниц (из response.Header) к списку сообщений.
 /// </summary>
-public class MessagePages
-{
+public record class MessagesPage
+(
     /// <summary>
     /// Example: "[{...}, ...]"
     /// </summary>
-    public List<Message> Messages { get; set; }
+    List<Message> Messages,
 
     /// <summary>
     /// Example: {
@@ -39,5 +39,5 @@ public class MessagePages
     /// "MaxPerPage": 100
     /// }
     /// </summary>
-    public PaginationInfo PaginationInfo { get; set; }
-}
+    PaginationInfo PaginationInfo
+);

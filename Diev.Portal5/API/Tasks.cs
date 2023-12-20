@@ -24,8 +24,8 @@ namespace Diev.Portal5.API;
 /// GET https://portal5.cbr.ru/back/rapi2/tasks
 /// 200 OK
 /// </summary>
-public class Tasks
-{
+public record class Tasks
+(
     /// <summary>
     /// Код задачи (по справочнику задач в формате "Zadacha_*",
     /// где Zadacha_ - неизменная часть,
@@ -33,13 +33,13 @@ public class Tasks
     /// используется для идентификации задачи.
     /// Example:
     /// </summary>
-    public string Code { get; set; }
+    string Code,
 
     /// <summary>
     /// Наименование задачи.
     /// Example:
     /// </summary>
-    public string Name { get; set; }
+    string Name,
 
     /// <summary>
     /// Направление обмена.
@@ -48,24 +48,24 @@ public class Tasks
     /// - outbox - исходящее из ЛК;
     /// - bidirectional - двунаправленное между ЛК.
     /// </summary>
-    public string? Direction { get; set; }
+    string? Direction,
 
     /// <summary>
     /// Признак возможности отправки связанных сообщений.
     /// </summary>
-    public bool? AllowLinkedMessages { get; set; }
+    bool? AllowLinkedMessages,
 
     /// <summary>
     /// Признак возможности отправки сообщений через Aspera.
     /// </summary>
-    public bool? AllowAspera { get; set; }
+    bool? AllowAspera,
 
     /// <summary>
     /// Текстовое описание задачи, может быть не заполнено.
     /// Example:
     /// </summary>
-    public string? Description { get; set; }
-}
+    string? Description
+);
 
 /*
 [

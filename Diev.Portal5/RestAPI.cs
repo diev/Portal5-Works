@@ -21,11 +21,11 @@ using System.IO.MemoryMappedFiles;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
 
+using Diev.Extensions.Http;
 using Diev.Portal5.API;
 using Diev.Portal5.Interfaces;
 
@@ -33,31 +33,11 @@ namespace Diev.Portal5;
 
 public class RestAPI : IRestAPI
 {
-    internal HttpClient HttpClient { get; private set; }
+    private readonly string _test = "https://portal5test.cbr.ru/";
+    private readonly string _host = "https://portal5.cbr.ru/";
+    private readonly string _base = "back/rapi2";
 
-    internal string Api { get; private set; }
-
-    public bool Test { get; set; }
-    public string Host { get; set; } = "https://portal5.cbr.ru/";
-    public string BaseUrl { get; set; } = "back/rapi2/";
-    public string Username { get; set; }
-    public string Password { get; set; }
-    public string TestHost { get; set; } = "https://portal5test.cbr.ru/";
-    public string TestBaseUrl { get; set; } = "back/rapi2/";
-    public string TestUsername { get; set; }
-    public string TestPassword { get; set; }
-
-    public bool UseProxy { get; set; }
-    public string ProxyAddress { get; set; }
-
-    // int.MaxValue;
-    //0x10000 = 64K = 65536
-    //0x40000 = 256K = 262144
-    //1000000 = ~1M
-
-    public int ChunkSize { get; set; }
-
-    public bool Overwrite { get; set; }
+    internal string Api { get; set; }
 
     public JsonSerializerOptions JsonOptions { get; set; }
 
@@ -67,87 +47,21 @@ public class RestAPI : IRestAPI
         {
             //AllowTrailingCommas = true,
             //PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)//, //< -----Вот эта строка Вам поможет с кодировкой
+            Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)//,
             //WriteIndented = true
         };
     }
 
-    public void Initialize()
+    public void Login(string username, string password)
     {
-        var app = Assembly.GetExecutingAssembly().GetName();
+        PollyClient.Login(_host, username, password);
+        Api = _host + _base;
+    }
 
-        if (Test)
-        {
-            Api = TestHost + TestBaseUrl;
-
-            HttpClientHandler handler = new()
-            {
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(TestUsername, TestPassword)
-            };
-
-            if (UseProxy && ProxyAddress != null)
-            {
-                handler.Proxy = new WebProxy(new Uri(ProxyAddress)); // or null;
-            }
-
-            HttpClient = new(handler, true)
-            {
-                BaseAddress = new Uri(TestHost),
-                Timeout = TimeSpan.FromMinutes(3)
-            };
-
-            HttpClient.DefaultRequestHeaders.UserAgent.Add(
-                new ProductInfoHeaderValue(
-                    app.Name ?? "TestClient",
-                    app.Version?.ToString() ?? "1.0"));
-        }
-        else
-        {
-            Api = Host + BaseUrl;
-
-            HttpClientHandler handler = new()
-            {
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential(Username, Password)
-            };
-
-            if (UseProxy && ProxyAddress != null)
-            {
-                handler.Proxy = new WebProxy(new Uri(ProxyAddress)); // or null;
-            }
-
-            HttpClient = new(handler, true)
-            {
-                BaseAddress = new Uri(Host),
-                Timeout = TimeSpan.FromMinutes(3)
-            };
-
-            HttpClient.DefaultRequestHeaders.UserAgent.Add(
-                new ProductInfoHeaderValue(
-                    app.Name ?? "Client",
-                    app.Version?.ToString() ?? "1.0"));
-        }
-
-        //var authToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{Username}:{Password}"));
-        //HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
-
-        /*
-        // Check connection
-        //using var request = new HttpRequestMessage(HttpMethod.Head, "/");
-        using var request = new HttpRequestMessage(HttpMethod.Head, HttpClient.BaseAddress"); //TODO
-        using var response = await HttpClient.SendAsync(request);
-        //return response.EnsureSuccessStatusCode().Content.Headers.ContentLength > 0;
-        response.EnsureSuccessStatusCode();
-        // 200 OK
-        */
-
-        HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        if (ChunkSize == 0)
-        {
-            ChunkSize = int.MaxValue;
-        }
+    public void TestLogin(string username, string password)
+    {
+        PollyClient.Login(_test, username, password);
+        Api = _test + _base;
     }
 
     #region 3.1.3
@@ -160,15 +74,17 @@ public class RestAPI : IRestAPI
     /// <param name="message">Черновик нового сообщения.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<Message> PostMessageRequestAsync(Message message) // draft
+    public async Task<Message> PostMessageRequestAsync(DraftMessage message) // draft
     {
         string url = Api + "messages";
-        using var response = await HttpClient.PostAsJsonAsync(url, message, JsonOptions);
+        using var json = JsonContent.Create(message);
+        using var response = await PollyClient.PostAsJasonAsync(url, json);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var content = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Message>(content, JsonOptions);
+            return await JsonSerializer.DeserializeAsync<Message>(content, JsonOptions)
+                ?? throw new Exception("Новое сообщение на сервере не создано.");
         }
 
         // HTTP 400 – Bad Request
@@ -176,8 +92,7 @@ public class RestAPI : IRestAPI
         // HTTP 406 – Not Acceptable
         // HTTP 413 – Message size too large
         // HTTP 422 – Unprocessable Entity
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -190,19 +105,19 @@ public class RestAPI : IRestAPI
     public async Task<UploadInstruction> PostUploadRequestAsync(string messageId, string fileId)
     {
         string url = Api + $"messages/{messageId}/files/{fileId}/createUploadSession";
-        using var response = await HttpClient.PostAsync(url, null);
+        using var response = await PollyClient.PostAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<UploadInstruction>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<UploadInstruction>(stream, JsonOptions)
+                ?? throw new Exception("Инструкции по загрузке не получены.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 404 – Not found
         // HTTP 405 – Invalid input
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -215,7 +130,9 @@ public class RestAPI : IRestAPI
     /// <exception cref="Exception"></exception>
     public async Task UploadFileAsync(string path, long size, string url)
     {
-        if (size <= ChunkSize)
+        int chunkSize = PollyClient.ChunkSize;
+
+        if (size <= chunkSize)
         {
             //var bytes = File.ReadAllBytes(filename);
             //using var content = new ByteArrayContent(bytes);
@@ -226,7 +143,7 @@ public class RestAPI : IRestAPI
             content.Headers.ContentLength = size;
             content.Headers.ContentRange = new ContentRangeHeaderValue(0, size - 1, size); // $"bytes {from}-{to}/{size}" // 0-127/128
 
-            using var response = await HttpClient.PutAsync(url, content);
+            using var response = await PollyClient.PutAsync(url, content);
 
             if (response.StatusCode == HttpStatusCode.Created) // 201 Created
             {
@@ -241,29 +158,30 @@ public class RestAPI : IRestAPI
             // HTTP 404 – Not found
             // HTTP 405 – Invalid input
             // HTTP 411 – Length Required
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception(error);
+            throw new Exception(await response.Content.ReadAsStringAsync());
         }
         else
         {
-            var bytes = new byte[ChunkSize]; //TODO stream
+            var bytes = new byte[chunkSize]; //TODO stream
             long from = 0;
-            long to = ChunkSize - 1;
+            long to = chunkSize - 1;
             long remaining = size;
 
             using var stream = MemoryMappedFile.CreateFromFile(path);
             using var reader = stream.CreateViewAccessor();
 
-            while (remaining > ChunkSize)
+            while (remaining > chunkSize)
             {
-                reader.ReadArray(from, bytes, 0, ChunkSize);
+                reader.ReadArray(from, bytes, 0, chunkSize);
 
                 using var content = new ByteArrayContent(bytes);
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                content.Headers.ContentLength = ChunkSize;
-                content.Headers.ContentRange = new ContentRangeHeaderValue(from, to, size); // $"bytes {from}-{to}/{size}" // 0-127/128
+                //content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                //content.Headers.ContentLength = chunkSize;
+                //content.Headers.ContentRange = new ContentRangeHeaderValue(from, to, size); // $"bytes {from}-{to}/{size}" // 0-127/128
 
-                using var response = await HttpClient.PutAsync(url, content);
+                //using var response = await PollyClient.PutAsync(url, content);
+
+                using var response = await PollyClient.PutPartialAsync(url, content, chunkSize, from, to, size);
 
                 if (response.StatusCode == HttpStatusCode.Accepted)  // 202 Accepted
                 {
@@ -274,7 +192,7 @@ public class RestAPI : IRestAPI
                     var range = acceptedRange.NextExpectedRange[0].Split('-');
                     from = long.Parse(range[0]);
                     to = long.Parse(range[1]);
-                    remaining -= ChunkSize;
+                    remaining -= chunkSize;
                     continue;
                 }
 
@@ -282,8 +200,7 @@ public class RestAPI : IRestAPI
                 // HTTP 404 – Not found
                 // HTTP 405 – Invalid input
                 // HTTP 411 – Length Required
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception(error);
+                throw new Exception(await response.Content.ReadAsStringAsync());
             }
 
             // remaining
@@ -291,11 +208,13 @@ public class RestAPI : IRestAPI
                 reader.ReadArray(from, bytes, 0, (int)remaining);
 
                 using var content = new ByteArrayContent(bytes, 0, (int)remaining);
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                content.Headers.ContentLength = remaining;
-                content.Headers.ContentRange = new ContentRangeHeaderValue(from, to, size);
+                //content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                //content.Headers.ContentLength = remaining;
+                //content.Headers.ContentRange = new ContentRangeHeaderValue(from, to, size);
 
-                using var response = await HttpClient.PutAsync(url, content);
+                //using var response = await PollyClient.PutAsync(url, content);
+
+                using var response = await PollyClient.PutPartialAsync(url, content, remaining, from, to, size);
 
                 if (response.StatusCode == HttpStatusCode.Created) // 201 Created
                 {
@@ -310,8 +229,7 @@ public class RestAPI : IRestAPI
                 // HTTP 404 – Not found
                 // HTTP 405 – Invalid input
                 // HTTP 411 – Length Required
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception(error);
+                throw new Exception(await response.Content.ReadAsStringAsync());
             }
         }
     }
@@ -352,7 +270,7 @@ public class RestAPI : IRestAPI
     public async Task PostMessageAsync(string messageId)
     {
         string url = Api + $"messages/{messageId}";
-        using var response = await HttpClient.PostAsync(url, null);
+        using var response = await PollyClient.PostAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
@@ -362,8 +280,7 @@ public class RestAPI : IRestAPI
         // HTTP 404 – Not found
         // HTTP 406 – Not Acceptable
         // HTTP 422 – Unprocessable Entity
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     #endregion 3.1.3
@@ -377,36 +294,31 @@ public class RestAPI : IRestAPI
     /// <param name="filter"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<MessagePages> GetMessagePagesAsync(MessageFilter filter, int page = 1)
+    public async Task<MessagesPage> GetMessagesPageAsync(MessagesFilter filter, int page = 1)
     {
         string url = Api + "messages" + filter.GetQuery(page);
-
         //using var request = new HttpRequestMessage(HttpMethod.Get, url);
         //request.Content = JsonContent.Create(filter, null, JsonOptions); //null?
 
         //using var response = await HttpClient.SendAsync(request);
 
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
             var messages = await JsonSerializer.DeserializeAsync<List<Message>>(response.Content.ReadAsStream(), JsonOptions) ?? [];
 
             var pages = new PaginationInfo //TODO extract by return
-            {
-                TotalRecords = GetValue("EPVV-Total"),
-                TotalPages = GetValue("EPVV-TotalPages"),
-                CurrentPage = GetValue("EPVV-CurrentPage"),
-                PerCurrentPage = GetValue("EPVV-PerCurrentPage"),
-                PerNextPage = GetValue("EPVV-PerNextPage"),
-                MaxPerPage = 100 // hard const
-            };
+            (
+                GetValue("EPVV-Total"),
+                GetValue("EPVV-TotalPages"),
+                GetValue("EPVV-CurrentPage"),
+                GetValue("EPVV-PerCurrentPage"),
+                GetValue("EPVV-PerNextPage"),
+                100 // hardcoded const
+            );
 
-            return new MessagePages
-            {
-                Messages = messages,
-                PaginationInfo = pages
-            };
+            return new (messages, pages);
         }
 
         // HTTP 400 – Bad Request
@@ -432,19 +344,17 @@ public class RestAPI : IRestAPI
     public async Task<Message> GetMessage(string messageId)
     {
         string url = Api + $"messages/{messageId}";
-        //return await HttpClient.GetFromJsonAsync<Message>(url, JsonOptions) ?? new(); // 200 Ok или 404 – Сообщение не найдено
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Message>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Message>(stream, JsonOptions)
+                ?? throw new Exception($"Сообщение '{messageId}' не получено.");
         }
 
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -457,7 +367,6 @@ public class RestAPI : IRestAPI
     public async Task DownloadMessageAsync(string messageId, string path, bool overwrite = false)
     {
         string url = Api + $"messages/{messageId}/download";
-        
         await DownloadFileAsync(url, path, overwrite);
     }
 
@@ -470,21 +379,19 @@ public class RestAPI : IRestAPI
     public async Task<MessageFile> GetMessageFileInfo(string messageId, string fileId)
     {
         string url = Api + $"messages/{messageId}/files/{fileId}";
-        //return await HttpClient.GetFromJsonAsync<MessageFile>(url, JsonOptions) ?? new(); // 200 Ok (или 404 – Сообщение не найдено?)
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions)
+                ?? throw new Exception($"Информация о файле '{fileId}' для сообщения '{messageId}' не получена.");
         }
 
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -500,15 +407,13 @@ public class RestAPI : IRestAPI
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
         string url = Api + $"messages/{messageId}/files/{fileId}/download";
-
         await DownloadFileAsync(url, path, overwrite);
 
         //TODO
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
-        //var error = await response.Content.ReadAsStringAsync();
-        //throw new Exception(error);
+        // throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -516,22 +421,20 @@ public class RestAPI : IRestAPI
     /// </summary>
     /// <param name="messageId"></param>
     /// <returns></returns>
-    public async Task<Receipts> GetReceiptInfo(string messageId)
+    public async Task<List<MessageReceipt>> GetReceipts(string messageId)
     {
         string url = Api + $"messages/{messageId}/receipts";
-        //return await HttpClient.GetFromJsonAsync<Receipts>(url, JsonOptions) ?? new(); // 200 Ok или 404 – Сообщение не найдено
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Receipts>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<List<MessageReceipt>>(stream, JsonOptions)
+                ?? throw new Exception($"Квитанции для сообщения '{messageId}' не получены.");
         }
 
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -540,22 +443,20 @@ public class RestAPI : IRestAPI
     /// <param name="messageId"></param>
     /// <param name="receiptId"></param>
     /// <returns></returns>
-    public async Task<Receipts> GetReceiptInfo(string messageId, string receiptId)
+    public async Task<MessageReceipt> GetReceiptInfo(string messageId, string receiptId)
     {
         string url = Api + $"messages/{messageId}/receipts/{receiptId}";
-        //return await HttpClient.GetFromJsonAsync<Receipts>(url, JsonOptions) ?? new(); // 200 Ok или 404 – Сообщение не найдено
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Receipts>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<MessageReceipt>(stream, JsonOptions)
+                ?? throw new Exception($"Информация о квитанции '{receiptId}' для сообщения '{messageId}' не получена.");
         }
 
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -568,19 +469,17 @@ public class RestAPI : IRestAPI
     public async Task<MessageFile> GetReceiptFileInfo(string messageId, string receiptId, string fileId)
     {
         string url = Api + $"messages/{messageId}/receipts/{receiptId}/files/{fileId}";
-        //return await HttpClient.GetFromJsonAsync<MessageFile>(url, JsonOptions) ?? new(); // 200 Ok или 404 – Сообщение не найдено
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions)
+                ?? throw new Exception($"Информация о файле '{fileId}' квитанции '{receiptId}' для сообщения '{messageId}' не получена.");
         }
 
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -597,14 +496,12 @@ public class RestAPI : IRestAPI
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
         string url = Api + $"messages/{messageId}/receipts/{receiptId}/files/{fileId}/download";
-
         await DownloadFileAsync(url, path, overwrite);
 
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
-        //var error = await response.Content.ReadAsStringAsync();
-        //throw new Exception(error);
+        // throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     #endregion 3.1.4
@@ -619,14 +516,13 @@ public class RestAPI : IRestAPI
     public async Task DeleteMessageAsync(string messageId)
     {
         string url = Api + $"messages/{messageId}";
-        using var response = await HttpClient.DeleteAsync(url); // 200 Ok или 404 – Сообщение не найдено
+        using var response = await PollyClient.DeleteAsync(url); // 200 Ok или 404 – Сообщение не найдено
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
             // HTTP 403 – Forbidden
             // HTTP 404 – Not found
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception(error);
+            throw new Exception(await response.Content.ReadAsStringAsync());
         }
     }
 
@@ -638,14 +534,13 @@ public class RestAPI : IRestAPI
     public async Task DeleteMessageFileAsync(string messageId, string fileId)
     {
         string url = Api + $"messages/{messageId}/files/{fileId}";
-        using var response = await HttpClient.DeleteAsync(url); // 200 Ok или 404 – Сообщение не найдено
+        using var response = await PollyClient.DeleteAsync(url); // 200 Ok или 404 – Сообщение не найдено
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
             // HTTP 403 – Forbidden
             // HTTP 404 – Not found
-            var error = await response.Content.ReadAsStringAsync();
-            throw new Exception(error);
+            throw new Exception(await response.Content.ReadAsStringAsync());
         }
     }
 
@@ -674,19 +569,17 @@ public class RestAPI : IRestAPI
             url += $"?direction={direction}";
         }
 
-        //return await HttpClient.GetFromJsonAsync<Tasks>(url) ?? new(); // 200 Ok
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions)
+                ?? throw new Exception($"Справочник задач не получен.");
         }
 
         // HTTP 400 – Bad Request
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -696,19 +589,17 @@ public class RestAPI : IRestAPI
     public async Task<Tasks> GetProfileInfoAsync()
     {
         string url = Api + "profile";
-        //return await HttpClient.GetFromJsonAsync<Tasks>(url) ?? new(); // 200 Ok
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions)
+                ?? throw new Exception($"Информация о профиле не получена."); ;
         }
 
         // ?
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -718,21 +609,19 @@ public class RestAPI : IRestAPI
     public async Task<Quota> GetQuotaAsync()
     {
         string url = Api + "profile/quota";
-        //return await HttpClient.GetFromJsonAsync<Quota>(url) ?? new();
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Quota>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Quota>(stream, JsonOptions)
+                ?? throw new Exception($"Информация о квоте профиля не получена.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -742,21 +631,19 @@ public class RestAPI : IRestAPI
     public async Task<List<Notification>> GetNotificationsAsync()
     {
         string url = Api + "notifications";
-        //return await HttpClient.GetFromJsonAsync<List<Notification>>(url) ?? new(); // 200 Ok
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<List<Notification>>(stream, JsonOptions) ?? [];
+            return await JsonSerializer.DeserializeAsync<List<Notification>>(stream, JsonOptions)
+                ?? throw new Exception($"Информация о технических оповещениях не получена.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -764,24 +651,22 @@ public class RestAPI : IRestAPI
     /// </summary>
     /// <param name="page"></param>
     /// <returns></returns>
-    public async Task<Levels> GetLevelsAsync(int page = 1)
+    public async Task<DictItemsPage> GetLevelsPageAsync(int page = 1)
     {
         string url = Api + $"dictionaries/?page={page}";
-        //return await HttpClient.GetFromJsonAsync<Levels>(url) ?? new();
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Levels>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<DictItemsPage>(stream, JsonOptions)
+                ?? throw new Exception($"Список справочнков не получен.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /*
@@ -797,24 +682,22 @@ public class RestAPI : IRestAPI
     /// <param name="page"></param>
     /// <param name="guid"></param>
     /// <returns></returns>
-    public async Task<Levels1> GetLevel1Async(int page = 1, string guid = "238d0426-6f57-4c0f-8983-1d1addf8c47a")
+    public async Task<Level1ItemsPage> GetLevels1PageAsync(int page = 1, string guid = "238d0426-6f57-4c0f-8983-1d1addf8c47a")
     {
         string url = Api + $"dictionaries/{guid}?page={page}";
-        //return await HttpClient.GetFromJsonAsync<Levels1>(url) ?? new();
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Levels1>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Level1ItemsPage>(stream, JsonOptions)
+                ?? throw new Exception($"Список записей уровня 1 не не получен.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /*
@@ -830,24 +713,22 @@ public class RestAPI : IRestAPI
     /// <param name="page"></param>
     /// <param name="guid"></param>
     /// <returns></returns>
-    public async Task<Levels2> GetLevel2Async(int page = 1, string guid = "25338cfb-5713-4634-bc53-a81129483752")
+    public async Task<Level2ItemsPage> GetLevels2PageAsync(int page = 1, string guid = "25338cfb-5713-4634-bc53-a81129483752")
     {
         string url = Api + $"dictionaries/{guid}?page={page}";
-        //return await HttpClient.GetFromJsonAsync<Levels2>(url) ?? new();
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Levels2>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Level2ItemsPage>(stream, JsonOptions)
+                ?? throw new Exception($"Список записей уровня 2 не не получен.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /*
@@ -863,24 +744,22 @@ public class RestAPI : IRestAPI
     /// <param name="page"></param>
     /// <param name="guid"></param>
     /// <returns></returns>
-    public async Task<Levels3> GetLevel3Async(int page = 1, string guid = "64529d5a-b1d9-453c-96f3-f380ea577314")
+    public async Task<Level3ItemsPage> GetLevels3PageAsync(int page = 1, string guid = "64529d5a-b1d9-453c-96f3-f380ea577314")
     {
         string url = Api + $"dictionaries/{guid}?page={page}";
-        //return await HttpClient.GetFromJsonAsync<Levels3>(url) ?? new();
-
-        using var response = await HttpClient.GetAsync(url);
+        using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Levels3>(stream, JsonOptions) ?? new();
+            return await JsonSerializer.DeserializeAsync<Level3ItemsPage>(stream, JsonOptions)
+                ?? throw new Exception($"Список записей уровня 3 не не получен.");
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     /// <summary>
@@ -890,7 +769,7 @@ public class RestAPI : IRestAPI
     /// <param name="path"></param>
     /// <param name="overwrite"></param>
     /// <returns></returns>
-    public async Task DownloadLevelFileAsync(string guid, string path, bool overwrite = false)
+    public async Task DownloadLevelsFileAsync(string guid, string path, bool overwrite = false)
     {
         //TODO В случае успешного ответа возвращается двоичный поток вида application/octet-stream,
         //содержащий zip-архив с двумя файлами в формате xml. Один файл содержит описание структуры
@@ -905,8 +784,7 @@ public class RestAPI : IRestAPI
 
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        //var error = await response.Content.ReadAsStringAsync();
-        //throw new Exception(error);
+        // throw new Exception(await response.Content.ReadAsStringAsync());
     }
 
     #endregion 3.1.6
@@ -917,6 +795,83 @@ public class RestAPI : IRestAPI
 
     #endregion 3.1.7
     #region Common Helpers
+
+    /// <summary>
+    /// 3.1.3 Отправка сообщений комплексно по задачам
+    /// </summary>
+    /// <param name="task"></param>
+    /// <param name="title"></param>
+    /// <param name="path"></param>
+    /// <param name="secret"></param>
+    /// <returns></returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    public async Task<bool> UploadDirectoryAsync(string task, string? title, string path, bool secret = false)
+    {
+        var msg = new DraftMessage
+        {
+            Task = task,
+            Title = title,
+            Files = []
+        };
+
+        foreach (var sig in new DirectoryInfo(path).EnumerateFiles("*.sig")) //TODO *.*
+        {
+            var enc = new FileInfo(Path.ChangeExtension(sig.FullName, "enc"));
+            var src = new FileInfo(Path.ChangeExtension(sig.FullName, null));
+
+            if (enc.Exists) // Encrypted (ДСП)
+            {
+                msg.Files.Add(new DraftMessageFile()
+                {
+                    Name = enc.Name,
+                    Encrypted = true,
+                    Size = enc.Length
+                });
+
+                msg.Files.Add(new DraftMessageFile()
+                {
+                    Name = sig.Name,
+                    SignedFile = enc.Name,
+                    Size = sig.Length
+                });
+            }
+            else if (src.Exists) // Открытая информация
+            {
+                msg.Files.Add(new DraftMessageFile()
+                {
+                    Name = src.Name,
+                    Size = src.Length
+                });
+
+                msg.Files.Add(new DraftMessageFile()
+                {
+                    Name = sig.Name,
+                    SignedFile = src.Name,
+                    Size = sig.Length
+                });
+            }
+            else
+            {
+                throw new FileNotFoundException("Файл не найден", src.Name);
+            }
+        }
+
+        // Step 1
+        var message = await PostMessageRequestAsync(msg);
+
+        foreach (var messageFile in message.Files)
+        {
+            // Step 2
+            var uploadInstruction = await PostUploadRequestAsync(message.Id!, messageFile.Id!);
+
+            // Step3
+            await UploadFileAsync(Path.Combine(path, messageFile.Name), messageFile.Size, uploadInstruction.UploadUrl);
+        }
+
+        // Step 4
+        await PostMessageAsync(message.Id!);
+        return true;
+    }
 
     /// <summary>
     /// 
@@ -975,16 +930,20 @@ public class RestAPI : IRestAPI
         BODY – запрашиваемое сообщение целиком или указанный в Range диапазон байт.
         */
 
-        //using var stream = await HttpClient.GetStreamAsync(url);
+        //using var stream = await PollyClient.GetStreamAsync(url);
         //using var file = File.OpenWrite(filename);
         //await stream.CopyToAsync(file);
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        //request.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        request.Headers.Range = new RangeHeaderValue(0, ChunkSize - 1); // ask to chunk
+        int chunkSize = PollyClient.ChunkSize;
 
-        using var response = await HttpClient.SendAsync(request,
-            HttpCompletionOption.ResponseHeadersRead);
+        //using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        //request.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        //request.Headers.Range = new RangeHeaderValue(0, chunkSize - 1); // ask to chunk
+
+        //using var response = await PollyClient.SendAsync(request,
+        //    HttpCompletionOption.ResponseHeadersRead);
+
+        using var response = await PollyClient.GetPartialAsync(url, 0, chunkSize - 1);
 
         // 200 Ok (для разового получения)
 
@@ -1011,17 +970,21 @@ public class RestAPI : IRestAPI
             using var file = File.OpenWrite(path);
             await response.Content.CopyToAsync(file);
             response.Content.Dispose();
-            remaining -= ChunkSize;
+            remaining -= chunkSize;
 
             while (remaining > 0)
             {
-                using var partRequest = new HttpRequestMessage(HttpMethod.Get, url);
-                partRequest.Headers.Range = new RangeHeaderValue(
-                    file.Position,
-                    file.Position + Math.Min(ChunkSize, remaining) - 1);
+                //using var partRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                //partRequest.Headers.Range = new RangeHeaderValue(
+                //    file.Position,
+                //    file.Position + Math.Min(chunkSize, remaining) - 1);
 
-                using var partResponse = await HttpClient.SendAsync(partRequest,
-                    HttpCompletionOption.ResponseHeadersRead);
+                //using var partResponse = await PollyClient.SendAsync(partRequest,
+                //    HttpCompletionOption.ResponseHeadersRead);
+
+                using var partResponse = await PollyClient.GetPartialAsync(url,
+                    file.Position,
+                    file.Position + Math.Min(chunkSize, remaining) - 1);
 
                 if (partResponse.StatusCode != HttpStatusCode.PartialContent) // no next 206
                 {
@@ -1029,12 +992,11 @@ public class RestAPI : IRestAPI
                     // HTTP 404 – Not found
                     // HTTP 410 – Gone
                     // HTTP 416 – Range Not Satisfiable
-                    var err = await partResponse.Content.ReadAsStringAsync();
-                    throw new Exception(err);
+                    throw new Exception(await partResponse.Content.ReadAsStringAsync());
                 }
 
                 await partResponse.Content.CopyToAsync(file);
-                remaining -= ChunkSize;
+                remaining -= chunkSize;
             }
 
             //var range = response.Content.Headers.ContentRange ?? throw new ApplicationException("В ответе нет Range");
@@ -1059,7 +1021,7 @@ public class RestAPI : IRestAPI
             //    using var partRequest = new HttpRequestMessage(HttpMethod.Get, url);
             //    partRequest.Headers.Range = new RangeHeaderValue(streamPosition, to);
 
-            //    using var partResponse = await HttpClient.SendAsync(partRequest);
+            //    using var partResponse = await PollyClient.SendAsync(partRequest);
 
             //    if (partResponse.StatusCode != HttpStatusCode.PartialContent) // 206
             //    {
@@ -1085,8 +1047,7 @@ public class RestAPI : IRestAPI
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
-        var error = await response.Content.ReadAsStringAsync();
-        throw new Exception(error);
+        throw new Exception(await response.Content.ReadAsStringAsync());
 
 
         /*
@@ -1114,6 +1075,7 @@ public class RestAPI : IRestAPI
         }
 
         HTTP 410 – Gone
+
         {
           "HTTPStatus": 410,
           "ErrorCode": "FILE_PERMANENTLY_NOT_AVAILABLE",

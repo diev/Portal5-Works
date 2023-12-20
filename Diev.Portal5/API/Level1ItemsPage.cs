@@ -24,12 +24,12 @@ namespace Diev.Portal5.API;
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a?page=1
 /// 200 OK
 /// </summary>
-public class Levels1
-{
+public record class Level1ItemsPage
+(
     /// <summary>
     /// Example: "[{...}, ...]"
     /// </summary>
-    public List<Level1> Items { get; set; }
+    List<Level1Item> Items,
 
     /// <summary>
     /// Example: {
@@ -41,8 +41,8 @@ public class Levels1
     /// "MaxPerPage": 100
     /// }
     /// </summary>
-    public PaginationInfo PaginationInfo { get; set; }
-}
+    PaginationInfo PaginationInfo
+);
 
 /*
 {

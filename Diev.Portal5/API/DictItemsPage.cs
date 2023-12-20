@@ -25,13 +25,15 @@ namespace Diev.Portal5.API;
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries/?page=1
 /// 200 OK
 /// </summary>
-public class Levels
-{
+public record class DictItemsPage
+(
     /// <summary>
-    /// Массив записей справочника, в зависимости от его структуры. В массиве возвращаются записи справочника со статусом не равным «удален», не более 100 за один запрос.
+    /// Массив записей справочника, в зависимости от его структуры.
+    /// В массиве возвращаются записи справочника со статусом не равным «удален»,
+    /// не более 100 за один запрос.
     /// Example: "[{...}, ...]"
     /// </summary>
-    public List<Level1> Items { get; set; }
+    List<DictItem> Items,
 
     /// <summary>
     /// Объект с информацией о пагинации.
@@ -44,8 +46,8 @@ public class Levels
     /// "MaxPerPage": 100
     /// }
     /// </summary>
-    public PaginationInfo PaginationInfo { get; set; }
-}
+    PaginationInfo PaginationInfo
+);
 
 /*
 [

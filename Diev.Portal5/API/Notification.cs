@@ -24,20 +24,20 @@ namespace Diev.Portal5.API;
 /// GET https://portal5.cbr.ru/back/rapi2/notifications
 /// 200 OK
 /// </summary>
-public class Notification
-{
+public record class Notification
+(
     /// <summary>
     /// Текст технического оповещения.
     /// Example:
     /// </summary>
-    public string Text { get; set; }
+    string Text,
 
     /// <summary>
     /// Дата и время технического оповещения.
     /// Example:
     /// </summary>
-    public DateTime Date { get; set; }
-}
+    DateTime Date
+);
 
 /*
 [

@@ -26,49 +26,49 @@ namespace Diev.Portal5.API;
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314?page=2 (level 3 Addresse)
 /// 200 OK
 /// </summary>
-public class PaginationInfo
-{
+public record class PaginationInfo
+(
     /// <summary>
     /// Всего записей в справочнике.
     /// Example (4): 4
     /// Example (124): 124
     /// </summary>
-    public int TotalRecords { get; set; }
+    int TotalRecords,
 
     /// <summary>
     /// Всего страниц с разбивкой не более 100 записей на странице.
     /// Example (4): 1
     /// Example (124): 2
     /// </summary>
-    public int TotalPages { get; set; }
+    int TotalPages,
 
     /// <summary>
     /// Текущая страница (соответствует n из запроса page={n}).
     /// Example (4): 1
     /// Example (124): 1
     /// </summary>
-    public int CurrentPage { get; set; }
+    int CurrentPage,
 
     /// <summary>
     /// Число записей на текущей странице или null, если запрошенная страница не существует.
     /// Example (4): 4
     /// Example (124): 100
     /// </summary>
-    public int? PerCurrentPage { get; set; }
+    int? PerCurrentPage,
 
     /// <summary>
     /// Число записей на следующей страница или null, если страница не существует.
     /// Example (4): null
     /// Example (124): 24
     /// </summary>
-    public int? PerNextPage { get; set; }
+    int? PerNextPage,
 
     /// <summary>
     /// Максимальное количество записей на странице (всегда 100).
     /// Example: 100
     /// </summary>
-    public int MaxPerPage { get; set; }
-}
+    int MaxPerPage
+);
 
 /*
 {

@@ -77,7 +77,10 @@ namespace CryptoBot;
 
 internal class Worker
 {
-    public RestClient RestClient = new();
+    public RestAPI RestAPI = new();
+
+    public string Username { get; set; }
+    public string Password { get; set; }
 
     public bool Zadacha130 { get; set; }
     public bool Zadacha137 { get; set; }
@@ -90,21 +93,21 @@ internal class Worker
 
         Program.Smtp.Subscribers = Subscribers;
 
-        Program.Settings.Bind(nameof(RestClient), RestClient);
-        RestClient.Initialize();
+        Program.Settings.Bind(nameof(RestAPI), this);
+        RestAPI.Login(Username, Password);
     }
 
     public async Task Run()
     {
         if (Zadacha130)
         {
-            var task130 = new Zadacha130(RestClient);
+            var task130 = new Zadacha130(RestAPI);
             await task130.Run();
         }
 
         if (Zadacha137)
         {
-            var task137 = new Zadacha137(RestClient);
+            var task137 = new Zadacha137(RestAPI);
             await task137.Run();
         }
 

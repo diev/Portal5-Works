@@ -24,26 +24,26 @@ namespace Diev.Portal5.API;
 /// GET https://portal5.cbr.ru/back/rapi2/profile/quota
 /// 200 OK
 /// </summary>
-public class Quota
-{
+public record class Quota
+(
     /// <summary>
     /// Информация о доступной квоте в байтах.
     /// Example: 10737418240 // 10Gb
     /// </summary>
-    public long TotalQuota { get; set; }
+    long TotalQuota,
 
     /// <summary>
     /// Информация об использованной квоте в байтах.
     /// Example: 7478392970 // 70%
     /// </summary>
-    public long UsedQuota { get; set; }
+    long UsedQuota,
 
     /// <summary>
     /// Информация о максимальном размере сообщения в байтах.
     /// Example: 2147483648 // 2Gb
     /// </summary>
-    public long MessageSize { get; set; }
-}
+    long MessageSize
+);
 
 /*
 {

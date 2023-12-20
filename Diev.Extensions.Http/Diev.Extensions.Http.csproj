@@ -12,8 +12,4 @@
     <Company>diev</Company>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Diev.Extensions.Http\Diev.Extensions.Http.csproj" />
-  </ItemGroup>
-
 </Project>

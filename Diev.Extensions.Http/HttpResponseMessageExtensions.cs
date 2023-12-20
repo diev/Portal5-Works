@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2023 Dmitrii Evdokimov
+Copyright 2023 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #endregion
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Diev.Extensions.Http;
 
@@ -47,8 +41,21 @@ public static class HttpResponseMessageExtensions
         }
 
         var request = response.RequestMessage;
+
         Console.Write($"{request?.Method} ");
         Console.Write($"{request?.RequestUri} ");
         Console.WriteLine($"HTTP/{request?.Version}");
+    }
+
+    public static void WriteRequest(this HttpResponseMessage response, out string output)
+    {
+        if (response is null)
+        {
+            output = "ERROR";
+            return;
+        }
+
+        var request = response.RequestMessage;
+        output = $"{request?.Method} {request?.RequestUri} HTTP/{request?.Version}";
     }
 }

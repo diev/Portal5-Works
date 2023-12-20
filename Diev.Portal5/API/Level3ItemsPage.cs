@@ -17,68 +17,34 @@ limitations under the License.
 */
 #endregion
 
-using System.Text.Json.Serialization;
-
 namespace Diev.Portal5.API;
 
 /// <summary>
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314 (level 3)
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314 (level 3 Addresse)
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314?page=3
+/// 200 OK
 /// </summary>
-public class Level3
-{
+public record class Level3ItemsPage
+(
     /// <summary>
-    /// Example: "36"
+    /// Example: "[{...}, ...]"
     /// </summary>
-    public string? Code { get; set; }
+    List<Level3Item> Items,
 
     /// <summary>
-    /// Example: "Волго-Вятское ГУ Банка России"
+    /// Example: {
+    /// "TotalRecords": 124,
+    /// "TotalPages": 2,
+    /// "CurrentPage": 1,
+    /// "PerCurrentPage": 100,
+    /// "PerNextPage": 24,
+    /// "MaxPerPage": 100
+    /// }
     /// </summary>
-    public string? Subject { get; set; }
-
-    /// <summary>
-    /// Example: "Волго-Вятское ГУ Банка России"
-    /// </summary>
-    public string? Organization { get; set; }
-
-    /// <summary>
-    /// Example: "Административное управление"
-    /// </summary>
-    public string? Addresse { get; set; }
-
-    /// <summary>
-    /// Example: "22_lk"
-    /// </summary>
-    public string? DirSDS { get; set; }
-
-    /// <summary>
-    /// Example: "ВВГУ"
-    /// </summary>
-    public string? TypeIE2 { get; set; }
-
-    /// <summary>
-    /// Example: "ALL"
-    /// </summary>
-    public string? Prefix { get; set; }
-
-    /// <summary>
-    /// Example: "01399905-1fb8-41ad-8053-b0ac00f5e6bd"
-    /// </summary>
-    public string? Id { get; set; }
-
-    [JsonPropertyName("row_num")]
-    public int? RowNum { get; set; }
-}
+    PaginationInfo PaginationInfo
+);
 
 /*
-Header:
-EPVV-Total: 124
-EPVV-TotalPages: 2
-EPVV-CurrentPage: 1
-EPVV-PerCurrentPage: 100
-EPVV-PerNextPage: 24
-
-Body:
 {
     "Items": [
         {
@@ -1088,6 +1054,285 @@ Body:
         "CurrentPage": 1,
         "PerCurrentPage": 100,
         "PerNextPage": 24,
+        "MaxPerPage": 100
+    }
+}
+*/
+
+/* page=2
+{
+    "Items": [
+        {
+            "Code": "18",
+            "Subject": "Отделение по Псковской обл. Северо-Западного ГУ Банка России",
+            "Organization": "Отделение по Псковской обл. Северо-Западного ГУ Банка России",
+            "Addressee": "(58) руководство Отделения Псков",
+            "DirSDS": "40_lk",
+            "TypeIE2": "СЗГУ",
+            "Prefix": "ALL",
+            "Id": "5fe3da3f-dec2-4760-b015-b0ac00f5e6bd",
+            "row_num": 101
+        },
+        {
+            "Code": "65",
+            "Subject": "Отделение-НБ по Республике Хакасия Сибирского ГУ Банка России",
+            "Organization": "Отделение-НБ по Республике Хакасия Сибирского ГУ Банка России",
+            "Addressee": "95_Руководство",
+            "DirSDS": "50_lk",
+            "TypeIE2": "СГУ",
+            "Prefix": "ALL",
+            "Id": "0814b537-7922-42ec-b0c9-b0ac00f5e6bd",
+            "row_num": 102
+        },
+        {
+            "Code": "28",
+            "Subject": "Отделение по г. Севастополь Южного ГУ Банка России",
+            "Organization": "Отделение по г. Севастополь Южного ГУ Банка России",
+            "Addressee": "Административный отдел (Севастополь)",
+            "DirSDS": "03_lk",
+            "TypeIE2": "ЮГУ",
+            "Prefix": "ALL",
+            "Id": "ff4ecf63-fb9b-4e78-b12f-b0ac00f5e6bd",
+            "row_num": 103
+        },
+        {
+            "Code": "56",
+            "Subject": "Отделение по Красноярскому краю Сибирского ГУ Банка России",
+            "Organization": "Отделение по Красноярскому краю Сибирского ГУ Банка России",
+            "Addressee": "04_Руководство Отделения",
+            "DirSDS": "50_lk",
+            "TypeIE2": "СГУ",
+            "Prefix": "ALL",
+            "Id": "d01dabef-a50c-4194-b1fa-b0ac00f5e6bd",
+            "row_num": 104
+        },
+        {
+            "Code": "87",
+            "Subject": "Управление СЗППиОДФУ в Дальневосточном ФО",
+            "Organization": "Управление СЗППиОДФУ в Дальневосточном ФО",
+            "Addressee": "Управление СЗППиОДФУ в Дальневосточном ФО",
+            "DirSDS": "05_lk",
+            "TypeIE2": "СЗППОДФУ",
+            "Prefix": "ALL",
+            "Id": "dc0ccfc2-72b3-4a08-b315-b0ac00f5e6bd",
+            "row_num": 105
+        },
+        {
+            "Code": "27",
+            "Subject": "Отделение по Ростовской обл. Южного ГУ Банка России",
+            "Organization": "Отделение по Ростовской обл. Южного ГУ Банка России",
+            "Addressee": "Административный отдел",
+            "DirSDS": "03_lk",
+            "TypeIE2": "ЮГУ",
+            "Prefix": "ALL",
+            "Id": "097c2b8f-b3ba-43be-b3f4-b0ac00f5e6bd",
+            "row_num": 106
+        },
+        {
+            "Code": "011",
+            "Subject": "Отделение по Липецкой обл. ГУ Банка России по ЦФО",
+            "Organization": "Отделение по Липецкой обл. ГУ Банка России по ЦФО",
+            "Addressee": "Руководство",
+            "DirSDS": "45_lk",
+            "TypeIE2": "ЦФО",
+            "Prefix": "ALL",
+            "Id": "2b4465e1-3be1-40da-b4d6-b0ac00f5e6bd",
+            "row_num": 107
+        },
+        {
+            "Code": "112",
+            "Subject": "Управление поведенческого надзора в сфере ценных бумаг, коллективных инвестиций и корпоративных отношений",
+            "Organization": "Банк России",
+            "Addressee": "Служба по защите прав потребителей и обеспечению доступности финансовых услуг",
+            "DirSDS": "48_lk",
+            "TypeIE2": "СЗППОДФУ",
+            "Prefix": "ALL",
+            "Id": "0aec69a0-4c60-40cd-b500-b0ac00f5e6bd",
+            "row_num": 108
+        },
+        {
+            "Code": "75",
+            "Subject": "Департамент допуска и прекращения деятельности финансовых организаций",
+            "Organization": "Банк России",
+            "Addressee": "Департамент допуска и прекращения деятельности финансовых организаций",
+            "DirSDS": "48_lk",
+            "TypeIE2": "ДДПДФО",
+            "Prefix": "ALL",
+            "Id": "74bb3dd7-6ff2-4c7b-b574-b0ac00f5e6bd",
+            "row_num": 109
+        },
+        {
+            "Code": "29",
+            "Subject": "Отделение-НБ по Республике Адыгея Южного ГУ Банка России",
+            "Organization": "Отделение-НБ по Республике Адыгея Южного ГУ Банка России",
+            "Addressee": "Административный отдел",
+            "DirSDS": "03_lk",
+            "TypeIE2": "ЮГУ",
+            "Prefix": "ALL",
+            "Id": "c0039a96-9ce4-442a-b5e5-b0ac00f5e6bd",
+            "row_num": 110
+        },
+        {
+            "Code": "015",
+            "Subject": "Отделение по Тамбовской обл. ГУ Банка России по ЦФО",
+            "Organization": "Отделение по Тамбовской обл. ГУ Банка России по ЦФО",
+            "Addressee": "Руководство",
+            "DirSDS": "45_lk",
+            "TypeIE2": "ЦФО",
+            "Prefix": "ALL",
+            "Id": "eb9146f4-1577-4c0d-b5ed-b0ac00f5e6bd",
+            "row_num": 111
+        },
+        {
+            "Code": "119",
+            "Subject": "Управление анализа рисков и внутреннего контроля",
+            "Organization": "Банк России",
+            "Addressee": "Служба по защите прав потребителей и обеспечению доступности финансовых услуг",
+            "DirSDS": "48_lk",
+            "TypeIE2": "СЗППОДФУ",
+            "Prefix": "ALL",
+            "Id": "84ca931c-2a3d-4eff-b65c-b0ac00f5e6bd",
+            "row_num": 112
+        },
+        {
+            "Code": "98",
+            "Subject": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+            "Organization": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+            "Addressee": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+            "DirSDS": "40_lk",
+            "TypeIE2": "ГИБР",
+            "Prefix": "ALL",
+            "Id": "228f2def-70f5-4647-b751-b0ac00f5e6bd",
+            "row_num": 113
+        },
+        {
+            "Code": "38",
+            "Subject": "Отделение по Самарской обл. Волго-Вятского ГУ Банка России",
+            "Organization": "Отделение по Самарской обл. Волго-Вятского ГУ Банка России",
+            "Addressee": "Руководство Отделения Самара",
+            "DirSDS": "22_lk",
+            "TypeIE2": "ВВГУ",
+            "Prefix": "ALL",
+            "Id": "da2d5297-bf3c-44cc-b778-b0ac00f5e6bd",
+            "row_num": 114
+        },
+        {
+            "Code": "61",
+            "Subject": "Отделение по Забайкальскому краю Сибирского ГУ Банка России",
+            "Organization": "Отделение по Забайкальскому краю Сибирского ГУ Банка России",
+            "Addressee": "76_Руководство",
+            "DirSDS": "50_lk",
+            "TypeIE2": "СГУ",
+            "Prefix": "ALL",
+            "Id": "30ac6cef-2d99-4e3c-b83f-b0ac00f5e6bd",
+            "row_num": 115
+        },
+        {
+            "Code": "108",
+            "Subject": "Уральский межрегиональный центр инспектирования ГИ Банка России",
+            "Organization": "Уральский межрегиональный центр инспектирования ГИ Банка России",
+            "Addressee": "Уральский межрегиональный центр инспектирования ГИ Банка России",
+            "DirSDS": "65_lk",
+            "TypeIE2": "УГУ",
+            "Prefix": "ALL",
+            "Id": "aa850cf5-a76f-4b28-b906-b0ac00f5e6bd",
+            "row_num": 116
+        },
+        {
+            "Code": "80",
+            "Subject": "Управление поддержки потребителей «С» Единого коммуникационного центра СЗППиОДФУ",
+            "Organization": "Управление поддержки потребителей «С» Единого коммуникационного центра СЗППиОДФУ",
+            "Addressee": "Управление поддержки потребителей «С» Единого коммуникационного центра СЗППиОДФУ",
+            "DirSDS": "22_lk",
+            "TypeIE2": "СЗППОДФУ",
+            "Prefix": "ALL",
+            "Id": "732e94fc-6a26-46a8-b99e-b0ac00f5e6bd",
+            "row_num": 117
+        },
+        {
+            "Code": "71",
+            "Subject": "Отделение по Сахалинской обл. Дальневосточного ГУ Банка России",
+            "Organization": "Отделение по Сахалинской обл. Дальневосточного ГУ Банка России",
+            "Addressee": "(764)Руководство",
+            "DirSDS": "05_lk",
+            "TypeIE2": "ДГУ",
+            "Prefix": "ALL",
+            "Id": "d6c66d1d-3273-49df-b9ae-b0ac00f5e6bd",
+            "row_num": 118
+        },
+        {
+            "Code": "26",
+            "Subject": "Отделение по Республике Крым Южного ГУ Банка России",
+            "Organization": "Отделение по Республике Крым Южного ГУ Банка России",
+            "Addressee": "Административный отдел",
+            "DirSDS": "03_lk",
+            "TypeIE2": "ЮГУ",
+            "Prefix": "ALL",
+            "Id": "93cc4541-8880-4cd3-bab3-b0ac00f5e6bd",
+            "row_num": 119
+        },
+        {
+            "Code": "30",
+            "Subject": "Отделение - Национальный банк по Республике Дагестан Южного главного управления Центрального банка Российской Федерации",
+            "Organization": "Отделение - Национальный банк по Республике Дагестан Южного главного управления Центрального банка Российской Федерации",
+            "Addressee": "Административный отдел",
+            "DirSDS": "03_lk",
+            "TypeIE2": "ЮГУ",
+            "Prefix": "ALL",
+            "Id": "a6cd8407-8a91-42e0-bd55-b0ac00f5e6bd",
+            "row_num": 120
+        },
+        {
+            "Code": "03",
+            "Subject": "Отделение по Брянской обл. ГУ Банка России по ЦФО",
+            "Organization": "Отделение по Брянской обл. ГУ Банка России по ЦФО",
+            "Addressee": "Руководство",
+            "DirSDS": "45_lk",
+            "TypeIE2": "ЦФО",
+            "Prefix": "ALL",
+            "Id": "e1af2ed9-d94b-4d16-bd92-b0ac00f5e6bd",
+            "row_num": 121
+        },
+        {
+            "Code": "117",
+            "Subject": "Центр финансового мониторинга и валютного контроля (г. Владивосток)",
+            "Organization": "Центр финансового мониторинга и валютного контроля (г. Владивосток)",
+            "Addressee": "Центр финансового мониторинга и валютного контроля (г. Владивосток)",
+            "DirSDS": "05_lk",
+            "TypeIE2": "ДГУ",
+            "Prefix": "ALL",
+            "Id": "53d57d4c-6b89-41c5-bdc4-b0ac00f5e6bd",
+            "row_num": 122
+        },
+        {
+            "Code": "39",
+            "Subject": "Отделение по Пензенской обл. Волго-Вятского ГУ Банка России",
+            "Organization": "Отделение по Пензенской обл. Волго-Вятского ГУ Банка России",
+            "Addressee": "56_Руководство",
+            "DirSDS": "22_lk",
+            "TypeIE2": "ВВГУ",
+            "Prefix": "ALL",
+            "Id": "cf331984-ef54-4507-bdcb-b0ac00f5e6bd",
+            "row_num": 123
+        },
+        {
+            "Code": "106",
+            "Subject": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+            "Organization": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+            "Addressee": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+            "DirSDS": "40_lk",
+            "TypeIE2": "СЗГУ",
+            "Prefix": "ALL",
+            "Id": "5c3aabaa-31ad-4818-bf4d-b0ac00f5e6bd",
+            "row_num": 124
+        }
+    ],
+    "PaginationInfo": {
+        "TotalRecords": 124,
+        "TotalPages": 2,
+        "CurrentPage": 2,
+        "PerCurrentPage": 24,
+        "PerNextPage": null,
         "MaxPerPage": 100
     }
 }

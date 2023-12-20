@@ -22,24 +22,24 @@ namespace Diev.Portal5.API;
 /// <summary>
 /// Краткое наименование вида деятельности.
 /// </summary>
-public class Activities
-{
+public record class Activities
+(
     /// <summary>
     /// Полное наименование вида деятельности (необязательное поле).
     /// </summary>
-    public string? FullName { get; set; }
+    string? FullName,
 
     /// <summary>
     /// Краткое наименование вида деятельности (необязательное поле).
     /// </summary>
-    public string? ShortName { get; set; }
+    string? ShortName,
 
     /// <summary>
     /// Поднадзорное подразделение:
     /// Name – наименование поднадзорного подразделения Банка России (необязательное поле).
     /// </summary>
-    public SupervisionDevision? SupervisionDevision { get; set; } // Division?
-}
+    SupervisionDevision? SupervisionDevision // Division?
+);
 
 /*
 [

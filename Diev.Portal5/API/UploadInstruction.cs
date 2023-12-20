@@ -24,17 +24,17 @@ namespace Diev.Portal5.API;
 /// POST https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}/createUploadSession
 /// 200 OK
 /// </summary>
-public class UploadInstruction
-{
+public record class UploadInstruction
+(
     /// <summary>
     /// Путь для загрузки файла.
     /// Example: "https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}"
     /// </summary>
-    public string UploadUrl { get; set; } = null!;
+    string UploadUrl,
 
     /// <summary>
     /// Дата и время истечения сессии.
     /// Example: "2023-09-25T16:03:31.81615122Z"
     /// </summary>
-    public DateTime ExpirationDateTime { get; set; }
-}
+    DateTime ExpirationDateTime
+);

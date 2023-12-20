@@ -26,28 +26,28 @@ namespace Diev.Portal5.API;
 /// 3: Руководство Банка России (РУ)
 /// 4: Банк России (АД)
 /// </summary>
-public class Level1
-{
+public record class Level1Item
+(
     /// <summary>
     /// Example: "4"
     /// </summary>
-    public string? Code { get; set; }
+    string? Code,
 
     /// <summary>
     /// Example: "Банк России"
     /// </summary>
-    public string? Subjects1 { get; set; }
+    string? Subjects1,
 
     /// <summary>
     /// Example: "АД"
     /// </summary>
-    public string? TypeIE { get; set; }
+    string? TypeIE,
 
     /// <summary>
     /// Example: "6fc60350-fa90-450e-9fea-1b0703501d6a"
     /// </summary>
-    public string? Id { get; set; }
-}
+    string? Id
+);
 
 /*
 Header:

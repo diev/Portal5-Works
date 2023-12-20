@@ -22,13 +22,13 @@ namespace Diev.Portal5.API;
 /// <summary>
 /// Поднадзорное подразделение.
 /// </summary>
-public class SupervisionDevision
-{
+public record class SupervisionDevision
+(
     /// <summary>
     /// Наименование поднадзорного подразделения Банка России (необязательное поле).
     /// </summary>
-    public string? Name { get; set; }
-}
+    string? Name
+);
 
 /*
 {

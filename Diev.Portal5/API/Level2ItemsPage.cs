@@ -21,58 +21,30 @@ namespace Diev.Portal5.API;
 
 /// <summary>
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries/25338cfb-5713-4634-bc53-a81129483752 (level 2)
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/25338cfb-5713-4634-bc53-a81129483752?page=2
+/// 200 OK
 /// </summary>
-public class Level2
-{
+public record class Level2ItemsPage
+(
     /// <summary>
-    /// Example: "147"
+    /// Example: "[{...}, ...]"
     /// </summary>
-    public string? Code { get; set; }
+    List<Level2Item> Items,
 
     /// <summary>
-    /// Example: "Департамент статистики"
+    /// Example: {
+    /// "TotalRecords": 124,
+    /// "TotalPages": 2,
+    /// "CurrentPage": 1,
+    /// "PerCurrentPage": 100,
+    /// "PerNextPage": 24,
+    /// "MaxPerPage": 100
+    /// }
     /// </summary>
-    public string? Subjects2 { get; set; }
-
-    /// <summary>
-    /// Example: "ЦА"
-    /// </summary>
-    public string? TypeIE { get; set; }
-
-    /// <summary>
-    /// Example: ""
-    /// </summary>
-    public string? TypeIE2 { get; set; }
-
-    /// <summary>
-    /// Example: "Департамент статистики"
-    /// </summary>
-    public string? Addresse { get; set; }
-
-    /// <summary>
-    /// Example: "48_lk"
-    /// </summary>
-    public string? DirSDS { get; set; }
-
-    /// <summary>
-    /// Example: "Банк России"
-    /// </summary>
-    public string? Organization { get; set; }
-
-    /// <summary>
-    /// Example: "6fc60350-fa90-450e-9fea-1b0703501d6a"
-    /// </summary>
-    public string? Id { get; set; }
-}
+    PaginationInfo PaginationInfo
+);
 
 /*
-Header:
-EPVV-Total: 59
-EPVV-TotalPages: 1
-EPVV-CurrentPage: 1
-EPVV-PerCurrentPage: 59
-
-Body:
 {
     "Items": [
         {

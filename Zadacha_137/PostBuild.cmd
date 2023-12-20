@@ -32,7 +32,7 @@ rem Test build folder
 set Test=$TestBuild$
 
 rem Add extra projects to pack their sources here
-set AddDirNames=Diev.Extensions Diev.Extensions.Http Diev.Portal5
+set AddDirNames=Diev.Extensions.Http Diev.Portal5
 
 echo === Pack sources ===
 

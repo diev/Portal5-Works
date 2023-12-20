@@ -21,30 +21,58 @@ namespace Diev.Portal5.API;
 
 /// <summary>
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries/25338cfb-5713-4634-bc53-a81129483752 (level 2)
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/25338cfb-5713-4634-bc53-a81129483752?page=2
-/// 200 OK
 /// </summary>
-public class Levels2
-{
+public record class Level2Item
+(
     /// <summary>
-    /// Example: "[{...}, ...]"
+    /// Example: "147"
     /// </summary>
-    public List<Level2> Items { get; set; }
+    string? Code,
 
     /// <summary>
-    /// Example: {
-    /// "TotalRecords": 124,
-    /// "TotalPages": 2,
-    /// "CurrentPage": 1,
-    /// "PerCurrentPage": 100,
-    /// "PerNextPage": 24,
-    /// "MaxPerPage": 100
-    /// }
+    /// Example: "Департамент статистики"
     /// </summary>
-    public PaginationInfo PaginationInfo { get; set; }
-}
+    string? Subjects2,
+
+    /// <summary>
+    /// Example: "ЦА"
+    /// </summary>
+    string? TypeIE,
+
+    /// <summary>
+    /// Example: ""
+    /// </summary>
+    string? TypeIE2,
+
+    /// <summary>
+    /// Example: "Департамент статистики"
+    /// </summary>
+    string? Addresse,
+
+    /// <summary>
+    /// Example: "48_lk"
+    /// </summary>
+    string? DirSDS,
+
+    /// <summary>
+    /// Example: "Банк России"
+    /// </summary>
+    string? Organization,
+
+    /// <summary>
+    /// Example: "6fc60350-fa90-450e-9fea-1b0703501d6a"
+    /// </summary>
+    string? Id
+);
 
 /*
+Header:
+EPVV-Total: 59
+EPVV-TotalPages: 1
+EPVV-CurrentPage: 1
+EPVV-PerCurrentPage: 59
+
+Body:
 {
     "Items": [
         {

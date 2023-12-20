@@ -23,26 +23,26 @@ namespace Diev.Portal5.API;
 /// Список справочников.
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries
 /// </summary>
-public class Level
-{
+public record class DictItem
+(
     /// <summary>
     /// Уникальный идентификатор справочника, используется для идентификации задачи.
     /// Example: "e88c4281-7109-438e-b72b-139fe82308a1"
     /// </summary>
-    public string Id { get; set; } = null!;
+    string Id,
 
     /// <summary>
     /// Текстовое наименование справочника.
     /// Example: "Расписание кредитных операций"
     /// </summary>
-    public string Text { get; set; } = null!;
+    string Text,
 
     /// <summary>
     /// Дата последнего обновления справочника.
     /// Example: "2023-11-09T03:22:00Z"
     /// </summary>
-    public string Date { get; set; } = null!;
-}
+    string Date
+);
 
 /*
 [
