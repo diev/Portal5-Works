@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CryptoBot": {
+      "commandName": "Project",
+      "commandLineArgs": "\r\n"
+    }
+  }
+}

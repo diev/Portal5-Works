@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Authors>Diev</Authors>
+    <Version>8.2024.320.0</Version>
+    <Description>Exchange point to upload/download with Portal5.</Description>
+    <Copyright>Copyright 2022-2024 Dmitrii Evdokimov</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Company>diev</Company>
+    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diev.Extensions.Pkcs\Diev.Extensions.Pkcs.csproj" />
+    <ProjectReference Include="..\Diev.Extensions\Diev.Extensions.csproj" />
+    <ProjectReference Include="..\Diev.Portal5\Diev.Portal5.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="CryptoBot.config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OS)' == 'Windows_NT' and '$(ConfigurationName)' == 'Release'">
+    <Exec Command="call PostBuild.cmd $(ProjectPath)" />
+  </Target>
+
+</Project>

@@ -1,0 +1,133 @@
+﻿#region License
+/*
+Copyright 2022-2023 Dmitrii Evdokimov
+Open source software
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#endregion
+
+using System.Text;
+
+namespace Diev.Portal5.API.Tools;
+
+/// <summary>
+/// Критерии запроса списка сообщений.
+/// </summary>
+public class MessagesFilter
+{
+    /// <summary>
+    /// Наименование задачи
+    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные в рамках указанной задачи).
+    /// </summary>
+    public string? Task { get; set; }
+
+    /// <summary>
+    /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»)
+    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные позднее указанной даты).
+    /// </summary>
+    public DateTime? MinDateTime { get; set; }
+
+    /// <summary>
+    /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»)
+    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
+    /// </summary>
+    public DateTime? MaxDateTime { get; set; }
+
+    /// <summary>
+    /// Минимально возможный размер сообщения в байтах
+    /// (если параметр будет указан, то будут возвращены только сообщения больше указанного размера).
+    /// </summary>
+    public int? MinSize { get; set; }
+
+    /// <summary>
+    /// Максимально возможный размер сообщения в байтах
+    /// (если параметр будет указан, то будут возвращены только сообщения больше указанного размера).
+    /// </summary>
+    public int? MaxSize { get; set; }
+
+    /// <summary>
+    /// Тип сообщения исходящее (значение: outbox), входящее (значение: inbox).
+    /// (если параметр будет указан, то будут возвращены только сообщения соответствующего типа).
+    /// </summary>
+    public string? Type { get; set; }
+
+    /// <summary>
+    /// Статус сообщения:
+    /// - Черновик (значение: draft),
+    /// - Отправлено (значение: sent),
+    /// - Загружено (значение: delivered),
+    /// - Ошибка (значение: error),
+    /// - Принято в обработку (значение: processing),
+    /// - Зарегистрировано (значение: registered),
+    /// - Отклонено (значение: rejected),
+    /// - Новое (значение: new),
+    /// - Прочитано (значение: read),
+    /// - Отправлен ответ (значение: replied),
+    /// - Доставлено (значение: success)
+    /// (если параметр будет указан, то будут возвращены только сообщения с соответствующим статусом).
+    /// </summary>
+    public string? Status { get; set; }
+
+    /// <summary>
+    /// Номер страницы списка сообщений в разбивке по 100 сообщений (если не задан, то вернутся первые 100 сообщений).
+    /// Пример: GET: */messages?page={n}, где {n} – номер страницы содержащей 100 сообщений (n-я сотня сообщений).
+    /// Допустимые значения: n > 0 (положительные целые числа, больше 0).
+    /// Если запрос страницы не указан, возвращается первая страница сообщений.
+    /// Если n за границами диапазона страниц, то вернется пустой массив сообщений.
+    /// В случае некорректного номера страницы – ошибка. 
+    /// </summary>
+    public int? Page { get; set; }
+
+    public string GetQuery(int? page = 1)
+    {
+        var query = new StringBuilder();
+
+        if (Task != null)
+            query.Append("&Task=").Append(Task);
+
+        if (MinDateTime != null)
+            query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd}T00:00:00Z", MinDateTime); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+
+        if (MaxDateTime != null)
+            query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd}T23:59:59Z", MaxDateTime); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+
+        if (MinSize != null)
+            query.Append("&MinSize=").Append(MinSize);
+
+        if (MaxSize != null)
+            query.Append("&MaxSize=").Append(MaxSize);
+
+        if (Type != null)
+            query.Append("&Type=").Append(Type);
+
+        if (Status != null)
+            query.Append("&Status=").Append(Status);
+
+        if (page != null && page > 1)
+        {
+            query.Append("&Page=").Append(page);
+        }
+        else if (Page != null && Page > 1)
+        {
+            query.Append("&Page=").Append(Page);
+        }
+
+        if (query.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        return "?" + query.ToString()[1..];
+    }
+}
