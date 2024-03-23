@@ -30,6 +30,8 @@ namespace Diev.Extensions.Crypto;
 /// </summary>
 public class CryptoPro
 {
+    private static readonly char[] _separator = [' ', ',', ';'];
+
     /// <summary>
     /// Исполняемый файл командной строки.
     /// </summary>
@@ -209,7 +211,7 @@ public class CryptoPro
     /// <exception cref="ApplicationException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
-    public async Task<bool> EncryptFileAsync(string file, string resultFile, string[]? to = null)
+    public async Task<bool> EncryptFileAsync(string file, string resultFile, string? to = null)
     {
         // Файлы более 256k (или все) должны шифроваться потоковым методом (-stream)
         // Файлы должны шифроваться по ГОСТ Р 34.12-2015 Кузнечик (-1215gh)
@@ -219,8 +221,11 @@ public class CryptoPro
 
         if (to != null)
         {
-            foreach (var cert in to)
+            foreach (var cert in to.Split(_separator,
+                StringSplitOptions.TrimEntries & StringSplitOptions.RemoveEmptyEntries))
+            {
                 cmd.Append(" -cert ").Append(cert);
+            }
         }
 
         await StartAsync(Exe, cmd, Visible);

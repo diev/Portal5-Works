@@ -18,17 +18,16 @@ limitations under the License.
 #endregion
 
 using System.Text;
-
 using Diev.Extensions.Crypto;
 using Diev.Extensions.Pkcs;
-using Diev.Portal5;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
+
 using Microsoft.Extensions.Configuration;
 
-namespace CryptoBot;
+namespace CryptoBot.Tasks;
 
-internal class BulkLoad(RestAPI restAPI, IConfiguration config)
+internal class BulkLoad()
 {
     private readonly EnumerationOptions _enumOptions = new();
     private bool _ok;
@@ -38,9 +37,9 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
     public bool Decrypt { get; set; }
     public bool Delete { get; set; }
 
-    public async Task Run(MessagesFilter filter, int page = 1)
+    public async Task RunAsync(MessagesFilter filter, int page = 1)
     {
-        config.Bind(nameof(BulkLoad), this);
+        Program.Config.Bind(nameof(BulkLoad), this);
 
         //GET: */messages?Type=”inbox”&Status =”read”&Page=2
         // получить прочитанные Входящие
@@ -48,7 +47,7 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
         //GET: */messages?Task=”Zadacha_2-1&Status =”registered”
         // получить все документы, отправленные участником и зарегистрированные Банком России
 
-        var messagesPage = await restAPI.GetMessagesPageAsync(filter, page);
+        var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, page);
 
         if (messagesPage.Messages.Count == 0)
             throw new ApplicationException("Получен пустой список сообщений.");
@@ -128,7 +127,7 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
 
             Thread.Sleep(4000); // anti DDoS
 
-            messagesPage = await restAPI.GetMessagesPageAsync(filter, ++page); //TODO gaps when Delete!
+            messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, ++page); //TODO gaps when Delete!
         }
 
         Console.WriteLine("--- Page end ---");
@@ -214,7 +213,7 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
     {
         try
         {
-            await restAPI.DownloadMessageJsonAsync(messageId, path, Overwrite);
+            await Program.RestAPI.DownloadMessageJsonAsync(messageId, path, Overwrite);
             Thread.Sleep(1000); // anti DDoS
         }
         catch
@@ -227,7 +226,7 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
     {
         try
         {
-            await restAPI.DownloadMessageZipAsync(messageId, path, Overwrite);
+            await Program.RestAPI.DownloadMessageZipAsync(messageId, path, Overwrite);
             Thread.Sleep(1000); // anti DDoS
         }
         catch
@@ -253,7 +252,7 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
     {
         try
         {
-            await restAPI.DownloadMessageFileAsync(messageId, file.Id!, path, Overwrite);
+            await Program.RestAPI.DownloadMessageFileAsync(messageId, file.Id!, path, Overwrite);
             Thread.Sleep(1000); // anti DDoS
             return true;
         }
@@ -279,11 +278,11 @@ internal class BulkLoad(RestAPI restAPI, IConfiguration config)
         File.Delete(path);
     }
 
-    private async Task DeleteMessage(Message message)
+    private static async Task DeleteMessage(Message message)
     {
         try
         {
-            await restAPI.DeleteMessageAsync(message.Id!);
+            await Program.RestAPI.DeleteMessageAsync(message.Id!);
         }
         catch (Exception ex)
         {

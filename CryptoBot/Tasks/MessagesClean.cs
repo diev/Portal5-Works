@@ -17,16 +17,13 @@ limitations under the License.
 */
 #endregion
 
-using Diev.Portal5;
 using Diev.Portal5.API.Tools;
 
-using Microsoft.Extensions.Configuration;
+namespace CryptoBot.Tasks;
 
-namespace CryptoBot;
-
-internal class MessagesClean(RestAPI restAPI, IConfiguration config)
+internal static class MessagesClean
 {
-    public async Task Run()
+    public static async Task RunAsync()
     {
         string[] tasks = [
             // inbox
@@ -49,14 +46,14 @@ internal class MessagesClean(RestAPI restAPI, IConfiguration config)
         }
     }
 
-    private async Task DeleteByTask(string task, int leaveDays = 30)
+    private static async Task DeleteByTask(string task, int leaveDays = 30)
     {
         var filter = new MessagesFilter()
         {
-            Task = "Zadacha_3-1", //task,
+            Task = task,
             MaxDateTime = DateTime.Now.AddDays(-leaveDays)
         };
 
-        await restAPI.DeleteMessagesAsync(filter);
+        await Program.RestAPI.DeleteMessagesAsync(filter);
     }
 }

@@ -30,15 +30,15 @@ namespace Diev.Extensions.Smtp;
 public class Smtp : IDisposable
 {
     private readonly SmtpClient? _client;
+    private static readonly char[] _separator = [' ', ',', ';'];
     //private ConcurrentQueue<MailMessage> _queue = new();
 
     public string UserName { get; }
     public string DisplayName { get; set; } = $"{App.Name} {Environment.MachineName}";
-    public string[]? Subscribers { get; set; }
-    public string[]? SubscribersFail { get; set; }
+    public string? Subscribers { get; set; }
 
     /// <summary>
-    /// Create from Windows credentials manager
+    /// Create from Windows credentials manager.
     /// </summary>
     public Smtp()
     {
@@ -92,14 +92,7 @@ public class Smtp : IDisposable
         }
     }
 
-    public async Task SendMessageAsync(string subj, string body, string[]? files = null) =>
-        await SendMessageAsync(Subscribers, subj, body, files);
-
-    public async Task SendFailMessageAsync(string subj, string body, string[]? files = null) =>
-        await SendMessageAsync(SubscribersFail, subj, body, files);
-
-    public async Task SendMessageAsync(string[]? emails, string subj, string body, string[]? files = null)
-    //public void SendMessage(IEnumerable<string> emails, string subj, string  body, IEnumerable<string> files)
+    public async Task SendMessageAsync(string? emails, string? subj = "", string? body = "", string[]? files = null)
     {
         if (emails is null || emails.Length == 0 || _client is null)
             return;
@@ -113,7 +106,8 @@ public class Smtp : IDisposable
                 Body = $"{body}{Environment.NewLine}--{Environment.NewLine}{App.Title}"
             };
 
-            foreach (var email in emails)
+            foreach (var email in emails.Split(_separator,
+                StringSplitOptions.TrimEntries & StringSplitOptions.RemoveEmptyEntries))
             {
                 mail.To.Add(email);
             }

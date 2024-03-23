@@ -23,22 +23,19 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Unicode;
 
+using Diev.Extensions.Log;
+
 namespace Diev.Extensions.Http;
 
 internal class LoggingHandler : DelegatingHandler
 {
-    public static bool Trace { get; set; }
     public static bool Json { get; set; } = true;
     public static bool Pretty { get; set; } = true;
-    public static string TraceLog { get; set; } = null!;
     public JsonSerializerOptions JsonOptions { get; set; }
 
-    public LoggingHandler(HttpMessageHandler innerHandler, bool trace, string tracelog)
-    : base(innerHandler)
+    public LoggingHandler(HttpMessageHandler innerHandler)
+        : base(innerHandler)
     {
-        Trace = trace;
-        TraceLog = tracelog;
-
         JsonOptions = new JsonSerializerOptions()
         {
             //AllowTrailingCommas = true,
@@ -50,111 +47,181 @@ internal class LoggingHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (Trace)
+        //if (!DoTrace)
+        //{
+        //    return await base.SendAsync(request, cancellationToken);
+        //}
+
+        Logger.TimeLine($"Request {request}");
+
+        if (request.Content != null)
         {
-            using var log = new FileStream(TraceLog, FileMode.Append);
-            using var logger = new StreamWriter(log, Encoding.UTF8);
+            var type = request.Content.Headers.ContentType;
 
-            await logger.WriteLineAsync();
-            await logger.WriteLineAsync();
-            await logger.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} Request {request}");
-            await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
-
-            if (request.Content != null)
+            if (type?.MediaType != null)
             {
-                var type = request.Content.Headers.ContentType;
-
-                if (type?.MediaType != null)
+                if (type.MediaType.Contains("json", StringComparison.Ordinal))
                 {
-                    if (type.MediaType.Contains("json", StringComparison.Ordinal))
+                    using MemoryStream stream = new();
+                    await request.Content.CopyToAsync(stream, cancellationToken);
+
+                    stream.Seek(0, SeekOrigin.Begin);
+                    using var sr = new StreamReader(stream, Encoding.UTF8);
+                    string json = await sr.ReadToEndAsync(cancellationToken);
+
+                    if (Json)
                     {
-                        using var stream = await request.Content.ReadAsStreamAsync(cancellationToken);
-
-                        stream.Seek(0, SeekOrigin.Begin);
-                        using var sr = new StreamReader(stream, Encoding.UTF8);
-                        string json = await sr.ReadToEndAsync(cancellationToken);
-
-                        if (Json)
-                        {
-                            if (Pretty)
-                            {
-                                var prettyJson = JsonNode.Parse(json).ToJsonString(JsonOptions);
-                                await logger.WriteLineAsync(prettyJson);
-                            }
-                            else
-                            {
-                                await logger.WriteLineAsync(json);
-                            }
-                        }
-
-                        await logger.WriteLineAsync($"{stream.Length} bytes sent");
+                        Logger.Line(Pretty ? JsonNode.Parse(json)!.ToJsonString(JsonOptions) : json);
                     }
-                    else
-                    {
-                        await logger.WriteLineAsync($"{request.Content.Headers.ContentLength} bytes sent");
-                    }
+
+                    Logger.Line($"{stream.Length} bytes sent");
                 }
-
-                await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+                else
+                {
+                    Logger.Line($"{request.Content.Headers.ContentLength} bytes sent");
+                }
             }
 
-            Console.WriteLine($"Request {request}");
-            var response = await base.SendAsync(request, cancellationToken);
-            Console.WriteLine($"{Environment.NewLine}Response {response}");
+        }
 
-            await logger.WriteLineAsync();
-            await logger.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} Response {response}");
-            await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+        Logger.Flush(1);
 
-            if (response.Content != null)
+        var response = await base.SendAsync(request, cancellationToken);
+
+        Logger.TimeLine($"Response {response}");
+
+        if (response.Content != null)
+        {
+            var type = response.Content.Headers.ContentType;
+
+            if (type?.MediaType != null)
             {
-                var type = response.Content.Headers.ContentType;
-
-                if (type?.MediaType != null)
+                if (type.MediaType.Contains("json", StringComparison.Ordinal))
                 {
-                    if (type.MediaType.Contains("json", StringComparison.Ordinal))
+                    using MemoryStream stream = new();
+                    await response.Content.CopyToAsync(stream, cancellationToken);
+
+                    stream.Seek(0, SeekOrigin.Begin);
+                    using var sr = new StreamReader(stream, Encoding.UTF8);
+                    string json = await sr.ReadToEndAsync(cancellationToken);
+
+                    if (Json)
                     {
-                        using MemoryStream stream = new();
-                        await response.Content.CopyToAsync(stream, cancellationToken)
-                            .ConfigureAwait(false);
-
-                        stream.Seek(0, SeekOrigin.Begin);
-                        using var sr = new StreamReader(stream, Encoding.UTF8);
-                        string json = await sr.ReadToEndAsync(cancellationToken);
-
-                        if (Json)
-                        {
-                            if (Pretty)
-                            {
-                                var prettyJson = JsonNode.Parse(json).ToJsonString(JsonOptions);
-                                await logger.WriteLineAsync(prettyJson);
-                            }
-                            else
-                            {
-                                await logger.WriteLineAsync(json);
-                            }
-                        }
-
-                        await logger.WriteLineAsync($"{stream.Length} bytes received");
-
-                        response.Content = new ByteArrayContent(stream.ToArray());
-                        response.Content.Headers.ContentType = type;
+                        Logger.Line(Pretty ? JsonNode.Parse(json)!.ToJsonString(JsonOptions) : json);
                     }
-                    else
-                    {
-                        await logger.WriteLineAsync($"{response.Content.Headers.ContentLength ?? 0} bytes received");
-                    }
+
+                    Logger.Line($"{stream.Length} bytes received");
+
+                    response.Content = new ByteArrayContent(stream.ToArray());
+                    response.Content.Headers.ContentType = type;
                 }
-
-                await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+                else
+                {
+                    Logger.Line($"{response.Content.Headers.ContentLength ?? 0} bytes received");
+                }
             }
 
-            return response;
+            Logger.Flush(1);
         }
-        else
-        {
-            var response = await base.SendAsync(request, cancellationToken);
-            return response;
-        }
+
+        //using var log = new FileStream(TraceLog, FileMode.Append);
+        //using var logger = new StreamWriter(log, Encoding.UTF8);
+
+        //await logger.WriteLineAsync();
+        //await logger.WriteLineAsync();
+        //await logger.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} Request {request}");
+        //await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+        //if (request.Content != null)
+        //{
+        //    var type = request.Content.Headers.ContentType;
+
+        //    if (type?.MediaType != null)
+        //    {
+        //        if (type.MediaType.Contains("json", StringComparison.Ordinal))
+        //        {
+        //            using MemoryStream stream = new();
+        //            await request.Content.CopyToAsync(stream, cancellationToken);
+
+        //            stream.Seek(0, SeekOrigin.Begin);
+        //            using var sr = new StreamReader(stream, Encoding.UTF8);
+        //            string json = await sr.ReadToEndAsync(cancellationToken);
+
+        //            if (Json)
+        //            {
+        //                if (Pretty)
+        //                {
+        //                    var prettyJson = JsonNode.Parse(json)!.ToJsonString(JsonOptions);
+        //                    await logger.WriteLineAsync(prettyJson);
+        //                }
+        //                else
+        //                {
+        //                    await logger.WriteLineAsync(json);
+        //                }
+        //            }
+
+        //            await logger.WriteLineAsync($"{stream.Length} bytes sent");
+        //        }
+        //        else
+        //        {
+        //            await logger.WriteLineAsync($"{request.Content.Headers.ContentLength} bytes sent");
+        //        }
+        //    }
+
+        //    await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+        //}
+
+        //Console.WriteLine($"Request {request}");
+        //var response = await base.SendAsync(request, cancellationToken);
+        //Console.WriteLine($"{Environment.NewLine}Response {response}");
+
+        //await logger.WriteLineAsync();
+        //await logger.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} Response {response}");
+        //await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+        //if (response.Content != null)
+        //{
+        //    var type = response.Content.Headers.ContentType;
+
+        //    if (type?.MediaType != null)
+        //    {
+        //        if (type.MediaType.Contains("json", StringComparison.Ordinal))
+        //        {
+        //            using MemoryStream stream = new();
+        //            await response.Content.CopyToAsync(stream, cancellationToken);
+        //            //.ConfigureAwait(false);
+
+        //            stream.Seek(0, SeekOrigin.Begin);
+        //            using var sr = new StreamReader(stream, Encoding.UTF8);
+        //            string json = await sr.ReadToEndAsync(cancellationToken);
+
+        //            if (Json)
+        //            {
+        //                if (Pretty)
+        //                {
+        //                    var prettyJson = JsonNode.Parse(json)!.ToJsonString(JsonOptions);
+        //                    await logger.WriteLineAsync(prettyJson);
+        //                }
+        //                else
+        //                {
+        //                    await logger.WriteLineAsync(json);
+        //                }
+        //            }
+
+        //            await logger.WriteLineAsync($"{stream.Length} bytes received");
+
+        //            response.Content = new ByteArrayContent(stream.ToArray());
+        //            response.Content.Headers.ContentType = type;
+        //        }
+        //        else
+        //        {
+        //            await logger.WriteLineAsync($"{response.Content.Headers.ContentLength ?? 0} bytes received");
+        //        }
+        //    }
+
+        //    await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
+        //}
+
+        return response;
     }
 }

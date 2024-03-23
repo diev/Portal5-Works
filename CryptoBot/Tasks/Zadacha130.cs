@@ -17,62 +17,59 @@ limitations under the License.
 */
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 
 using Diev.Extensions.Crypto;
-using Diev.Extensions.Smtp;
-using Diev.Portal5;
 using Diev.Portal5.API.Tools;
 
-using Microsoft.Extensions.Configuration;
+namespace CryptoBot.Tasks;
 
-namespace CryptoBot;
-
-internal class Zadacha130(RestAPI restAPI, IConfiguration config)
+internal static class Zadacha130
 {
-    private string TaskName => nameof(Zadacha130);
-    private readonly EnumerationOptions _enumOptions = new();
-    private readonly Smtp _smtp = new();
+    private static readonly string _task = "Zadacha_130";
 
-    public string DownloadPath { get; set; } = "Download";
-    public bool DoDownload { get; set; }
-    public bool DoDecrypt { get; set; }
-    public string[]? SubscribersDone { get; set; }
-    public string[]? SubscribersFail { get; set; }
+    //config
+    private static readonly string DownloadPath;
+    private static readonly string? Subscribers;
 
-    [RequiresUnreferencedCode(
-        "Calls Microsoft.Extensions.Configuration.ConfigurationBinder.Bind(String, Object)")]
-    public async Task Run()
+    static Zadacha130()
     {
-        config.Bind(TaskName, this);
-        _smtp.Subscribers = SubscribersDone;
+        var config = Program.Config.GetSection(_task);
 
-        if (DoDownload)
+        DownloadPath = config[nameof(DownloadPath)] ?? ".";
+        Subscribers = config[nameof(Subscribers)];
+    }
+
+    public static async Task RunAsync()
+    {
+        try
         {
-            await DownloadLastFileAsync();
+            string enc = await DownloadLastFileAsync();
+            string zip = await DecryptAsync(enc);
+            //await UnzipAsync(zip);
+
+            await Program.SendDoneAsync(_task, @$"Получен файл ""{Path.GetFileName(zip)}"".", Subscribers);
         }
-
-        if (DoDecrypt)
+        catch (Exception ex)
         {
-            await DecryptAsync();
-            await UnzipAsync();
+            await Program.SendFailAsync(_task, ex.Message, Subscribers);
+            Program.ExitCode = 1;
         }
     }
 
-    public async Task DownloadLastFileAsync()
+    private static async Task<string> DownloadLastFileAsync()
     {
         // url = "back/rapi2/messages/8a3306a7-2025-4726-8d7c-ae3200aacaf0/files/948b6d20-c122-417c-9b92-2c3a14ec8de3/download";
         // path = "KGR_20220204_132116_request_128779.zip";
 
         var filter = new MessagesFilter()
         {
-            Task = "Zadacha_130",
+            Task = _task,
             MinDateTime = DateTime.Now.AddDays(-14)
         };
 
-        var messagesPage = await restAPI.GetMessagesPageAsync(filter)
-            ?? throw new Exception("Ничего не получено с сервера по '{filter.Task}'.");
+        var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter)
+            ?? throw new Exception($"Ничего не получено с сервера по '{filter.Task}'.");
 
         int count = messagesPage.Messages.Count;
         if (count == 0)
@@ -95,44 +92,37 @@ internal class Zadacha130(RestAPI restAPI, IConfiguration config)
         }
 
         if (fileId is null)
-            throw new ArgumentNullException(fileId, $"Не получено подходящего файла в сообщении '{msgId}'.");
+            throw new Exception($"Не получено ни одного файла из сообщения '{msgId}'.");
 
         Directory.CreateDirectory(DownloadPath);
         string path = Path.Combine(DownloadPath, lastName!);
-        await restAPI.DownloadMessageFileAsync(msgId, fileId, path);
 
-        //if (!File.Exists(path))
-        //    throw new ApplicationException($"Неудача скачивания последнего файла '{lastName}'.");
+        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
+            return path;
+
+        throw new Exception(@$"Получить с сервера Файл ""{lastName}"" не удалось.");
     }
 
-    public async Task DecryptAsync()
+    private static async Task<string> DecryptAsync(string enc)
     {
         CryptoPro crypto = new();
+        string zip = Path.ChangeExtension(enc, null);
 
-        foreach (var enc in Directory.EnumerateFiles(DownloadPath, "*.enc", _enumOptions))
+        if (await crypto.DecryptFileAsync(enc, zip))
         {
-            string zip = Path.ChangeExtension(enc, null);
-            await crypto.DecryptFileAsync(enc, zip);
-
-            string name = Path.GetFileName(zip);
-            await _smtp.SendMessageAsync($"{TaskName}: OK",
-                $"Получен файл '{name}'.", [zip]);
-
-            //string path = Path.Combine(ArchivePath, Path.GetFileName(enc));
-            //File.Move(enc, path, true); ;
+            File.Delete(enc);
+            return zip;
         }
+
+        throw new Exception(@$"Получен файл ""{Path.GetFileName(enc)}"", но расшифровать его не удалось.");
     }
 
-    public async Task UnzipAsync()
+    private static async Task UnzipAsync(string zip)
     {
-        foreach (var zip in Directory.EnumerateFiles(DownloadPath, "*.zip", _enumOptions))
+        await Task.Run(() =>
         {
-            await Task.Run(() =>
-            {
-                ZipFile.ExtractToDirectory(zip, DownloadPath, true); //TODO skip existing file
-                //File.Move(zip, Path.Combine(ArchivePath, Path.GetFileName(zip)), true);
-            });
-        }
+            ZipFile.ExtractToDirectory(zip, DownloadPath, true); //TODO skip existing file
+        });
     }
 }
 

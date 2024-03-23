@@ -17,52 +17,53 @@ limitations under the License.
 */
 #endregion
 
-using System.Diagnostics.CodeAnalysis;
-
 using Diev.Extensions.Crypto;
-using Diev.Extensions.Smtp;
-using Diev.Portal5;
 
-using Microsoft.Extensions.Configuration;
+namespace CryptoBot.Tasks;
 
-namespace CryptoBot;
-
-internal class Zadacha137(RestAPI restAPI, IConfiguration config)
+internal static class Zadacha137
 {
-    private string TaskName => nameof(Zadacha137);
-    private readonly EnumerationOptions _enumOptions= new();
-    private readonly Smtp _smtp = new();
+    private static readonly string _task = "Zadacha_137";
+    private static readonly string _title =
+        "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)";
+    private static readonly EnumerationOptions _enumOptions = new();
 
-    public string SourcePath { get; set; } = ".";
-    public string[]? EncryptTo { get; set; }
-    public bool DoUpload { get; set; }
-    public bool DoDeleteOnSuccess { get; set; }
-    public string[]? SubscribersDone { get; set; }
-    public string[]? SubscribersFail { get; set; }
+    //config
+    private static readonly string UploadPath;
+    private static readonly string? EncryptTo;
+    private static readonly string? Subscribers;
 
-    [RequiresUnreferencedCode(
-        "Calls Microsoft.Extensions.Configuration.ConfigurationBinder.Bind(String, Object)")]
-    public async Task Run()
+    static Zadacha137()
     {
-        config.Bind(TaskName, this);
+        var config = Program.Config.GetSection(_task);
 
-        _smtp.Subscribers = SubscribersDone;
-        _smtp.SubscribersFail = SubscribersFail;
+        UploadPath = config[nameof(UploadPath)] ?? ".";
+        EncryptTo = config[nameof(EncryptTo)];
+        Subscribers = config[nameof(Subscribers)];
+    }
 
-        await SignAndEncryptAsync();
-        
-        if (DoUpload)
+    public static async Task RunAsync()
+    {
+        try
         {
+            await SignAndEncryptAsync();
             await UploadAsync();
+            
+            await Program.SendDoneAsync(_task, _title, Subscribers);
+        }
+        catch (Exception ex)
+        {
+            await Program.SendFailAsync(_task, ex.Message, Subscribers);
+            Program.ExitCode = 1;
         }
     }
 
-    public async Task SignAndEncryptAsync()
+    private static async Task SignAndEncryptAsync()
     {
         CryptoPro crypto = new();
         int count = 0;
 
-        foreach (var zip in Directory.EnumerateFiles(SourcePath, "*.zip", _enumOptions))
+        foreach (var zip in Directory.EnumerateFiles(UploadPath, "*.zip", _enumOptions))
         {
             count++;
             string sig = zip + ".sig";
@@ -79,33 +80,25 @@ internal class Zadacha137(RestAPI restAPI, IConfiguration config)
             }
         }
 
-        if (count == 0)
-        {
-            await _smtp.SendFailMessageAsync(TaskName, "Нет файлов для подписи/шифрования.");
-        }
+        if (count > 0)
+            return;
+
+        throw new Exception("Нет файла zip для подписи/шифрования.");
     }
 
-    public async Task UploadAsync()
+    private static async Task UploadAsync()
     {
-        string task = "Zadacha_137";
-        string title = "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)";
-
-        if (await restAPI.UploadDirectoryAsync(task, title, SourcePath))
+        if (await Program.RestAPI.UploadDirectoryAsync(_task, _title, UploadPath))
         {
-            if (DoDeleteOnSuccess)
+            foreach (var file in Directory.EnumerateFiles(UploadPath, "*.*", _enumOptions))
             {
-                foreach (var file in Directory.EnumerateFiles(SourcePath, "*.*", _enumOptions))
-                {
-                    File.Delete(file);
-                }
+                File.Delete(file);
             }
 
-            await _smtp.SendMessageAsync($"{task}: OK", title);
+            return;
         }
-        else
-        {
-            await _smtp.SendFailMessageAsync($"{task}: ERROR", title);
-        }
+
+        throw new Exception("Отправить файл не удалось.");
     }
 }
 

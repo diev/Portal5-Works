@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2023 Dmitrii Evdokimov
+Copyright 2022-2024 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,6 @@ limitations under the License.
 
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
 
 using Diev.Extensions.Log;
 
@@ -324,7 +323,7 @@ public partial class PathScanner
         {
             // names are different - rename required
 
-            name2 = Path.Combine(Path.GetDirectoryName(path), name2);
+            name2 = Path.Combine(Path.GetDirectoryName(path)!, name2);
 
             if (folder)
             {

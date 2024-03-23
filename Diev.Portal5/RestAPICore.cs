@@ -44,9 +44,14 @@ public class RestAPICore : IRestAPICore
     public JsonSerializerOptions JsonOptions { get; } = 
         new() { Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) };
 
-    public RestAPICore(Credential cred, bool trace, string tracelog)
+    /// <summary>
+    /// REST API Core of Portal5.
+    /// </summary>
+    /// <param name="cred">Windows Credential Manager credential.</param>
+    /// <param name="trace">Trace HTTP.</param>
+    public RestAPICore(Credential cred, bool trace)
     {
-        PollyClient.Login(cred, trace, tracelog);
+        PollyClient.Login(cred, trace);
         SetApi(cred.TargetName.Split(' ')[1]);
 
         //JsonOptions = new JsonSerializerOptions()

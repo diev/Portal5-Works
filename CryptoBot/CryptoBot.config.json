@@ -1,50 +1,24 @@
 {
   "Program": {
-    "SubscribersFail": []
-  },
-
-  "Worker": {
-    "Trace": true,
-    "TraceLog": "trace-{0:yyyy-MM-dd-HH-mm}.log",
-
-    "MessageClean": false,
-    "BulkLoad": false,
-    "Zadacha130": true,
-    "Zadacha137": true
+    "TatgetName": "Portal5test *",
+    "Subscribers": null
   },
 
   "BulkLoad": {
     "DownloadPath": "Download\\Archive",
-    "Overwrite": true,
-    "Decrypt": true,
+    "Overwrite": false,
+    "Decrypt": false,
     "Delete": false
   },
 
-  "Zadacha130": {
+  "Zadacha_130": {
     "DownloadPath": "Download",
-    "DoDownload": true,
-    "DoDecrypt": true,
-    "SubscribersDone": [],
-    "SubscribersFail": []
+    "Subscribers": null
   },
 
-  "Zadacha137": {
-    "SourcePath": "Upload\\OUT",
-    "EncryptTo": [ "3ab57daafae6e61ce66bb0d7a25cdbd985dcfa31" ],
-    "DoUpload": false,
-    "DoDeleteOnSuccess": false,
-    "SubscribersDone": [],
-    "SubscribersFail": []
-  },
-
-  "CryptoPro": {
-    "To": [ "3ab57daafae6e61ce66bb0d7a25cdbd985dcfa31" ],
-    "Archive": [
-      "8ec23399f06518b1204c958900e0ccd6e9cdd80f",
-      "083c2ad5a4147c60f54efce0cab11bc79f4e7d4c",
-      "87bb1d8159b49f1d477ad8a8274c8fd125db8c1f",
-      "79964228d60c5bec78df9d8434dea6a19530749c",
-      "ee770457e4d05e6ddfa05e0184265a15b4b76965"
-    ]
+  "Zadacha_137": {
+    "UploadPath": "Upload\\OUT",
+    "EncryptTo": "3ab57daafae6e61ce66bb0d7a25cdbd985dcfa31",
+    "Subscribers": null
   }
 }

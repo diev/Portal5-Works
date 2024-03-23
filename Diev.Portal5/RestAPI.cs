@@ -20,16 +20,21 @@ limitations under the License.
 using System.Net;
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
+using Diev.Extensions.Log;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Messages.Create;
 using Diev.Portal5.API.Tools;
 
 namespace Diev.Portal5;
 
-public class RestAPI(Credential cred, bool trace, string tracelog)
-    : RestAPICore(cred, trace, tracelog)
+/// <summary>
+/// REST API of Portal5.
+/// </summary>
+/// <param name="cred">Windows Credential Manager credential.</param>
+/// <param name="trace">Trace HTTP.</param>
+public class RestAPI(Credential cred, bool trace)
+    : RestAPICore(cred, trace)
 {
-
     /// <summary>
     /// 3.1.3 Отправка сообщений комплексно по задачам
     /// </summary>
@@ -40,6 +45,8 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> UploadDirectoryAsync(string task, string? title, string path)
     {
+        Logger.Title(@$"Upload directory ""{path}""");
+
         var draft = new DraftMessage
         {
             Task = task,
@@ -89,6 +96,8 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
         }
 
         // Step 1 - post request for new message
+        Logger.Title("1. Post request for new message.");
+
         var message = await PostMessageRequestAsync(draft);
 
         if (message is null)
@@ -97,46 +106,55 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
         string msgId = message.Id;
         int sent = 0;
 
-        try
+        // Upload files
+        foreach (var messageFile in message.Files)
         {
-            // Upload files
-            foreach (var messageFile in message.Files)
+            // Step 2 - post request for new file
+            Logger.Title($"2.{sent + 1}. Post request for new file.");
+
+            var uploadSession = await PostUploadRequestAsync(msgId, messageFile.Id);
+
+            if (uploadSession is null)
+                break;
+
+            var expiration = uploadSession.ExpirationDateTime.ToLocalTime();
+
+            // Step3 - upload new file
+            Logger.Title(@$"3.{sent + 1}. Upload new file ""{messageFile.Name}"".");
+
+            string file = Path.Combine(path, messageFile.Name);
+
+            if (!await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl))
+                break;
+
+            sent++;
+
+            if (DateTime.Now > expiration)
+                break;
+        }
+
+        // Step 4 - post ready message
+        Logger.Title("4. Post ready message.");
+
+        if (sent == message.Files.Count)
+        {
+            if (await PostMessageAsync(msgId))
             {
-                // Step 2 - post request for new file
-                var uploadSession = await PostUploadRequestAsync(msgId, messageFile.Id);
-
-                if (uploadSession is null)
-                    break;
-
-                var expiration = uploadSession.ExpirationDateTime; //TODO ?
-
-                // Step3 - upload new file
-                string file = Path.Combine(path, messageFile.Name);
-
-                if (!await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl))
-                    break;
-
-                sent++;
-
-                if (DateTime.Now > expiration)
-                    break;
-            }
-
-            // Step 4 - post ready message
-            if (sent == message.Files.Count)
-            {
-                if (await PostMessageAsync(msgId))
-                    return true;
+                Logger.Title("Upload directory done.");
+                Logger.Flush(2);
+                return true;
             }
         }
-        catch { }
 
         // Try to clean expired uploaded files
+        Logger.Line("Try to clean expired uploaded files.");
+
         foreach (var file in message.Files)
         {
+            sent--;
+
             try
             {
-                sent--;
                 await DeleteMessageFileAsync(msgId, file.Id);
             }
             catch { }
@@ -145,6 +163,8 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
                 break;
         }
 
+        Logger.Title("Upload directory fail.");
+        Logger.Flush(2);
         return false;
     }
 
@@ -159,6 +179,7 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
     /// <exception cref="Exception"></exception>
     public async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter, int page = 1)
     {
+        Logger.Line("### Get messages.");
         List<Message> messages = [];
 
         // Get first page of 100
@@ -183,6 +204,7 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
                 return null;
         }
 
+        Logger.Flush(2);
         return messages;
     }
 
@@ -194,6 +216,8 @@ public class RestAPI(Credential cred, bool trace, string tracelog)
     /// <returns></returns>
     public async Task<bool> DownloadMessageJsonAsync(string msgId, string path, bool overwrite = false)
     {
+        Logger.Line($@"Download ""{path}"".");
+
         if (SkipExisting(path, overwrite))
             return true;
 

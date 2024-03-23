@@ -30,6 +30,8 @@ using System.Text;
 
 using Microsoft.Win32.SafeHandles;
 
+using static NativeMethods;
+
 public static class CredentialManager
 {
     public static Credential ReadCredential(string targetName)
@@ -118,40 +120,11 @@ public static class CredentialManager
         throw new Win32Exception(lastError);
     }
 
-    [DllImport("Advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
-    static extern bool CredRead(string target, CredentialType type, int reservedFlag, out nint credentialPtr);
-
-    [DllImport("Advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
-    static extern bool CredWrite(ref NativeCredential userCredential, uint flags);
-
-    [DllImport("Advapi32", EntryPoint = "CredEnumerateW", CharSet = CharSet.Unicode, SetLastError = true)]
-    static extern bool CredEnumerate(string? filter, int flag, out int count, out nint pCredentials);
-
-    [DllImport("Advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
-    static extern bool CredFree(nint cred);
-
     private enum CredentialPersistence : uint
     {
         Session = 1,
         LocalMachine,
         Enterprise
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct NativeCredential
-    {
-        public uint Flags;
-        public CredentialType Type;
-        public nint TargetName;
-        public nint Comment;
-        public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
-        public uint CredentialBlobSize;
-        public nint CredentialBlob;
-        public uint Persist;
-        public uint AttributeCount;
-        public nint Attributes;
-        public nint TargetAlias;
-        public nint UserName;
     }
 
     private static Credential ReadFromNativeCredential(NativeCredential credential)
@@ -199,22 +172,4 @@ public static class CredentialManager
             return false;
         }
     }
-}
-
-public enum CredentialType
-{
-    Generic = 1,
-    DomainPassword,
-    DomainCertificate,
-    DomainVisiblePassword,
-    GenericCertificate,
-    DomainExtended,
-    Maximum,
-    MaximumEx = Maximum + 1000,
-}
-
-public record Credential(CredentialType CredentialType, string TargetName, string? UserName, string? Password)
-{
-    public override string ToString()
-        => $"CredentialType: {CredentialType}, TargetName: {TargetName}, UserName: {UserName}, Password: {Password}";
 }

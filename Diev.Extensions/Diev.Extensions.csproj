@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
-    <Version>8.2024.320.0</Version>
+    <Version>8.2024.322.0</Version>
     <Description>Diev's common helper extensions for local projects.</Description>
     <Copyright>Copyright 2022-2024 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

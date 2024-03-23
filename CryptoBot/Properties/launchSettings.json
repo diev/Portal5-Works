@@ -3,6 +3,14 @@
     "CryptoBot": {
       "commandName": "Project",
       "commandLineArgs": "\r\n"
+    },
+    "CryptoBot -z 130": {
+      "commandName": "Project",
+      "commandLineArgs": "-z 130\r\n"
+    },
+    "CryptoBot -z 137": {
+      "commandName": "Project",
+      "commandLineArgs": "-z 137\r\n"
     }
   }
 }

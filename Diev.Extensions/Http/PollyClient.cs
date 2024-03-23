@@ -22,6 +22,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using Diev.Extensions.Credentials;
+using Diev.Extensions.Log;
 
 namespace Diev.Extensions.Http;
 
@@ -29,14 +30,14 @@ namespace Diev.Extensions.Http;
 public static class PollyClient
 {
     private static HttpClient _httpClient = null!;
-    private static int _chunkSize = 1048576; // 1Mb
+    private static int _chunkSize = 4 * 1048576; // 4Mb
     private static DateTime _ddosAllowedTime = DateTime.Now;
 
-    public static int Retries { get; set; } = 100;
-    public static int RetryTimeout { get; set; } = 2000; // retry * RetryTimeout
-    public static int DdosTimeout { get; set; } = 1000;
+    public static int RetrySecondsTimeout { get; set; } = 2; // retry * RetryTimeout
+    public static int DdosSecondsTimeout { get; set; } = 1;
+    public static int WaitMinutesTimeout { get; set; } = 10;
 
-    public static int ChunkSize 
+    public static int ChunkSize
     {
         get => _chunkSize;
         set => _chunkSize = value == 0 ? int.MaxValue : value;
@@ -50,7 +51,12 @@ public static class PollyClient
     //    };
     //}
 
-    public static void Login(Credential cred, bool trace, string tracelog)
+    /// <summary>
+    /// Login to Portal5 and init.
+    /// </summary>
+    /// <param name="cred">Windows Credential Manager credential.</param>
+    /// <param name="trace">Trace HTTP.</param>
+    public static void Login(Credential cred, bool trace)
     {
         //var app = Assembly.GetExecutingAssembly().GetName();
         var app = Assembly.GetEntryAssembly()?.GetName();
@@ -115,7 +121,8 @@ public static class PollyClient
         };
 
         string host = cred.TargetName.Split(' ')[1];
-        _httpClient = new(new LoggingHandler(handler, trace, tracelog), true)
+
+        _httpClient = new(trace ? new LoggingHandler(handler) : handler, true)
         {
             BaseAddress = new Uri(host),
             Timeout = TimeSpan.FromMinutes(3)
@@ -186,22 +193,30 @@ public static class PollyClient
     public static async Task<HttpResponseMessage> GetPartialAsync(string url, long from, long to)
     {
         int retry = 0;
+        DateTime end = DateTime.Now.AddMinutes(WaitMinutesTimeout);
 
         while (true)
         {
+            if (DateTime.Now < _ddosAllowedTime)
+            {
+                Thread.Sleep(_ddosAllowedTime - DateTime.Now);
+            }
+
             using (var request = new HttpRequestMessage(HttpMethod.Get, url))
             {
                 request.Headers.Range = new RangeHeaderValue(from, to);
+                var response = await _httpClient.SendAsync(request);
+                _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
 
-                var response = await ExecuteDdosAsync(request);
-
-                if (!RetryRequired(response.StatusCode) || (retry > Retries))
+                if (!RetryRequired(response.StatusCode) || (DateTime.Now > end))
                 {
                     return response;
                 }
             }
 
-            Thread.Sleep(++retry * RetryTimeout);
+            int pause = ++retry * RetrySecondsTimeout;
+            Logger.TimeLine($"Повтор через {pause} сек.");
+            Thread.Sleep(pause * 1000);
         }
     }
 
@@ -209,9 +224,15 @@ public static class PollyClient
         string url, HttpContent? content = null)
     {
         int retry = 0;
+        DateTime end = DateTime.Now.AddMinutes(WaitMinutesTimeout);
 
         while (true)
         {
+            if (DateTime.Now < _ddosAllowedTime)
+            {
+                Thread.Sleep(_ddosAllowedTime - DateTime.Now);
+            }
+
             using (var request = new HttpRequestMessage(method, url))
             {
                 if (content != null)
@@ -219,31 +240,19 @@ public static class PollyClient
                     request.Content = content;
                 }
 
-                var response = await ExecuteDdosAsync(request);
+                var response = await _httpClient.SendAsync(request);
+                _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
 
-                if (!RetryRequired(response.StatusCode) || (retry > Retries))
+                if (!RetryRequired(response.StatusCode) || (DateTime.Now > end))
                 {
                     return response;
                 }
             }
 
-            Thread.Sleep(++retry * RetryTimeout);
+            int pause = ++retry * RetrySecondsTimeout;
+            Logger.TimeLine($"Повтор через {pause} сек.");
+            Thread.Sleep(pause * 1000);
         }
-    }
-
-    private static async Task<HttpResponseMessage> ExecuteDdosAsync(HttpRequestMessage request)
-    {
-        if (DateTime.Now < _ddosAllowedTime)
-        {
-            Thread.Sleep(_ddosAllowedTime - DateTime.Now);
-        }
-
-        var response = await _httpClient.SendAsync(request,
-            HttpCompletionOption.ResponseHeadersRead);
-
-        _ddosAllowedTime = DateTime.Now.AddMilliseconds(DdosTimeout);
-
-        return response;
     }
 
     private static bool RetryRequired(HttpStatusCode code)
