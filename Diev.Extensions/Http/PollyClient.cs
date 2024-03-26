@@ -22,7 +22,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
 using Diev.Extensions.Credentials;
-using Diev.Extensions.Log;
+using Diev.Extensions.LogFile;
 
 namespace Diev.Extensions.Http;
 
@@ -326,8 +326,9 @@ public static class PollyClient
         511     HttpStatusCode.NetworkAuthenticationRequired
         */
 
-        return (code >= HttpStatusCode.InternalServerError)
-            || (code == HttpStatusCode.RequestTimeout)
-            || (code == HttpStatusCode.TooManyRequests);
+        // RetryRequired if
+        return (code >= HttpStatusCode.InternalServerError) // 500+
+            || (code == HttpStatusCode.RequestTimeout) // 408
+            || (code == HttpStatusCode.TooManyRequests); // 429
     }
 }

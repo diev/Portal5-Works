@@ -20,6 +20,7 @@ limitations under the License.
 using System.IO.Compression;
 
 using Diev.Extensions.Crypto;
+using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Tools;
 
 namespace CryptoBot.Tasks;
@@ -44,7 +45,7 @@ internal static class Zadacha130
     {
         try
         {
-            string enc = await DownloadLastFileAsync();
+            string enc = await DownloadAsync();
             string zip = await DecryptAsync(enc);
             //await UnzipAsync(zip);
 
@@ -52,12 +53,15 @@ internal static class Zadacha130
         }
         catch (Exception ex)
         {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
             await Program.SendFailAsync(_task, ex.Message, Subscribers);
             Program.ExitCode = 1;
         }
     }
 
-    private static async Task<string> DownloadLastFileAsync()
+    private static async Task<string> DownloadAsync()
     {
         // url = "back/rapi2/messages/8a3306a7-2025-4726-8d7c-ae3200aacaf0/files/948b6d20-c122-417c-9b92-2c3a14ec8de3/download";
         // path = "KGR_20220204_132116_request_128779.zip";
@@ -65,15 +69,19 @@ internal static class Zadacha130
         var filter = new MessagesFilter()
         {
             Task = _task,
-            MinDateTime = DateTime.Now.AddDays(-14)
+            MinDateTime = DateTime.Now // required Today only!
         };
 
+        var report = filter.MinDateTime?.ToString("dd.MM.yyyy");
+
         var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter)
-            ?? throw new Exception($"Ничего не получено с сервера по '{filter.Task}'.");
+            ?? throw new Exception(
+                $"Не получено сообщений за {report}.");
 
         int count = messagesPage.Messages.Count;
         if (count == 0)
-            throw new Exception($"Не получено ни одного сообщения по '{filter.Task}'.");
+            throw new Exception(
+                $"Ноль сообщений за {report}.");
 
         string? lastName = null;
         string? fileId = null;
@@ -92,7 +100,8 @@ internal static class Zadacha130
         }
 
         if (fileId is null)
-            throw new Exception($"Не получено ни одного файла из сообщения '{msgId}'.");
+            throw new Exception(
+                $"Не получен Id файла из сообщения '{msgId}' за {report}.");
 
         Directory.CreateDirectory(DownloadPath);
         string path = Path.Combine(DownloadPath, lastName!);
@@ -100,7 +109,8 @@ internal static class Zadacha130
         if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
             return path;
 
-        throw new Exception(@$"Получить с сервера Файл ""{lastName}"" не удалось.");
+        throw new Exception(
+            @$"Не удалось получить файл ""{lastName}"" за {report}.");
     }
 
     private static async Task<string> DecryptAsync(string enc)
@@ -114,7 +124,8 @@ internal static class Zadacha130
             return zip;
         }
 
-        throw new Exception(@$"Получен файл ""{Path.GetFileName(enc)}"", но расшифровать его не удалось.");
+        throw new Exception(
+            @$"Получен файл ""{Path.GetFileName(enc)}"", но расшифровать его не удалось.");
     }
 
     private static async Task UnzipAsync(string zip)

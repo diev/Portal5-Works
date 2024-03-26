@@ -23,7 +23,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Unicode;
 
-using Diev.Extensions.Log;
+using Diev.Extensions.LogFile;
 
 namespace Diev.Extensions.Http;
 

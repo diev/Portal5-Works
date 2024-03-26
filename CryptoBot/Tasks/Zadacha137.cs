@@ -18,6 +18,8 @@ limitations under the License.
 #endregion
 
 using Diev.Extensions.Crypto;
+using Diev.Extensions.LogFile;
+using Diev.Portal5.API.Messages;
 
 namespace CryptoBot.Tasks;
 
@@ -26,6 +28,7 @@ internal static class Zadacha137
     private static readonly string _task = "Zadacha_137";
     private static readonly string _title =
         "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)";
+    private static readonly string _zip = "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip";
     private static readonly EnumerationOptions _enumOptions = new();
 
     //config
@@ -37,7 +40,7 @@ internal static class Zadacha137
     {
         var config = Program.Config.GetSection(_task);
 
-        UploadPath = config[nameof(UploadPath)] ?? ".";
+        UploadPath = Path.GetFullPath(config[nameof(UploadPath)] ?? ".");
         EncryptTo = config[nameof(EncryptTo)];
         Subscribers = config[nameof(Subscribers)];
     }
@@ -46,64 +49,130 @@ internal static class Zadacha137
     {
         try
         {
-            await SignAndEncryptAsync();
-            await UploadAsync();
-            
+            string zip = GetLastZipToUpload(UploadPath, _zip, 14);
+            string temp = GetTempUploadPath(UploadPath);
+
+            await SignAndEncryptAsync(UploadPath, zip, temp);
+            string msgId = await UploadAsync(temp);
+            var message = await CheckAsync(msgId, 20);
+
+            string report = @$"{_title} - файл ""{zip}"" {message.Status}.";
+
             await Program.SendDoneAsync(_task, _title, Subscribers);
         }
         catch (Exception ex)
         {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
             await Program.SendFailAsync(_task, ex.Message, Subscribers);
             Program.ExitCode = 1;
         }
     }
 
-    private static async Task SignAndEncryptAsync()
+    private static string GetLastZipToUpload(string path, string format, int days)
     {
-        CryptoPro crypto = new();
-        int count = 0;
-
-        foreach (var zip in Directory.EnumerateFiles(UploadPath, "*.zip", _enumOptions))
+        for (int i = 0; i > -days; i--)
         {
-            count++;
-            string sig = zip + ".sig";
-            string enc = zip + ".enc";
+            string zip = string.Format(format, DateTime.Now.AddDays(i));
 
-            if (!File.Exists(sig))
+            if (File.Exists(Path.Combine(path, zip)))
             {
-                await crypto.SignDetachedFileAsync(zip, sig);
-            }
-
-            if (!File.Exists(enc))
-            {
-                await crypto.EncryptFileAsync(zip, enc, EncryptTo);
+                return zip;
             }
         }
 
-        if (count > 0)
-            return;
-
-        throw new Exception("Нет файла zip для подписи/шифрования.");
+        throw new Exception($"За {days} последних дней ни одного файла для отправки.");
     }
 
-    private static async Task UploadAsync()
+    private static string GetTempUploadPath(string path)
     {
-        if (await Program.RestAPI.UploadDirectoryAsync(_task, _title, UploadPath))
-        {
-            foreach (var file in Directory.EnumerateFiles(UploadPath, "*.*", _enumOptions))
-            {
-                File.Delete(file);
-            }
+        string temp = Path.Combine(path, "TEMP");
 
-            return;
-        }
+        if (Directory.Exists(temp))
+            Directory.Delete(temp, true);
+
+        if (Directory.Exists(temp))
+            throw new Exception(@$"Не удалось удалить старую директорию ""{temp}"".");
+
+        Directory.CreateDirectory(temp);
+
+        if (!Directory.Exists(temp))
+            throw new Exception(@$"Не удалось создать новую директорию ""{temp}"".");
+
+        return temp;
+    }
+
+    private static async Task SignAndEncryptAsync(string path, string file, string temp)
+    {
+        CryptoPro crypto = new();
+
+        string src = Path.Combine(path, file);
+        string sig = Path.Combine(temp, file + ".sig");
+        string enc = Path.Combine(temp, file + ".enc");
+
+        if (!await crypto.SignDetachedFileAsync(src, sig))
+            throw new Exception(@$"Подписать файл ""{src}"" не удалось.");
+
+        if (!await crypto.EncryptFileAsync(src, enc, EncryptTo))
+            throw new Exception(@$"Зашифровать файл ""{src}"" не удалось.");
+    }
+
+    private static async Task<string> UploadAsync(string path)
+    {
+        var msgId = await Program.RestAPI.UploadDirectoryAsync(_task, _title, path);
+
+        if (msgId != null)
+            return msgId;
 
         throw new Exception("Отправить файл не удалось.");
+    }
+
+    private static async Task<Message> CheckAsync(string msgId, int minutes)
+    {
+        var end = DateTime.Now.AddMinutes(minutes);
+        Message? message = null;
+
+        while (DateTime.Now < end)
+        {
+            message = await Program.RestAPI.GetMessageAsync(msgId);
+
+            if (message != null)
+            {
+                if (message.Status == MessageOutStatus.Registered)
+                    return message; // OK
+
+                if (message.Status == MessageOutStatus.Error)
+                {
+                    if (message.Receipts != null)
+                    {
+                        foreach (var receipt in message.Receipts)
+                        {
+                            if ((receipt.Status == ReceiptOutStatus.Error) && (receipt.Message != null))
+                                throw new Exception("Получена ошибка контроля: " + receipt.Message);
+                        }
+                    }
+
+                    throw new Exception("Получена ошибка контроля, но нет квитанции.");
+                }
+            }
+
+            Thread.Sleep(10000);
+        }
+
+        if (message != null)
+        {
+            //throw new Exception($"За {minutes} минут статус лишь '{message.Status}'.");
+            return message; // sent, delivered, [-error], processing, [-registered]
+        }
+
+        throw new Exception($"За {minutes} минут так ничего и не получено по отправке.");
     }
 }
 
 /*
-GET https://portal5.cbr.ru/back/rapi2/messages?Task=Zadacha_137&MinDateTime=2023-12-19T00:00:00Z
+GET messages?Task=Zadacha_137&MinDateTime=2023-12-19T00:00:00Z
+OK
 
 [
     {
@@ -359,4 +428,180 @@ GET https://portal5.cbr.ru/back/rapi2/messages?Task=Zadacha_137&MinDateTime=2023
         ]
     }
 ]
+*/
+
+/*
+GET messages/ce8c33f6-aa59-443f-8165-b13e0128a28a
+ERROR
+
+{
+    "Id": "ce8c33f6-aa59-443f-8165-b13e0128a28a",
+    "CorrelationId": null,
+    "GroupId": null,
+    "Type": "outbox",
+    "Title": "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)",
+    "Text": null,
+    "CreationDate": "2024-03-25T18:00:00Z",
+    "UpdatedDate": "2024-03-25T18:00:20Z",
+    "Status": "error",
+    "TaskName": "Zadacha_137",
+    "RegNumber": null,
+    "TotalSize": 25096,
+    "Sender": {
+        "Inn": "7831001422",
+        "Ogrn": "1027800000095",
+        "Bik": "044030702",
+        "RegNum": "3194",
+        "DivisionCode": "0000"
+    },
+    "Files": [
+        {
+            "Id": "0898d882-017e-41c5-8652-b13e0128a27a",
+            "Name": "KYCCL_7831001422_3194_20240325_000001.zip.sig",
+            "Description": null,
+            "Encrypted": false,
+            "SignedFile": "9b7386af-6ede-4426-bb26-b13e0128a268",
+            "Size": 4070,
+            "RepositoryInfo": [
+                {
+                    "RepositoryType": "http",
+                    "Host": "https://portal5.cbr.ru",
+                    "Port": 81,
+                    "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/files/0898d882-017e-41c5-8652-b13e0128a27a/download"
+                }
+            ]
+        },
+        {
+            "Id": "4e6c3df5-3d6f-407f-a9f9-b13e0128a27a",
+            "Name": "KYCCL_7831001422_3194_20240324_000001.zip.sig",
+            "Description": null,
+            "Encrypted": false,
+            "SignedFile": "5345baa4-4e05-4ec7-9ccd-b13e0128a268",
+            "Size": 4070,
+            "RepositoryInfo": [
+                {
+                    "RepositoryType": "http",
+                    "Host": "https://portal5.cbr.ru",
+                    "Port": 81,
+                    "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/files/4e6c3df5-3d6f-407f-a9f9-b13e0128a27a/download"
+                }
+            ]
+        },
+        {
+            "Id": "5345baa4-4e05-4ec7-9ccd-b13e0128a268",
+            "Name": "KYCCL_7831001422_3194_20240324_000001.zip.enc",
+            "Description": null,
+            "Encrypted": true,
+            "SignedFile": null,
+            "Size": 8476,
+            "RepositoryInfo": [
+                {
+                    "RepositoryType": "http",
+                    "Host": "https://portal5.cbr.ru",
+                    "Port": 81,
+                    "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/files/5345baa4-4e05-4ec7-9ccd-b13e0128a268/download"
+                }
+            ]
+        },
+        {
+            "Id": "9b7386af-6ede-4426-bb26-b13e0128a268",
+            "Name": "KYCCL_7831001422_3194_20240325_000001.zip.enc",
+            "Description": null,
+            "Encrypted": true,
+            "SignedFile": null,
+            "Size": 8480,
+            "RepositoryInfo": [
+                {
+                    "RepositoryType": "http",
+                    "Host": "https://portal5.cbr.ru",
+                    "Port": 81,
+                    "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/files/9b7386af-6ede-4426-bb26-b13e0128a268/download"
+                }
+            ]
+        }
+    ],
+    "Receipts": [
+        {
+            "Id": "9e5e90ee-850d-45de-a260-b13e0128b3bf",
+            "ReceiveTime": "2024-03-25T18:00:15Z",
+            "StatusTime": "2024-03-25T18:00:15Z",
+            "Status": "sent",
+            "Message": null,
+            "Files": []
+        },
+        {
+            "Id": "36827fd6-0cbb-47b9-a17f-b13e0128b8f5",
+            "ReceiveTime": "2024-03-25T18:00:20Z",
+            "StatusTime": "2024-03-25T18:00:20Z",
+            "Status": "error",
+            "Message": "Ожидается не более 1 файлов с типом Document, найдено: 2",
+            "Files": [
+                {
+                    "Id": "25099dfc-9204-4c08-870e-ad15b2a8a67d",
+                    "Name": "ESODReceipt.xml",
+                    "Description": null,
+                    "Encrypted": false,
+                    "SignedFile": null,
+                    "Size": 1093,
+                    "RepositoryInfo": [
+                        {
+                            "RepositoryType": "http",
+                            "Host": "https://portal5.cbr.ru",
+                            "Port": 81,
+                            "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/receipts/36827fd6-0cbb-47b9-a17f-b13e0128b8f5/files/25099dfc-9204-4c08-870e-ad15b2a8a67d/download"
+                        }
+                    ]
+                },
+                {
+                    "Id": "0322e280-2861-4370-82b1-5ee00dd83752",
+                    "Name": "status.xml.sig",
+                    "Description": null,
+                    "Encrypted": false,
+                    "SignedFile": "b4cead28-c051-4bc6-801a-feffd389dc94",
+                    "Size": 3399,
+                    "RepositoryInfo": [
+                        {
+                            "RepositoryType": "http",
+                            "Host": "https://portal5.cbr.ru",
+                            "Port": 81,
+                            "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/receipts/36827fd6-0cbb-47b9-a17f-b13e0128b8f5/files/0322e280-2861-4370-82b1-5ee00dd83752/download"
+                        }
+                    ]
+                },
+                {
+                    "Id": "f5304c07-1d06-434d-aa85-4158ebe405b3",
+                    "Name": "ESODReceipt.xml.sig",
+                    "Description": null,
+                    "Encrypted": false,
+                    "SignedFile": "25099dfc-9204-4c08-870e-ad15b2a8a67d",
+                    "Size": 3399,
+                    "RepositoryInfo": [
+                        {
+                            "RepositoryType": "http",
+                            "Host": "https://portal5.cbr.ru",
+                            "Port": 81,
+                            "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/receipts/36827fd6-0cbb-47b9-a17f-b13e0128b8f5/files/f5304c07-1d06-434d-aa85-4158ebe405b3/download"
+                        }
+                    ]
+                },
+                {
+                    "Id": "b4cead28-c051-4bc6-801a-feffd389dc94",
+                    "Name": "status.xml",
+                    "Description": null,
+                    "Encrypted": false,
+                    "SignedFile": null,
+                    "Size": 439,
+                    "RepositoryInfo": [
+                        {
+                            "RepositoryType": "http",
+                            "Host": "https://portal5.cbr.ru",
+                            "Port": 81,
+                            "Path": "back/rapi2/messages/ce8c33f6-aa59-443f-8165-b13e0128a28a/receipts/36827fd6-0cbb-47b9-a17f-b13e0128b8f5/files/b4cead28-c051-4bc6-801a-feffd389dc94/download"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
 */

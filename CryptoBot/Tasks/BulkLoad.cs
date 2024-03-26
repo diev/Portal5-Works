@@ -18,129 +18,146 @@ limitations under the License.
 #endregion
 
 using System.Text;
+
 using Diev.Extensions.Crypto;
-using Diev.Extensions.Pkcs;
+using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 
-using Microsoft.Extensions.Configuration;
-
 namespace CryptoBot.Tasks;
 
-internal class BulkLoad()
+internal static class BulkLoad
 {
-    private readonly EnumerationOptions _enumOptions = new();
-    private bool _ok;
+    private static readonly EnumerationOptions _enumOptions = new();
+    private static bool _ok;
 
-    public string DownloadPath { get; set; } = ".";
-    public bool Overwrite { get; set; }
-    public bool Decrypt { get; set; }
-    public bool Delete { get; set; }
+    public static string DownloadPath { get; set; }
+    public static bool Overwrite { get; set; }
+    public static bool Decrypt { get; set; }
+    public static bool Delete { get; set; }
 
-    public async Task RunAsync(MessagesFilter filter, int page = 1)
+    static BulkLoad()
     {
-        Program.Config.Bind(nameof(BulkLoad), this);
+        var config = Program.Config.GetSection(nameof(BulkLoad));
 
-        //GET: */messages?Type=”inbox”&Status =”read”&Page=2
-        // получить прочитанные Входящие
+        DownloadPath = Path.GetFullPath(config[nameof(DownloadPath)] ?? ".");
+        Overwrite = bool.Parse(config[nameof(Overwrite)] ?? "false");
+        Decrypt = bool.Parse(config[nameof(Decrypt)] ?? "false");
+        Delete = bool.Parse(config[nameof(Delete)] ?? "false");
+    }
 
-        //GET: */messages?Task=”Zadacha_2-1&Status =”registered”
-        // получить все документы, отправленные участником и зарегистрированные Банком России
-
-        var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, page);
-
-        if (messagesPage.Messages.Count == 0)
-            throw new ApplicationException("Получен пустой список сообщений.");
-
-        Console.WriteLine($"Messages: {messagesPage.Pages.TotalRecords}");
-
-        while (true)
+    public static async Task RunAsync(MessagesFilter filter, int page = 1)
+    {
+        try
         {
-            Console.WriteLine($"--- Page {page} ---");
+            //GET: */messages?Type=inbox&Status=read&Page=2
+            // получить прочитанные Входящие
 
-            foreach (var message in messagesPage.Messages)
+            //GET: */messages?Task=Zadacha_2-1&Status=registered
+            // получить все документы, отправленные участником и зарегистрированные Банком России
+
+            var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, page)
+                ?? throw new Exception("Не получено сообщений.");
+
+            if (messagesPage.Messages.Count == 0)
+                throw new Exception("Получен пустой список сообщений.");
+
+            Console.WriteLine($"Messages: {messagesPage.Pages.TotalRecords}");
+
+            while (true)
             {
-                if (SkipZadacha(message.TaskName!))
-                    continue;
+                Console.WriteLine($"--- Page {page} ---");
 
-                _ok = true;
-                string title = MakeTitle(message);
-
-                string dir = Path.Combine(
-                    DownloadPath,
-                    message.Type!,
-                    message.TaskName!,
-                    $"{message.CreationDate:yyyy-MM}",
-                    $"{message.CreationDate:yyyy-MM-dd}-{message.Id[0..8]} {title}");
-
-                //TODO if (message.Type.Equals("outbox") && File.Exists("form.xml")
-                // parse <mf:doc_out Number="44-3-1" Date="2024-03-13"/>
-                // for => "2024-03-13-44-3-1" !!!
-
-                Directory.CreateDirectory(dir);
-
-                string messageId = message.Id!;
-                string json = Path.Combine(dir, "message.json");
-                string info = Path.Combine(dir, "info.txt");
-                string zip = Path.Combine(dir, messageId + ".zip");
-
-                await DownloadJson(messageId, json);
-
-                if (message.Files.Count > 0)
+                foreach (var message in messagesPage.Messages)
                 {
-                    await DownloadZip(messageId, zip);
-                    await MakeInfo(message, info);
+                    if (SkipZadacha(message.TaskName!))
+                        continue;
 
-                    foreach (var file in message.Files)
+                    _ok = true;
+                    string title = MakeTitle(message);
+
+                    string dir = Path.Combine(
+                        Path.GetFullPath(DownloadPath),
+                        message.Type!,
+                        message.TaskName!,
+                        $"{message.CreationDate:yyyy-MM}",
+                        $"{message.CreationDate:yyyy-MM-dd}-{message.Id[0..8]} {title}");
+
+                    //TODO if (message.Type.Equals("outbox") && File.Exists("form.xml")
+                    // parse <mf:doc_out Number="44-3-1" Date="2024-03-13"/>
+                    // for => "2024-03-13-44-3-1" !!!
+
+                    Directory.CreateDirectory(dir);
+
+                    string messageId = message.Id!;
+                    string json = Path.Combine(dir, "message.json");
+                    string info = Path.Combine(dir, "info.txt");
+                    string zip = Path.Combine(dir, messageId + ".zip");
+
+                    await DownloadJson(messageId, json);
+
+                    if (message.Files.Count > 0)
                     {
-                        if (SkipFile(dir, file))
-                            continue;
+                        await DownloadZip(messageId, zip);
+                        await MakeInfo(message, info);
 
-                        string path = Path.Combine(dir, file.Name);
-
-                        if (await DownloadFile(messageId, file, path))
+                        foreach (var file in message.Files)
                         {
-                            string decrypted = Path.ChangeExtension(path, null);
+                            if (SkipFile(dir, file))
+                                continue;
 
-                            if (Decrypt && file.Encrypted)
+                            string path = Path.Combine(dir, file.Name);
+
+                            if (await DownloadFile(messageId, file, path))
                             {
-                                await DecryptFile(path, decrypted);
-                                string src = Path.ChangeExtension(decrypted, null);
+                                string decrypted = Path.ChangeExtension(path, null);
 
-                                if (decrypted.EndsWith(".sig", StringComparison.Ordinal))
+                                if (Decrypt && file.Encrypted)
                                 {
-                                    await DesigFile(decrypted, src);
+                                    await DecryptFile(path, decrypted);
+                                    string src = Path.ChangeExtension(decrypted, null);
+
+                                    if (decrypted.EndsWith(".sig", StringComparison.Ordinal))
+                                    {
+                                        await DesigFile(decrypted, src);
+                                    }
                                 }
                             }
                         }
                     }
+
+                    if (Delete && _ok)
+                    {
+                        await DeleteMessage(message);
+                    }
                 }
 
-                if (Delete && _ok)
-                {
-                    await DeleteMessage(message);
-                }
+                if (messagesPage.Pages.CurrentPage == messagesPage.Pages.TotalPages)
+                    break;
+
+                Thread.Sleep(4000); // anti DDoS
+
+                messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, ++page); //TODO gaps when Delete!
             }
 
-            if (messagesPage.Pages.CurrentPage == messagesPage.Pages.TotalPages)
-                break;
-
-            Thread.Sleep(4000); // anti DDoS
-
-            messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, ++page); //TODO gaps when Delete!
+            Console.WriteLine("--- Page end ---");
         }
-
-        Console.WriteLine("--- Page end ---");
+        catch (Exception ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+        }
     }
 
     private static string MakeTitle(Message message)
     {
-        string title = $"{message.Title} {message.Text}";
+        string title = $"{message.Title} {message.Text}".Trim();
 
         title = string.Join(' ', title.Split(' ',
             StringSplitOptions.RemoveEmptyEntries & StringSplitOptions.TrimEntries));
 
-        title = string.Join('_', title.Split(Path.GetInvalidFileNameChars()));
+        title = string.Join('_', title.Split(Path.GetInvalidFileNameChars(),
+            StringSplitOptions.RemoveEmptyEntries & StringSplitOptions.TrimEntries));
 
         if (title.Length > 0)
         {
@@ -187,7 +204,7 @@ internal class BulkLoad()
         return false;
     }
 
-    private bool SkipFile(string dir, MessageFile file)
+    private static bool SkipFile(string dir, MessageFile file)
     {
         //if (file.Name.StartsWith("form.xml.", StringComparison.Ordinal))
         //    return true;
@@ -209,12 +226,11 @@ internal class BulkLoad()
         return false;
     }
 
-    private async Task DownloadJson(string messageId, string path)
+    private static async Task DownloadJson(string messageId, string path)
     {
         try
         {
             await Program.RestAPI.DownloadMessageJsonAsync(messageId, path, Overwrite);
-            Thread.Sleep(1000); // anti DDoS
         }
         catch
         {
@@ -222,12 +238,11 @@ internal class BulkLoad()
         }
     }
 
-    private async Task DownloadZip(string messageId, string path)
+    private static async Task DownloadZip(string messageId, string path)
     {
         try
         {
             await Program.RestAPI.DownloadMessageZipAsync(messageId, path, Overwrite);
-            Thread.Sleep(1000); // anti DDoS
         }
         catch
         {
@@ -248,12 +263,11 @@ internal class BulkLoad()
         await File.WriteAllTextAsync(path, info.ToString());
     }
 
-    private async Task<bool> DownloadFile(string messageId, MessageFile file, string path)
+    private static async Task<bool> DownloadFile(string messageId, MessageFile file, string path)
     {
         try
         {
             await Program.RestAPI.DownloadMessageFileAsync(messageId, file.Id!, path, Overwrite);
-            Thread.Sleep(1000); // anti DDoS
             return true;
         }
         catch
@@ -274,8 +288,9 @@ internal class BulkLoad()
     private static async Task DesigFile(string path, string src)
     {
         //await CryptoPro.VerifyFileAsync(path, src);
-        await PKCS7.CleanSignAsync(path, src);
-        File.Delete(path);
+        //await PKCS7.CleanSignAsync(path, src);
+        await ASN1.CleanSignAsync(path, src);
+        //File.Delete(path);
     }
 
     private static async Task DeleteMessage(Message message)

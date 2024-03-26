@@ -20,7 +20,7 @@ limitations under the License.
 using System.Net;
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
-using Diev.Extensions.Log;
+using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Messages.Create;
 using Diev.Portal5.API.Tools;
@@ -43,7 +43,7 @@ public class RestAPI(Credential cred, bool trace)
     /// <param name="path"></param>
     /// <returns></returns>
     /// <exception cref="FileNotFoundException"></exception>
-    public async Task<bool> UploadDirectoryAsync(string task, string? title, string path)
+    public async Task<string?> UploadDirectoryAsync(string task, string? title, string path)
     {
         Logger.Title(@$"Upload directory ""{path}""");
 
@@ -101,7 +101,7 @@ public class RestAPI(Credential cred, bool trace)
         var message = await PostMessageRequestAsync(draft);
 
         if (message is null)
-            return false;
+            return null;
 
         string msgId = message.Id;
         int sent = 0;
@@ -142,7 +142,7 @@ public class RestAPI(Credential cred, bool trace)
             {
                 Logger.Title("Upload directory done.");
                 Logger.Flush(2);
-                return true;
+                return msgId;
             }
         }
 
@@ -165,7 +165,7 @@ public class RestAPI(Credential cred, bool trace)
 
         Logger.Title("Upload directory fail.");
         Logger.Flush(2);
-        return false;
+        return null;
     }
 
     /// <summary>

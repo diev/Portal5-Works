@@ -20,7 +20,7 @@ limitations under the License.
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
-using Diev.Extensions.Log;
+using Diev.Extensions.LogFile;
 
 namespace Diev.Extensions.Scan;
 

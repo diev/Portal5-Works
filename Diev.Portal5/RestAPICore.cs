@@ -26,6 +26,7 @@ using System.Text.Json;
 using System.Text.Unicode;
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
+using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Dictionaries;
 using Diev.Portal5.API.Info;
 using Diev.Portal5.API.Interfaces;
@@ -53,14 +54,6 @@ public class RestAPICore : IRestAPICore
     {
         PollyClient.Login(cred, trace);
         SetApi(cred.TargetName.Split(' ')[1]);
-
-        //JsonOptions = new JsonSerializerOptions()
-        //{
-        //    //AllowTrailingCommas = true,
-        //    //PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        //    Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)//,
-        //    //WriteIndented = true
-        //};
     }
 
     private void SetApi(string host)
@@ -89,9 +82,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var content = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Message>(content, JsonOptions)
-                ?? throw new Exception("Новое сообщение на сервере не создано.");
+            try
+            {
+                using var content = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Message>(content, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException("Новое сообщение на сервере не создано. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -118,9 +118,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<UploadSession>(stream, JsonOptions)
-                ?? throw new Exception("Сессия загрузки не создана.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<UploadSession>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException("Сессия загрузки не создана. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -289,7 +296,7 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
-            return true;
+            return true; // no response stream here to check more
         }
 
         // HTTP 404 – Not found
@@ -384,9 +391,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Message>(stream, JsonOptions)
-                ?? throw new Exception($"Сообщение '{msgId}' не получено.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Message>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Сообщение '{msgId}' не получено. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 404 – Not found
@@ -424,9 +438,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions)
-                ?? throw new Exception($"Информация о файле '{fileId}' для сообщения '{msgId}' не получена.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Информация о файле '{fileId}' для сообщения '{msgId}' не получена. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 404 – Not found
@@ -473,9 +494,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<IReadOnlyList<MessageReceipt>>(stream, JsonOptions)
-                ?? throw new Exception($"Квитанции для сообщения '{msgId}' не получены.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<IReadOnlyList<MessageReceipt>>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Квитанции для сообщения '{msgId}' не получены." + e.Message);
+                return null;
+            }
         }
 
         // HTTP 404 – Not found
@@ -497,9 +525,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<MessageReceipt>(stream, JsonOptions)
-                ?? throw new Exception($"Информация о квитанции '{rcptId}' для сообщения '{msgId}' не получена.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<MessageReceipt>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Информация о квитанции '{rcptId}' для сообщения '{msgId}' не получена. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 404 – Not found
@@ -522,9 +557,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions)
-                ?? throw new Exception($"Информация о файле '{fileId}' квитанции '{rcptId}' для сообщения '{msgId}' не получена.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Информация о файле '{fileId}' квитанции '{rcptId}' для сообщения '{msgId}' не получена. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 404 – Not found
@@ -634,9 +676,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions)
-                ?? throw new Exception($"Справочник задач не получен.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Справочник задач не получен.");
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -656,9 +705,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Profile>(stream, JsonOptions)
-                ?? throw new Exception($"Информация о профиле не получена."); ;
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Profile>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Информация о профиле не получена. " + e.Message);
+                return null;
+            }
         }
 
         // ?
@@ -678,9 +734,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Quota>(stream, JsonOptions)
-                ?? throw new Exception($"Информация о квоте профиля не получена.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Quota>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Информация о квоте профиля не получена. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -702,9 +765,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<IReadOnlyList<Notification>>(stream, JsonOptions)
-                ?? throw new Exception($"Информация о технических оповещениях не получена.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<IReadOnlyList<Notification>>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Информация о технических оповещениях не получена. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -727,9 +797,15 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<DictItemsPage>(stream, JsonOptions)
-                ?? throw new Exception($"Список справочнков не получен.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<DictItemsPage>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException("Список справочнков не получен." + e.Message);
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -761,9 +837,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Level1ItemsPage>(stream, JsonOptions)
-                ?? throw new Exception($"Список записей уровня 1 не не получен.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Level1ItemsPage>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException("Список записей уровня 1 не не получен." + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -795,9 +878,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Level2ItemsPage>(stream, JsonOptions)
-                ?? throw new Exception($"Список записей уровня 2 не не получен.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Level2ItemsPage>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Список записей уровня 2 не не получен. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -829,9 +919,16 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<Level3ItemsPage>(stream, JsonOptions)
-                ?? throw new Exception($"Список записей уровня 3 не не получен.");
+            try
+            {
+                using var stream = await response.Content.ReadAsStreamAsync();
+                return await JsonSerializer.DeserializeAsync<Level3ItemsPage>(stream, JsonOptions);
+            }
+            catch (Exception e)
+            {
+                DoException($"Список записей уровня 3 не не получен. " + e.Message);
+                return null;
+            }
         }
 
         // HTTP 400 – Bad Request
@@ -1169,6 +1266,8 @@ public class RestAPICore : IRestAPICore
 
     private void DoException(string message)
     {
+        Logger.TimeLine(message);
+
         if (SkipExceptions)
             return;
 

@@ -26,7 +26,7 @@ using CryptoBot.Tasks;
 
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Info;
-using Diev.Extensions.Log;
+using Diev.Extensions.LogFile;
 using Diev.Extensions.Smtp;
 using Diev.Portal5;
 using Diev.Portal5.API.Tools;
@@ -85,7 +85,7 @@ internal static class Program
             Description = "Номер задачи XX ('Zadacha_XX')",
             IsRequired = true
         }
-        .FromAmong("0", "130", "137", "2-1", "3-1");
+        .FromAmong("0", "130", "137", "2-1", "3-1", "54");
         taskOption.AddAlias("-z");
 
         RootCommand rootCommand = new(App.Description)
@@ -93,7 +93,7 @@ internal static class Program
             taskOption
         };
 
-        rootCommand.SetHandler(TaskCommand, taskOption);
+        rootCommand.SetHandler(TaskCommandAsync, taskOption);
         var commandLineBuilder = new CommandLineBuilder(rootCommand);
 
         commandLineBuilder.AddMiddleware(async (context, next) =>
@@ -109,49 +109,55 @@ internal static class Program
         return ExitCode;
     }
 
-    internal static void TaskCommand(string task)
+    internal static async Task TaskCommandAsync(string task)
     {
         switch (task)
         {
             case "0":
                 {
-                    MessagesClean.RunAsync().Wait();
+                    await MessagesClean.RunAsync();
                     return;
                 }
 
             case "130":
                 {
-                    Zadacha130.RunAsync().Wait();
+                    await Zadacha130.RunAsync();
                     return;
                 }
 
             case "137":
                 {
-                    Zadacha137.RunAsync().Wait();
+                    await Zadacha137.RunAsync();
                     return;
                 }
 
             case "2-1":
                 {
-                    var outbox = new BulkLoad();
-                    var filter = new MessagesFilter()
+                    await BulkLoad.RunAsync(new MessagesFilter()
                     {
                         MinDateTime = DateTime.Now.AddDays(-3),
-                        Task = "Zadacha_2-1"
-                    };
-                    outbox.RunAsync(filter).Wait();
+                        Task = "Zadacha_" + task
+                    });
                     return;
                 }
 
             case "3-1":
                 {
-                    var inbox = new BulkLoad();
-                    var filter = new MessagesFilter()
+                    await BulkLoad.RunAsync(new MessagesFilter()
                     {
                         MinDateTime = DateTime.Now.AddDays(-3),
-                        Task = "Zadacha_3-1"
-                    };
-                    inbox.RunAsync(filter).Wait();
+                        Task = "Zadacha_" + task
+                    });
+                    return;
+                }
+
+            case "54":
+                {
+                    await BulkLoad.RunAsync(new MessagesFilter()
+                    {
+                        MinDateTime = DateTime.Now.AddMonths(-3),
+                        Task = "Zadacha_" + task
+                    });
                     return;
                 }
         }

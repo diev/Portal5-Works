@@ -62,7 +62,7 @@ public record MessageReceipt
     /// <summary>
     /// Дополнительная информация из квитанции.
     /// </summary>
-    string Message,
+    string? Message,
 
     /// <summary>
     /// Файлы, включенные в квитанцию.
