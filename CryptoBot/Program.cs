@@ -79,6 +79,7 @@ internal static class Program
         Console.WriteLine(App.Title);
 
         // https://dev.to/karenpayneoregon/c-net-tools-withsystemcommandline-2nc2
+        // https://learn.microsoft.com/en-us/dotnet/standard/commandline/get-started-tutorial
 
         var taskOption = new Option<string>("--zadacha")
         {
@@ -88,12 +89,26 @@ internal static class Program
         .FromAmong("0", "130", "137", "2-1", "3-1", "54");
         taskOption.AddAlias("-z");
 
+        var fromOption = new Option<string?>("--from")
+        {
+            Description = "С какой даты (yyyy-mm-dd)"
+        };
+        fromOption.AddAlias("-f");
+
+        var toOption = new Option<string?>("--to")
+        {
+            Description = "По какую дату (yyyy-mm-dd)",
+        };
+        toOption.AddAlias("-t");
+
         RootCommand rootCommand = new(App.Description)
         {
-            taskOption
+            taskOption,
+            fromOption,
+            toOption
         };
 
-        rootCommand.SetHandler(TaskCommandAsync, taskOption);
+        rootCommand.SetHandler(TaskCommandAsync, taskOption, fromOption, toOption);
         var commandLineBuilder = new CommandLineBuilder(rootCommand);
 
         commandLineBuilder.AddMiddleware(async (context, next) =>
@@ -109,9 +124,9 @@ internal static class Program
         return ExitCode;
     }
 
-    internal static async Task TaskCommandAsync(string task)
+    internal static async Task TaskCommandAsync(string zadacha, string? from, string? to)
     {
-        switch (task)
+        switch (zadacha)
         {
             case "0":
                 {
@@ -135,8 +150,9 @@ internal static class Program
                 {
                     await BulkLoad.RunAsync(new MessagesFilter()
                     {
-                        MinDateTime = DateTime.Now.AddDays(-3),
-                        Task = "Zadacha_" + task
+                        Task = "Zadacha_" + zadacha,
+                        MinDate = from,
+                        MaxDate = to
                     });
                     return;
                 }
@@ -145,8 +161,9 @@ internal static class Program
                 {
                     await BulkLoad.RunAsync(new MessagesFilter()
                     {
-                        MinDateTime = DateTime.Now.AddDays(-3),
-                        Task = "Zadacha_" + task
+                        Task = "Zadacha_" + zadacha,
+                        MinDate = from,
+                        MaxDate = to
                     });
                     return;
                 }
@@ -155,29 +172,52 @@ internal static class Program
                 {
                     await BulkLoad.RunAsync(new MessagesFilter()
                     {
-                        MinDateTime = DateTime.Now.AddMonths(-3),
-                        Task = "Zadacha_" + task
+                        Task = "Zadacha_" + zadacha,
+                        MinDate = from,
+                        MaxDate = to
                     });
                     return;
                 }
         }
     }
 
+    #region Helpers
+    public static string GetTempPath(string path) 
+    {
+        //TODO Directory.CreateTempSubdirectory(prefix);
+
+        string temp = Path.Combine(path, "TEMP");
+
+        if (Directory.Exists(temp))
+            Directory.Delete(temp, true);
+
+        if (Directory.Exists(temp))
+            throw new Exception(@$"Не удалось удалить старую директорию ""{temp}"".");
+
+        Directory.CreateDirectory(temp);
+
+        if (!Directory.Exists(temp))
+            throw new Exception(@$"Не удалось создать новую директорию ""{temp}"".");
+
+        return temp;
+    }
+
     public static async Task SendDoneAsync(string task, string body, string? subscribers, string[]? files = null)
     {
-        await Smtp.SendMessageAsync(
+        await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
             $"Portal5.{task}: OK",
             body,
             files);
     }
 
-    public static async Task SendFailAsync(string task, string error, string? subscribers, string[]? files = null)
+    public static async Task SendFailAsync(string task, Exception ex, string? subscribers, string[]? files = null)
     {
-        await Smtp.SendMessageAsync(
+        await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
-            $"Portal5.{task}: {error}",
-            $"ERROR: {error}",
+            $"Portal5.{task}: {RestAPI.GetErrorMessage(ex.Message)}",
+            $"ERROR: {ex}",
             files);
     }
+    #endregion Helpers
 }

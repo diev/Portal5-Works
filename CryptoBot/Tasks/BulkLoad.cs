@@ -18,6 +18,7 @@ limitations under the License.
 #endregion
 
 using System.Text;
+using System.Xml;
 
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
@@ -31,10 +32,10 @@ internal static class BulkLoad
     private static readonly EnumerationOptions _enumOptions = new();
     private static bool _ok;
 
-    public static string DownloadPath { get; set; }
-    public static bool Overwrite { get; set; }
-    public static bool Decrypt { get; set; }
-    public static bool Delete { get; set; }
+    //config
+    public static string DownloadPath { get; }
+    public static bool Overwrite { get; }
+    public static bool Decrypt { get; }
 
     static BulkLoad()
     {
@@ -43,7 +44,6 @@ internal static class BulkLoad
         DownloadPath = Path.GetFullPath(config[nameof(DownloadPath)] ?? ".");
         Overwrite = bool.Parse(config[nameof(Overwrite)] ?? "false");
         Decrypt = bool.Parse(config[nameof(Decrypt)] ?? "false");
-        Delete = bool.Parse(config[nameof(Delete)] ?? "false");
     }
 
     public static async Task RunAsync(MessagesFilter filter, int page = 1)
@@ -68,76 +68,146 @@ internal static class BulkLoad
             {
                 Console.WriteLine($"--- Page {page} ---");
 
-                foreach (var message in messagesPage.Messages)
+                foreach (var message in messagesPage!.Messages)
                 {
                     if (SkipZadacha(message.TaskName!))
                         continue;
 
+                    string temp = Program.GetTempPath(DownloadPath);
+                    string? formtype = null;
+                    string? datenum = null;
                     _ok = true;
-                    string title = MakeTitle(message);
-
-                    string dir = Path.Combine(
-                        Path.GetFullPath(DownloadPath),
-                        message.Type!,
-                        message.TaskName!,
-                        $"{message.CreationDate:yyyy-MM}",
-                        $"{message.CreationDate:yyyy-MM-dd}-{message.Id[0..8]} {title}");
 
                     //TODO if (message.Type.Equals("outbox") && File.Exists("form.xml")
                     // parse <mf:doc_out Number="44-3-1" Date="2024-03-13"/>
                     // for => "2024-03-13-44-3-1" !!!
 
-                    Directory.CreateDirectory(dir);
+                    string msgId = message.Id!;
+                    string json = Path.Combine(temp, "message.json");
+                    string info = Path.Combine(temp, "info.txt");
+                    string zip = Path.Combine(temp, msgId + ".zip");
 
-                    string messageId = message.Id!;
-                    string json = Path.Combine(dir, "message.json");
-                    string info = Path.Combine(dir, "info.txt");
-                    string zip = Path.Combine(dir, messageId + ".zip");
-
-                    await DownloadJson(messageId, json);
+                    await DownloadJson(msgId, json);
 
                     if (message.Files.Count > 0)
                     {
-                        await DownloadZip(messageId, zip);
+                        await DownloadZip(msgId, zip);
                         await MakeInfo(message, info);
 
                         foreach (var file in message.Files)
                         {
-                            if (SkipFile(dir, file))
+                            if (SkipFile(temp, file))
                                 continue;
 
-                            string path = Path.Combine(dir, file.Name);
+                            string path = Path.Combine(temp, file.Name);
 
-                            if (await DownloadFile(messageId, file, path))
+                            if (!await DownloadFile(msgId, file, path))
+                            {
+                                Logger.TimeLine($@"Ошибка загрузки ""{file.Name}"" из '{msgId}'!");
+                                continue;
+                            }
+                            
+                            if (Decrypt && file.Encrypted)
                             {
                                 string decrypted = Path.ChangeExtension(path, null);
+                                await DecryptFile(path, decrypted);
 
-                                if (Decrypt && file.Encrypted)
+                                if (decrypted.EndsWith(".sig", StringComparison.Ordinal))
                                 {
-                                    await DecryptFile(path, decrypted);
                                     string src = Path.ChangeExtension(decrypted, null);
+                                    await DesigFile(decrypted, src);
+                                }
+                            }
+                        }
 
-                                    if (decrypted.EndsWith(".sig", StringComparison.Ordinal))
-                                    {
-                                        await DesigFile(decrypted, src);
-                                    }
+                        if (message.Type.Equals("outbox", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string form = Path.Combine(temp, "form.xml");
+
+                            if (File.Exists(form))
+                            {
+                                try // find <mf:doc_out Number="52-2" Date="2024-03-25"/>
+                                {
+                                    XmlDocument doc = new();
+                                    doc.Load(form);
+                                    var root = doc.DocumentElement!;
+                                    var pr = root.Prefix;
+                                    var ns = root.NamespaceURI;
+                                    XmlNamespaceManager nsmgr = new(doc.NameTable);
+                                    nsmgr.AddNamespace(pr, ns);
+                                    var node = root.SelectSingleNode($"//{pr}:doc_out", nsmgr);
+                                    string number = node!.Attributes!["Number"]!.Value;
+                                    string date = node!.Attributes!["Date"]!.Value;
+
+                                    formtype = root.LocalName;
+                                    datenum = $"{date}-{number}";
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LastError(ex);
+                                    Logger.TimeLine($@"Файл ""form.xml"" в '{msgId}' имеет ошибку: {ex.Message}");
+                                }
+                            }
+                        }
+                        else if (message.Type.Equals("inbox", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string passport = Path.Combine(temp, "passport.xml");
+
+                            if (File.Exists(passport))
+                            {
+                                try // find <mf:doc_out Number="52-2" Date="2024-03-25"/>
+                                {
+                                    XmlDocument doc = new();
+                                    doc.Load(passport);
+                                    var root = doc.DocumentElement!;
+                                    var pr = "n1"; // root.Prefix; // string.Empty
+                                    var ns = "urn:cbr-ru"; // root.NamespaceURI;
+                                    XmlNamespaceManager nsmgr = new(doc.NameTable);
+                                    nsmgr.AddNamespace(pr, ns);
+                                    var node = root.SelectSingleNode($"//OutNumber/RegNumber", nsmgr)
+                                        ?? root.SelectSingleNode($"//document/RegNumer", nsmgr);
+                                    string number = node!.InnerText;
+                                    string date = node!.Attributes!["regdate"]!.Value;
+
+                                    formtype = root.LocalName;
+                                    datenum = $"{date}-{number}";
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LastError(ex);
+                                    Logger.TimeLine($@"Файл ""passport.xml"" в '{msgId}' имеет ошибку: {ex.Message}");
                                 }
                             }
                         }
                     }
 
-                    if (Delete && _ok)
-                    {
-                        await DeleteMessage(message);
-                    }
+                    string title = MakeTitle(message, formtype);
+                    datenum ??= $"{message.CreationDate:yyyy-MM-dd}-{msgId[0..8]}";
+
+                    datenum = string.Join('~', datenum.Split(Path.GetInvalidFileNameChars(),
+                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+                    string dir = Path.Combine(
+                        Path.GetFullPath(DownloadPath),
+                        message.Type,
+                        message.TaskName,
+                        $"{datenum[0..7]}");
+
+                    string save = Path.Combine(dir,
+                        $"{datenum} {title}");
+
+                    Directory.CreateDirectory(dir);
+
+                    if (Directory.Exists(save))
+                        Directory.Delete(save, true);
+
+                    Directory.Move(temp, save);
                 }
 
                 if (messagesPage.Pages.CurrentPage == messagesPage.Pages.TotalPages)
                     break;
 
-                Thread.Sleep(4000); // anti DDoS
-
-                messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, ++page); //TODO gaps when Delete!
+                messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter, ++page);
             }
 
             Console.WriteLine("--- Page end ---");
@@ -149,24 +219,47 @@ internal static class BulkLoad
         }
     }
 
-    private static string MakeTitle(Message message)
+    private static string MakeTitle(Message message, string? formtype)
     {
-        string title = $"{message.Title} {message.Text}".Trim();
+        string title;
+
+        if (formtype is null)
+        {
+            title = $"{message.Title} {message.Text} {message.RegNumber}";
+        }
+        else if (formtype.Equals("Form_Request", StringComparison.OrdinalIgnoreCase))
+        {
+            // Обращение (запрос)  в Банк России
+            title = $"Запрос {message.Text}".Trim();
+        }
+        else if (formtype.Equals("Form_Response", StringComparison.OrdinalIgnoreCase))
+        {
+            // Ответ на запрос/предписание (требование)
+            title = $"Ответ {message.Text}".Trim();
+        }
+        else if (formtype.Equals("passport", StringComparison.OrdinalIgnoreCase))
+        {
+            title = (message.Text ?? "Письмо").Trim();
+        }
+        else
+        {
+            title = $"{message.Title} {message.Text} {message.RegNumber}";
+        }
 
         title = string.Join(' ', title.Split(' ',
-            StringSplitOptions.RemoveEmptyEntries & StringSplitOptions.TrimEntries));
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
         title = string.Join('_', title.Split(Path.GetInvalidFileNameChars(),
-            StringSplitOptions.RemoveEmptyEntries & StringSplitOptions.TrimEntries));
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
         if (title.Length > 0)
         {
-            if (char.IsLower(title[0]))
-            {
-                char[] a = title.ToCharArray();
-                a[0] = char.ToUpper(a[0]);
-                title = new string(a);
-            }
+            //if (char.IsLower(title[0]))
+            //{
+            //    char[] a = title.ToCharArray();
+            //    a[0] = char.ToUpper(a[0]);
+            //    title = new string(a);
+            //}
 
             if (title.Length > 64)
             {
@@ -175,7 +268,7 @@ internal static class BulkLoad
         }
         else
         {
-            title = "описания нет";
+            title = "Письмо";
         }
 
         return title;
@@ -209,8 +302,8 @@ internal static class BulkLoad
         //if (file.Name.StartsWith("form.xml.", StringComparison.Ordinal))
         //    return true;
 
-        if (file.Name.Equals("passport.xml", StringComparison.Ordinal))
-            return true;
+        //if (file.Name.Equals("passport.xml", StringComparison.Ordinal))
+        //    return true;
 
         if (file.SignedFile != null) // file.Name.EndsWith(".sig", StringComparison.Ordinal)
             return true;
@@ -263,11 +356,11 @@ internal static class BulkLoad
         await File.WriteAllTextAsync(path, info.ToString());
     }
 
-    private static async Task<bool> DownloadFile(string messageId, MessageFile file, string path)
+    private static async Task<bool> DownloadFile(string msgId, MessageFile file, string path)
     {
         try
         {
-            await Program.RestAPI.DownloadMessageFileAsync(messageId, file.Id!, path, Overwrite);
+            await Program.RestAPI.DownloadMessageFileAsync(msgId, file.Id!, path, Overwrite);
             return true;
         }
         catch

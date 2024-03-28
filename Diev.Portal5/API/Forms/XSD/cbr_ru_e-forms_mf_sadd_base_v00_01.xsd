@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:mfb="urn:cbr-ru:e-forms-mf-sadd-base:v0.1"
+           xmlns:ai="urn:cbr-ru:e-forms-app-info:v1.0"
+           targetNamespace="urn:cbr-ru:e-forms-mf-sadd-base:v0.1"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+    <xs:simpleType name="Text_Type">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Text_1_Type">
+        <xs:restriction base="mfb:Text_Type">
+            <xs:length value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Text_64_Type">
+        <xs:restriction base="mfb:Text_Type">
+            <xs:maxLength value="64"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Text_255_Type">
+        <xs:restriction base="mfb:Text_Type">
+            <xs:maxLength value="255"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Text_Unlimited_Type">
+        <xs:restriction base="mfb:Text_Type"/>
+    </xs:simpleType>
+    <xs:simpleType name="Date_Type">
+        <xs:restriction base="xs:date">
+            <xs:pattern value="\d{4}-\d{2}-\d{2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Integer_Type">
+        <xs:restriction base="xs:integer"/>
+    </xs:simpleType>
+    <xs:simpleType name="Positive_Integer_Type">
+        <xs:restriction base="mfb:Integer_Type">
+            <xs:minExclusive value="0"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Yes_No_Type">
+        <xs:annotation>
+            <xs:appinfo>
+                <type>Checkbox</type>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="3"/>
+            <xs:minLength value="2"/>
+            <xs:enumeration value="Да"/>
+            <xs:enumeration value="Нет"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="Phone_Type">
+        <xs:restriction base="mfb:Text_Type">
+            <xs:maxLength value="32"/>
+            <xs:pattern value="[\s\d\-\(\)\+]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="SADD_Folder_Type">
+        <xs:annotation>
+            <xs:documentation>Указатель на папку СДС </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_255_Type"/>
+    </xs:simpleType>
+    <xs:simpleType name="SADD_RecipientName_Type">
+        <xs:annotation>
+            <xs:documentation>Структурное подразделение Банка России</xs:documentation>
+            <!--		
+        	<xs:appinfo>
+				<ai:Reference_Book Id="C4949672-F76B-494C-87F0-214D46928CD5">
+					<ai:Value>Code</ai:Value>
+					<ai:Description>Name</ai:Description>
+				</ai:Reference_Book>
+			</xs:appinfo>
+            -->
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_Type"/>
+    </xs:simpleType>
+    <xs:simpleType name="SADD_doc_flag_Type">
+        <xs:annotation>
+            <xs:documentation>Степень конфиденциальности</xs:documentation>
+            <xs:appinfo>
+                <ai:Reference_Book Id="B960A942-262C-40FC-AD9D-DE800544161A">
+                    <ai:Value>Value</ai:Value>
+                    <ai:Description>DisplayName</ai:Description>
+                </ai:Reference_Book>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_Type"/>
+    </xs:simpleType>
+    <xs:complexType name="SADD_doc_out_volume_Type">
+        <xs:annotation>
+            <xs:documentation>Том архива</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="number" type="mfb:Positive_Integer_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Номер тома</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="all" type="mfb:Positive_Integer_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Всего томов</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="SADD_org_official_Type">
+        <xs:annotation>
+            <xs:documentation>Подписант</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="name" type="mfb:Text_64_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>ФИО</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="post" type="mfb:Text_255_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Должность</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="replace" type="mfb:Yes_No_Type">
+            <xs:annotation>
+                <xs:documentation>Замещение</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="SADD_doc_writer_Type">
+        <xs:annotation>
+            <xs:documentation>Исполнитель</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="name" type="mfb:Text_64_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>ФИО</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="post" type="mfb:Text_255_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Должность</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="phone" type="mfb:Phone_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Контактный номер телефона</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="SADD_doc_out_Type">
+        <xs:annotation>
+            <xs:documentation>Исходящий документ</xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="Number" type="mfb:Text_64_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Номер</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Date" type="mfb:Date_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Дата</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="_Form_Type" abstract="true"/>
+</xs:schema>

@@ -25,16 +25,15 @@ namespace CryptoBot.Tasks;
 
 internal static class Zadacha137
 {
-    private static readonly string _task = "Zadacha_137";
-    private static readonly string _title =
+    private const string _task = "Zadacha_137";
+    private const string _title =
         "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)";
-    private static readonly string _zip = "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip";
-    private static readonly EnumerationOptions _enumOptions = new();
+    private const string _zip = "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip";
 
     //config
-    private static readonly string UploadPath;
-    private static readonly string? EncryptTo;
-    private static readonly string? Subscribers;
+    private static string UploadPath { get; }
+    private static string? EncryptTo { get; }
+    private static string? Subscribers { get; }
 
     static Zadacha137()
     {
@@ -50,7 +49,7 @@ internal static class Zadacha137
         try
         {
             string zip = GetLastZipToUpload(UploadPath, _zip, 14);
-            string temp = GetTempUploadPath(UploadPath);
+            string temp = Program.GetTempPath(UploadPath);
 
             await SignAndEncryptAsync(UploadPath, zip, temp);
             string msgId = await UploadAsync(temp);
@@ -65,7 +64,7 @@ internal static class Zadacha137
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(_task, ex.Message, Subscribers);
+            await Program.SendFailAsync(_task, ex, Subscribers);
             Program.ExitCode = 1;
         }
     }
@@ -83,24 +82,6 @@ internal static class Zadacha137
         }
 
         throw new Exception($"За {days} последних дней ни одного файла для отправки.");
-    }
-
-    private static string GetTempUploadPath(string path)
-    {
-        string temp = Path.Combine(path, "TEMP");
-
-        if (Directory.Exists(temp))
-            Directory.Delete(temp, true);
-
-        if (Directory.Exists(temp))
-            throw new Exception(@$"Не удалось удалить старую директорию ""{temp}"".");
-
-        Directory.CreateDirectory(temp);
-
-        if (!Directory.Exists(temp))
-            throw new Exception(@$"Не удалось создать новую директорию ""{temp}"".");
-
-        return temp;
     }
 
     private static async Task SignAndEncryptAsync(string path, string file, string temp)

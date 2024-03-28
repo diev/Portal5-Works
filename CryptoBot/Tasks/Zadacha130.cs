@@ -27,11 +27,11 @@ namespace CryptoBot.Tasks;
 
 internal static class Zadacha130
 {
-    private static readonly string _task = "Zadacha_130";
+    private const string _task = "Zadacha_130";
 
     //config
-    private static readonly string DownloadPath;
-    private static readonly string? Subscribers;
+    private static string DownloadPath { get; }
+    private static string? Subscribers { get; }
 
     static Zadacha130()
     {
@@ -56,7 +56,7 @@ internal static class Zadacha130
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(_task, ex.Message, Subscribers);
+            await Program.SendFailAsync(_task, ex, Subscribers);
             Program.ExitCode = 1;
         }
     }

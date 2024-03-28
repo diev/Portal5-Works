@@ -15,6 +15,14 @@
     "CryptoBot -z 54": {
       "commandName": "Project",
       "commandLineArgs": "-z 54\r\n"
+    },
+    "CryptoBot -z 2-1 (out)": {
+      "commandName": "Project",
+      "commandLineArgs": "-z 2-1 -f 2024-03-01\r\n"
+    },
+    "CryptoBot -z 3-1 (in)": {
+      "commandName": "Project",
+      "commandLineArgs": "-z 3-1 -f 2024-03-01\r\n"
     }
   }
 }

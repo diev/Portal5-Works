@@ -73,7 +73,7 @@ public record Message
     /// Example: "inbox"  // нам входящие
     /// Example: "outbox" // наши исходящие
     /// </summary>
-    string? Type,
+    string Type,
 
     /// <summary>
     /// Название сообщения (subject).
@@ -98,7 +98,7 @@ public record Message
     /// Дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»).
     /// Example: "2023-09-25T16:03:31Z"
     /// </summary>
-    DateTime? CreationDate,
+    DateTime CreationDate,
 
     /// <summary>
     /// Дата последнего изменения статуса сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»).
@@ -122,7 +122,7 @@ public record Message
     /// replied    Отправлен ответ: Только для входящих сообщений.На сообщение в данном статусе направлен ответ.
     /// success    Доставлено: Сообщение успешно размещено в ЛК/Сообщение передано роутером во внутреннюю систему Банка России, от которой не ожидается ответ о регистрации.
     /// </summary>
-    string? Status,
+    string Status,
 
     /// <summary>
     /// Наименование задачи.
@@ -132,7 +132,7 @@ public record Message
     /// Example: "Zadacha_137"
     /// Example: "GroupTask_22"
     /// </summary>
-    string? TaskName,
+    string TaskName,
 
     /// <summary>
     /// Регистрационный номер.

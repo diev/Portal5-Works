@@ -33,16 +33,28 @@ public class MessagesFilter
     public string? Task { get; set; }
 
     /// <summary>
-    /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»)
+    /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные позднее указанной даты).
     /// </summary>
     public DateTime? MinDateTime { get; set; }
 
     /// <summary>
-    /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»)
+    /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
+    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные позднее указанной даты).
+    /// </summary>
+    public string? MinDate { get; set; }
+
+    /// <summary>
+    /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
     /// </summary>
     public DateTime? MaxDateTime { get; set; }
+
+    /// <summary>
+    /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
+    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
+    /// </summary>
+    public string? MaxDate { get; set; }
 
     /// <summary>
     /// Минимально возможный размер сообщения в байтах
@@ -99,8 +111,14 @@ public class MessagesFilter
         if (MinDateTime != null)
             query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd}T00:00:00Z", MinDateTime); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
 
+        if (MinDate != null)
+            query.Append("&MinDateTime=").AppendFormat("{0}T00:00:00Z", MinDate); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+
         if (MaxDateTime != null)
             query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd}T23:59:59Z", MaxDateTime); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+
+        if (MaxDate != null)
+            query.Append("&MaxDateTime=").AppendFormat("{0}T23:59:59Z", MaxDate); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
 
         if (MinSize != null)
             query.Append("&MinSize=").Append(MinSize);

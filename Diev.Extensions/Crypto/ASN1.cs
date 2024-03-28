@@ -107,7 +107,7 @@ public static class ASN1
             return fileInfo.Exists && fileInfo.Length == len;
 
             #region local functions
-            // 1..4 bytes
+            // 1..5 bytes
             long? ReadLength()
             {
                 byte b = reader.ReadByte();

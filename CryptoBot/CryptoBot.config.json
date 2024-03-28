@@ -7,8 +7,7 @@
   "BulkLoad": {
     "DownloadPath": "Download\\Archive",
     "Overwrite": false,
-    "Decrypt": false,
-    "Delete": false
+    "Decrypt": false
   },
 
   "Zadacha_130": {

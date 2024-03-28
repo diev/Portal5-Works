@@ -18,9 +18,12 @@ limitations under the License.
 #endregion
 
 using System.Net;
+using System.Text.Json;
+
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
 using Diev.Extensions.LogFile;
+using Diev.Portal5.API.Errors;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Messages.Create;
 using Diev.Portal5.API.Tools;
@@ -283,5 +286,22 @@ public class RestAPI(Credential cred, bool trace)
         }
 
         return ok;
+    }
+
+    public static string GetErrorMessage(string message)
+    {
+        if (message.StartsWith('{'))
+        {
+            try
+            {
+                var json = JsonSerializer.Deserialize<Error4XX>(message);
+
+                if (json != null && json.ErrorMessage != null)
+                    return json.ErrorMessage;
+            }
+            catch { }
+        }
+
+        return message;
     }
 }

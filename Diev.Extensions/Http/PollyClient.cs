@@ -61,58 +61,10 @@ public static class PollyClient
         //var app = Assembly.GetExecutingAssembly().GetName();
         var app = Assembly.GetEntryAssembly()?.GetName();
 
-        //if (Test)
-        //{
-        //    Api = TestHost + TestBaseUrl;
-
-        //    HttpClientHandler handler = new()
-        //    {
-        //        UseDefaultCredentials = false,
-        //        Credentials = new NetworkCredential(TestUsername, TestPassword)
-        //    };
-
         //    if (UseProxy && ProxyAddress != null)
         //    {
         //        handler.Proxy = new WebProxy(new Uri(ProxyAddress)); // or null;
         //    }
-
-        //    _httpClient = new(handler, true)
-        //    {
-        //        BaseAddress = new Uri(TestHost),
-        //        Timeout = TimeSpan.FromMinutes(3)
-        //    };
-
-        //    _httpClient.DefaultRequestHeaders.UserAgent.Add(
-        //        new ProductInfoHeaderValue(
-        //            app.Name ?? "TestClient",
-        //            app.Version?.ToString() ?? "1.0"));
-        //}
-        //else
-        //{
-        //    Api = Host + BaseUrl;
-
-        //    HttpClientHandler handler = new()
-        //    {
-        //        UseDefaultCredentials = false,
-        //        Credentials = new NetworkCredential(Username, Password)
-        //    };
-
-        //    if (UseProxy && ProxyAddress != null)
-        //    {
-        //        handler.Proxy = new WebProxy(new Uri(ProxyAddress)); // or null;
-        //    }
-
-        //    _httpClient = new(handler, true)
-        //    {
-        //        BaseAddress = new Uri(Host),
-        //        Timeout = TimeSpan.FromMinutes(3)
-        //    };
-
-        //    _httpClient.DefaultRequestHeaders.UserAgent.Add(
-        //        new ProductInfoHeaderValue(
-        //            app.Name ?? "Client",
-        //            app.Version?.ToString() ?? "1.0"));
-        //}
 
         HttpClientHandler handler = new()
         {
