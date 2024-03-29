@@ -23,6 +23,10 @@
     "CryptoBot -z 3-1 (in)": {
       "commandName": "Project",
       "commandLineArgs": "-z 3-1 -f 2024-03-01\r\n"
+    },
+    "3-1 today": {
+      "commandName": "Project",
+      "commandLineArgs": "-z 3-1 -d\r\n"
     }
   }
 }

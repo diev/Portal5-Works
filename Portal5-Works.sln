@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CryptoBot", "CryptoBot\Cryp
 		{FBD0F3CF-017E-45F2-8837-E66BCDAD7029} = {FBD0F3CF-017E-45F2-8837-E66BCDAD7029}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Diev.ExtensionsTests", "Diev.ExtensionsTests\Diev.ExtensionsTests.csproj", "{7E627538-9731-427A-A522-AA4B70A5771C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{BA520ABC-1607-4812-B644-F8C61F79BCCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA520ABC-1607-4812-B644-F8C61F79BCCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA520ABC-1607-4812-B644-F8C61F79BCCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E627538-9731-427A-A522-AA4B70A5771C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E627538-9731-427A-A522-AA4B70A5771C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E627538-9731-427A-A522-AA4B70A5771C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E627538-9731-427A-A522-AA4B70A5771C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

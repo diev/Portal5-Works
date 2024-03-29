@@ -25,7 +25,7 @@ namespace Diev.Extensions.Crypto;
 
 public static class ASN1
 {
-    public static int BufferSize = 4096;
+    public static int BufferSize { get; set; } = 4096;
 
     /// <summary>
     /// Извлечь из файла PKCS#7 с ЭП чистый исходный файл.
@@ -42,31 +42,31 @@ public static class ASN1
             using var reader = new BinaryReader(stream);
 
             // type 0x30, length 0x80 or 1..4 bytes additionally
-            ReadTypeLen();
+            SkipTypeLength();
 
             // type 0x06 length 0x09 data... - ObjectIdentifier (signedData "1.2.840.113549.1.7.2")
             if (!ReadOid(0x02))
                 return false;
 
             // 0xA0 0x80 0xA0 0x80
-            ReadTypeLen(2);
+            SkipTypeLength(2);
 
             // 0x02 0x01 0x01 - Integer (version 1)
             if (!ReadVersion())
                 return false;
 
             // 0x31 ... - list of used algoritms
-            ReadTypeLenData();
+            SkipTypeLengthData();
 
             // 0x30 0x80
-            ReadTypeLen();
+            SkipTypeLength();
 
             // type 0x06 length 0x09 data... - ObjectIdentifier (data "1.2.840.113549.1.7.1")
             if (!ReadOid(0x01))
                 return false;
 
             // 0xA0 0x80 0x24 0x80
-            ReadTypeLen(2);
+            SkipTypeLength(2);
 
             // type 0x04 - OctetString
             if (reader.ReadByte() != 0x04)
@@ -196,24 +196,29 @@ public static class ASN1
             // skip type and length
             // 30 80
             // 02 01
-            void ReadTypeLen(int n = 1)
+            void SkipTypeLength(int n = 1)
             {
                 for (int i = 0; i < n; i++)
                 {
-                    // type
-                    reader.ReadByte();
+                    //type
+                    stream.Position++;
 
-                    // length
-                    ReadLength();
+                    //length
+                    byte b = reader.ReadByte();
+
+                    if (b > 0x80)
+                    {
+                        stream.Position += b - 0x80;
+                    }
                 }
             }
 
             // skip type, length and data by this length
             // 02 01 01
-            void ReadTypeLenData()
+            void SkipTypeLengthData()
             {
                 // type
-                reader.ReadByte();
+                stream.Position++;
 
                 // length
                 var len = ReadLength();
@@ -226,7 +231,6 @@ public static class ASN1
                 }
                 else
                 {
-                    //reader.ReadBytes((int)len);
                     stream.Position += (long)len;
                 }
             }
@@ -315,6 +319,115 @@ public static class ASN1
             Array.Copy(buffer, buffer.Length - offset, buffer, 0, offset);
             position += bufferSize - offset;
         }
+    }
+
+    public static byte[] Oid(string oid)
+    {
+        string[] parts = oid.Split('.');
+        MemoryStream ms = new();
+
+        //0
+        int x = int.Parse(parts[0]);
+
+        //1
+        int y = int.Parse(parts[1]);
+        ms.WriteByte((byte)(40 * x + y));
+
+        //2+
+        for (int i = 2; i < parts.Length; i++)
+        {
+            string part = parts[i];
+            int octet = int.Parse(part);
+            byte[] b = EncodeOctet(octet);
+            ms.Write(b, 0, b.Length);
+        }
+
+        return ms.ToArray();
+    }
+
+    public static string Oid(byte[] oid)
+    {
+        StringBuilder sb = new();
+
+        // Pick apart the OID
+        int x = oid[0] / 40;
+        int y = oid[0] % 40;
+        
+        if (x > 2)
+        {
+            // Handle special case for large y if x = 2
+            y += (x - 2) * 40;
+            x = 2;
+        }
+        
+        sb.Append(x).Append('.').Append(y);
+        long val = 0;
+        
+        for (int i = 1; i < oid.Length; i++)
+        {
+            val = (val << 7) | ((byte)(oid[i] & 0x7F));
+        
+            if ((oid[i] & 0x80) != 0x80)
+            {
+                sb.Append('.').Append(val);
+                val = 0;
+            }
+        }
+        
+        return sb.ToString();
+    }
+
+    public static byte[] EncodeOctet(int value)
+    {
+        /*
+           For example, the OID value is 19200300.
+
+           1. Convert 19200300 to Hex 0x124F92C
+           2.   0x124F92C        & 0x7F         = 0x2C -- Last Byte
+           3. ((0x124F92C >> 7)  & 0x7F) | 0x80 = 0xF2 --- 3rd Byte
+           4. ((0x124F92C >> 14) & 0x7F) | 0x80 = 0x93 ---- 2nd Byte
+           5. ((0x124F92C >> 21) & 0x7F) | 0x80 = 0x89 ----- 1st Byte
+
+           So after encoding, it becomes 0x89 0x93 0xF2 0x2C.
+        */
+
+        uint x = (uint)value;
+
+        if (x > 0xFFFFFF) // 4 Bytes
+        {
+            var b = new byte[4];
+
+            b[0] = Convert.ToByte((x >> 21) & 0x7F | 0x80);
+            b[1] = Convert.ToByte((x >> 14) & 0x7F | 0x80);
+            b[2] = Convert.ToByte((x >>  7) & 0x7F | 0x80);
+            b[3] = Convert.ToByte( x        & 0x7F);
+
+            return b;
+        }
+
+        if (x > 0xFFFF) // 3 Bytes
+        {
+            var b = new byte[3];
+
+            b[0] = Convert.ToByte((x >> 14) & 0x7F | 0x80);
+            b[1] = Convert.ToByte((x >>  7) & 0x7F | 0x80);
+            b[2] = Convert.ToByte( x        & 0x7F);
+
+            return b;
+        }
+
+        if (x > 127) // 2 Bytes
+        {
+            var b = new byte[2];
+
+            b[0] = Convert.ToByte((x >> 7) & 0x7F | 0x80);
+            b[1] = Convert.ToByte( x       & 0x7F);
+
+            return b;
+        }
+
+        // (x < 127) // 1 Byte
+        return [Convert.ToByte(x)];
     }
 }
 

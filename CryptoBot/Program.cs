@@ -25,6 +25,7 @@ using System.Text;
 using CryptoBot.Tasks;
 
 using Diev.Extensions.Credentials;
+using Diev.Extensions.Crypto;
 using Diev.Extensions.Info;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Smtp;
@@ -89,6 +90,13 @@ internal static class Program
         .FromAmong("0", "130", "137", "2-1", "3-1", "54");
         taskOption.AddAlias("-z");
 
+        var todayOption = new Option<bool>("--today")
+        {
+            Description = "Текущий день"
+        };
+        todayOption.AddAlias("-d");
+        todayOption.SetDefaultValue(false);
+
         var fromOption = new Option<string?>("--from")
         {
             Description = "С какой даты (yyyy-mm-dd)"
@@ -104,11 +112,12 @@ internal static class Program
         RootCommand rootCommand = new(App.Description)
         {
             taskOption,
+            todayOption,
             fromOption,
             toOption
         };
 
-        rootCommand.SetHandler(TaskCommandAsync, taskOption, fromOption, toOption);
+        rootCommand.SetHandler(TaskCommandAsync, taskOption, todayOption, fromOption, toOption);
         var commandLineBuilder = new CommandLineBuilder(rootCommand);
 
         commandLineBuilder.AddMiddleware(async (context, next) =>
@@ -124,8 +133,10 @@ internal static class Program
         return ExitCode;
     }
 
-    internal static async Task TaskCommandAsync(string zadacha, string? from, string? to)
+    internal static async Task TaskCommandAsync(string zadacha, bool today, string? from, string? to)
     {
+        string now = $"{DateTime.Now:yyyy-MM-dd}";
+
         switch (zadacha)
         {
             case "0":
@@ -151,7 +162,7 @@ internal static class Program
                     await BulkLoad.RunAsync(new MessagesFilter()
                     {
                         Task = "Zadacha_" + zadacha,
-                        MinDate = from,
+                        MinDate = today ? now : from,
                         MaxDate = to
                     });
                     return;
@@ -162,7 +173,7 @@ internal static class Program
                     await BulkLoad.RunAsync(new MessagesFilter()
                     {
                         Task = "Zadacha_" + zadacha,
-                        MinDate = from,
+                        MinDate = today ? now : from,
                         MaxDate = to
                     });
                     return;
@@ -173,7 +184,7 @@ internal static class Program
                     await BulkLoad.RunAsync(new MessagesFilter()
                     {
                         Task = "Zadacha_" + zadacha,
-                        MinDate = from,
+                        MinDate = today ? now : from,
                         MaxDate = to
                     });
                     return;

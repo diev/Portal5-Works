@@ -95,7 +95,7 @@ public record Message
     string? Text,
 
     /// <summary>
-    /// Дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd’T’HH:mm:ss’Z’»).
+    /// Дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»).
     /// Example: "2023-09-25T16:03:31Z"
     /// </summary>
     DateTime CreationDate,

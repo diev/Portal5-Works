@@ -55,7 +55,7 @@ internal static class Zadacha137
             string msgId = await UploadAsync(temp);
             var message = await CheckAsync(msgId, 20);
 
-            string report = @$"{_title} - файл ""{zip}"" {message.Status}.";
+            string report = @$"Файл ""{zip}"", статус '{message.Status}'.{Environment.NewLine}{_title}";
 
             await Program.SendDoneAsync(_task, _title, Subscribers);
         }
