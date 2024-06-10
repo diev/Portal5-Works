@@ -5,12 +5,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
-    <Version>8.2024.329.0</Version>
+    <Version>8.2024.610.0</Version>
     <Description>Diev's common helper extensions for local projects.</Description>
     <Copyright>Copyright 2022-2024 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <Company>diev</Company>
+    <PackageProjectUrl>https://github.com/diev/Portal5-Works</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/diev/Portal5-Works</RepositoryUrl>
+    <PackageTags>extensions</PackageTags>
+    <Authors>Diev</Authors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 </Project>

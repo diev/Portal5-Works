@@ -29,7 +29,7 @@ rem Date yyyy-mm-dd
 set Ymd=%date:~-4%-%date:~3,2%-%date:~0,2%
 
 rem Test build folder
-set Test=$Build$
+set Test=$
 
 rem Add extra projects to pack their sources here
 set AddDirNames=Diev.Extensions Diev.Extensions.Pkcs Diev.Portal5
@@ -104,10 +104,10 @@ goto :eof
 
 :build_cmd
 echo rem Build an app with many dlls
-echo dotnet publish %ProjectDirName%\%ProjectFileName% -o Distr
+echo rem dotnet publish %ProjectDirName%\%ProjectFileName% -o Distr
 echo.
 echo rem Build a single-file app when NET Desktop runtime required 
-echo rem dotnet publish %ProjectDirName%\%ProjectFileName% -o Distr -r win-x64 -p:PublishSingleFile=true --self-contained false
+echo dotnet publish %ProjectDirName%\%ProjectFileName% -o Distr -r win-x64 -p:PublishSingleFile=true --self-contained false
 echo.
 echo rem Build a single-file app when no runtime required
 echo rem dotnet publish %ProjectDirName%\%ProjectFileName% -o Distr -r win-x64 -p:PublishSingleFile=true
@@ -121,7 +121,14 @@ echo.
 echo Version: v%Version%
 echo Date:    %Ymd%
 echo.
+echo Requires SDK .NET 8.0 to build
+echo Requires .NET Desktop Runtime 8.0 to run
+echo Download from https://dotnet.microsoft.com/download
+echo.
+echo Open source code, Issues, Releases:
 echo https://github.com/diev/%RepoName%
+echo Mirrors:
+echo https://gitverse.ru/diev/%RepoName%
 echo https://gitflic.ru/project/diev/%RepoLName%
 goto :eof
 

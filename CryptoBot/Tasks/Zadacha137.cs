@@ -32,6 +32,7 @@ internal static class Zadacha137
 
     //config
     private static string UploadPath { get; }
+    private static string Zip { get; }
     private static string? EncryptTo { get; }
     private static string? Subscribers { get; }
 
@@ -40,6 +41,7 @@ internal static class Zadacha137
         var config = Program.Config.GetSection(_task);
 
         UploadPath = Path.GetFullPath(config[nameof(UploadPath)] ?? ".");
+        Zip = config[nameof(Zip)] ?? _zip;
         EncryptTo = config[nameof(EncryptTo)];
         Subscribers = config[nameof(Subscribers)];
     }
@@ -48,7 +50,7 @@ internal static class Zadacha137
     {
         try
         {
-            string zip = GetLastZipToUpload(UploadPath, _zip, 14);
+            string zip = GetLastZipToUpload(UploadPath, Zip, 14);
             string temp = Program.GetTempPath(UploadPath);
 
             await SignAndEncryptAsync(UploadPath, zip, temp);
@@ -109,6 +111,13 @@ internal static class Zadacha137
         throw new Exception("Отправить файл не удалось.");
     }
 
+    /// <summary>
+    /// Получение регистрации элетронного сообщения.
+    /// </summary>
+    /// <param name="msgId">Идентификатор сообщения.</param>
+    /// <param name="minutes">Время ожидания в минутах, прежде чем прекратить попытки.</param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     private static async Task<Message> CheckAsync(string msgId, int minutes)
     {
         var end = DateTime.Now.AddMinutes(minutes);

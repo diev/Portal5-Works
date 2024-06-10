@@ -17,7 +17,8 @@
 
   "Zadacha_137": {
     "UploadPath": "Upload\\OUT",
-    "EncryptTo": "3ab57daafae6e61ce66bb0d7a25cdbd985dcfa31",
+    "Zip": "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip",
+    "EncryptTo": "ef496d5c0e5afaab747b1b0557cfd3a9603915e0",
     "Subscribers": null
   }
 }
