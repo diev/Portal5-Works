@@ -70,6 +70,7 @@ internal static class Zadacha130
         {
             Task = _task,
             MinDateTime = DateTime.Now // required Today only!
+            //MinDateTime = DateTime.Now.AddDays(-1) // debug last day
         };
 
         var report = filter.MinDateTime?.ToString("dd.MM.yyyy");
@@ -79,6 +80,7 @@ internal static class Zadacha130
                 $"Не получено сообщений за {report}.");
 
         int count = messagesPage.Messages.Count;
+
         if (count == 0)
             throw new Exception(
                 $"Ноль сообщений за {report}.");
@@ -128,13 +130,13 @@ internal static class Zadacha130
             @$"Получен файл ""{Path.GetFileName(enc)}"", но расшифровать его не удалось.");
     }
 
-    private static async Task UnzipAsync(string zip)
-    {
-        await Task.Run(() =>
-        {
-            ZipFile.ExtractToDirectory(zip, DownloadPath, true); //TODO skip existing file
-        });
-    }
+    //private static async Task UnzipAsync(string zip)
+    //{
+    //    await Task.Run(() =>
+    //    {
+    //        ZipFile.ExtractToDirectory(zip, DownloadPath, true); //TODO skip existing file
+    //    });
+    //}
 }
 
 /*

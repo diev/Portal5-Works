@@ -20,6 +20,7 @@ limitations under the License.
 using System.Text;
 
 using Diev.Extensions.Credentials;
+using Diev.Extensions.LogFile;
 
 using static Diev.Extensions.Exec.Exec;
 
@@ -136,10 +137,13 @@ public class CryptoPro
         if (PIN != null)
             cmd.Append(" -password ").Append(PIN);
 
-        await StartAsync(Exe, cmd, Visible);
+        var output = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine(@$"Sign ""{file}"":{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
+
+        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Signed file not created.", resultFile);
         return false;
@@ -160,10 +164,13 @@ public class CryptoPro
         if (PIN != null)
             cmd.Append(" -password ").Append(PIN);
 
-        await StartAsync(Exe, cmd, Visible);
+        var output = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine(@$"Sign detached ""{file}"":{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
+        
+        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Detached sign file not created.", resultFile);
         return false;
@@ -180,10 +187,13 @@ public class CryptoPro
     public async Task<bool> VerifyFileAsync(string file, string resultFile)
     {
         string cmdline = string.Format(VerifyCommand, file, resultFile, My);
-        int exit = await StartAsync(Exe, cmdline, Visible);
+        var output = await StartWithOutputAsync(Exe, cmdline, Visible);
+        Logger.TimeLine(@$"Verify ""{file}"":{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
-            return exit == 0;
+            return output.ExitCode == 0;
+
+        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Unsigned file not created.", resultFile);
         return false;
@@ -199,7 +209,15 @@ public class CryptoPro
     public async Task<bool> VerifyDetachedFileAsync(string file, string signFile)
     {
         string cmdline = string.Format(VerifyCommand, file, signFile, My);
-        return await StartAsync(Exe, cmdline, Visible) == 0;
+        var output = await StartWithOutputAsync(Exe, cmdline, Visible);
+        Logger.TimeLine(@$"Verify detached ""{file}"":{Environment.NewLine}{output.Output}");
+
+        if (output.Error.Length > 0)
+        {
+            Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+        }
+
+        return output.ExitCode == 0;
     }
 
     /// <summary>
@@ -228,10 +246,13 @@ public class CryptoPro
             }
         }
 
-        await StartAsync(Exe, cmd, Visible);
+        var output = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine(@$"Encrypt ""{file}"":{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
+
+        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Encrypted file not created.", resultFile);
         return false;
@@ -254,10 +275,14 @@ public class CryptoPro
         if (PIN != null)
             cmd.Append(" -password ").Append(PIN);
 
-        await StartAsync(Exe, cmd, Visible);
+        var output = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine(@$"Decrypt ""{file}"":{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
+
+        //Logger.Line(@$"Fail: ""{Exe}"" {cmd}");
+        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
 
         if (MyOld is null)
             return false;
@@ -269,10 +294,14 @@ public class CryptoPro
             if (PIN != null)
                 cmd.Append(" -password ").Append(PIN);
 
-            await StartAsync(Exe, cmd, Visible);
+            output = await StartWithOutputAsync(Exe, cmd, Visible);
+            Logger.Line(@$"Try decrypt with {old}{Environment.NewLine}{output.Output}");
 
             if (File.Exists(resultFile))
                 return true;
+
+            //Logger.Line(@$"Fail: ""{Exe}"" {cmd}");
+            Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
         }
 
         //throw new FileNotFoundException("Decrypted file not created.", resultFile);

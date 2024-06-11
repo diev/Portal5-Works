@@ -25,7 +25,6 @@ using System.Text;
 using CryptoBot.Tasks;
 
 using Diev.Extensions.Credentials;
-using Diev.Extensions.Crypto;
 using Diev.Extensions.Info;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Smtp;

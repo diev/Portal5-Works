@@ -29,6 +29,15 @@ public static class Exec
     /// </summary>
     private static bool _init = true;
 
+    // Define static variables shared by class methods.
+    //private static StreamWriter? _streamError = null;
+    private static readonly StringBuilder _output = new();
+    private static readonly StringBuilder _error = new();
+    //private static bool _errorsWritten = false;
+
+    //public static string ErrorFile { get; set; } = "crypto.log";
+    public static bool ErrorRedirect { get; set; } = true;
+
     /// <summary>
     /// Запустить программу с параметрами и дождаться ее завершения.
     /// </summary>
@@ -144,7 +153,7 @@ public static class Exec
     /// <returns>Текст вывода из программы.</returns>
     /// <exception cref="FileNotFoundException"></exception>
     /// <exception cref="SystemException"></exception>
-    public static async Task<string> StartWithOutputAsync(string exe, string cmdline, bool visible)
+    public static async Task<(int ExitCode, string Output, string Error)> StartWithOutputAsync(string exe, string cmdline, bool visible)
     {
         if (_init)
         {
@@ -157,40 +166,190 @@ public static class Exec
         }
 
 #if DEBUG
-        string test = @$"""{exe}"" {cmdline}";
-        Console.WriteLine(test);
+        //string test = @$"""{exe}"" {cmdline}";
+        //Console.WriteLine(test);
 #endif
 
-        ProcessStartInfo startInfo = new()
-        {
-            CreateNoWindow = false,
-            WindowStyle = visible ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-            UseShellExecute = false,
-            FileName = exe,
-            Arguments = cmdline,
-            RedirectStandardOutput = true
-        };
+        // https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.beginerrorreadline?view=net-8.0
+
+        int result = 1;
+        _output.Clear();
+        _error.Clear();
 
         try
         {
-            using Process? process = Process.Start(startInfo);
+            // Initialize the process and its StartInfo properties.
+            using Process process = new();
+            process.StartInfo.FileName = exe;
 
-            if (process is null)
+
+            process.StartInfo.CreateNoWindow = false;
+            process.StartInfo.WindowStyle = visible ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden;
+
+            // Build the net command argument list.
+            process.StartInfo.Arguments = cmdline;
+
+            // Set UseShellExecute to false for redirection.
+            process.StartInfo.UseShellExecute = false;
+
+            // Redirect the standard output of the command.
+            // This stream is read asynchronously using an event handler.
+            process.StartInfo.RedirectStandardOutput = true;
+            process.OutputDataReceived += new DataReceivedEventHandler(OutputDataHandler);
+
+            if (ErrorRedirect)
             {
-                throw new Exception("Fail to get starting process.");
+                // Redirect the error output of the command.
+                process.StartInfo.RedirectStandardError = true;
+                process.ErrorDataReceived += new DataReceivedEventHandler(ErrorDataHandler);
             }
             else
             {
-                string output = process.StandardOutput.ReadToEnd();
-
-                await process.WaitForExitAsync();
-
-                return output;
+                // Do not redirect the error output.
+                process.StartInfo.RedirectStandardError = false;
             }
+
+            // Start the process.
+            process.Start();
+
+            // Start the asynchronous read of the standard output stream.
+            process.BeginOutputReadLine();
+
+            if (ErrorRedirect)
+            {
+                // Start the asynchronous read of the standard error stream.
+                process.BeginErrorReadLine();
+            }
+
+            // Let the command run, collecting the output.
+            process.WaitForExit();
+            result = process.ExitCode;
+
+            //if (_streamError != null)
+            //{
+            //    // Close the error file.
+            //    _streamError.Close();
+            //}
+            //else
+            //{
+            //    // Set errorsWritten to false if the stream is not open.
+            //    // Either there are no errors, or the error file could not be opened.
+            //    _errorsWritten = false;
+            //}
+
+            //if (_output.Length > 0)
+            //{
+            //    // If the process wrote more than just white space,
+            //    // write the output to the console.
+            //    Console.WriteLine("\nOutput:\n{0}\n",
+            //        _output);
+            //}
+
+            //if (_error.Length > 0)
+            //{
+            //    // If the process wrote more than just white space,
+            //    // write the output to the console.
+            //    Console.WriteLine("\nError:\n{0}\n",
+            //        _error);
+
+            //    //_output.AppendLine().AppendLine("Error:").Append(_error);
+            //}
+
+            //if (_errorsWritten)
+            //{
+            //    // Signal that the error file had something written to it.
+            //    string[] errorOutput = await File.ReadAllLinesAsync(ErrorFile);
+
+            //    if (errorOutput.Length > 0)
+            //    {
+            //        Console.WriteLine("\nThe following error output was appended to {0}.",
+            //            ErrorFile);
+
+            //        // File
+            //        _output.AppendLine().AppendLine("Error:");
+
+            //        foreach (string errLine in errorOutput)
+            //        {
+            //            Console.WriteLine("  " + errLine);
+
+            //            // File
+            //            _output.Append("  ").AppendLine(errLine);
+            //        }
+            //    }
+
+            //    Console.WriteLine();
+            //}
+
+            process.Close();
         }
         catch (Exception ex)
         {
             throw new SystemException(@$"Fail to start [""{exe}"" {cmdline}]", ex);
         }
+
+        return (result, _output.ToString(), _error.ToString());
+    }
+
+    public static async Task<(int ExitCode, string Output, string Error)> StartWithOutputAsync(string exe, StringBuilder cmd, bool visible)
+        => await StartWithOutputAsync(exe, cmd.ToString(), visible);
+
+    private static void OutputDataHandler(object sendingProcess, DataReceivedEventArgs outLine)
+    {
+        // Collect the command output.
+        if (!string.IsNullOrEmpty(outLine.Data))
+        {
+            // Add the text to the collected output.
+            _output.Append("  ").AppendLine(outLine.Data);
+        }
+    }
+
+    private static void ErrorDataHandler(object sendingProcess, DataReceivedEventArgs errLine)
+    {
+        // Collect the command output.
+        if (!string.IsNullOrEmpty(errLine.Data))
+        {
+            // Add the text to the collected output.
+            _error.Append("  ").AppendLine(errLine.Data);
+        }
+
+        //// Write the error text to the file
+        //// if there is something to write and an error file has been specified.
+        //if (!string.IsNullOrEmpty(errLine.Data))
+        //{
+        //    if (!_errorsWritten)
+        //    {
+        //        if (_streamError == null)
+        //        {
+        //            // Open the file.
+        //            try
+        //            {
+        //                _streamError = new StreamWriter(ErrorFile, true);
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                Console.WriteLine("Could not open error file!");
+        //                Console.WriteLine(e.Message.ToString());
+        //            }
+        //        }
+
+        //        if (_streamError != null)
+        //        {
+        //            // Write a header to the file
+        //            // if this is the first call to the error output handler.
+        //            _streamError.WriteLine();
+        //            _streamError.WriteLine(DateTime.Now.ToString());
+        //            _streamError.WriteLine("Error output:");
+        //        }
+
+        //        _errorsWritten = true;
+        //    }
+
+        //    if (_streamError != null)
+        //    {
+        //        // Write redirected errors to the file.
+        //        _streamError.WriteLine(errLine.Data);
+        //        _streamError.Flush();
+        //    }
+        //}
     }
 }

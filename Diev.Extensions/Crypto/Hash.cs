@@ -70,10 +70,10 @@ public class Hash
     {
         string cmdline = string.Format(CalcCommand, file);
 
-        string output = await StartWithOutputAsync(Exe, cmdline, Visible);
+        var output = await StartWithOutputAsync(Exe, cmdline, Visible);
         // => A36D628486A17D934BE027C9CAF79B27D7CD9E4E49469D97312B40AD6228D26F
 
-        return output;
+        return output.Output;
     }
 
     /// <summary>
