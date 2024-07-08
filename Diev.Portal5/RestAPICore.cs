@@ -78,7 +78,7 @@ public class RestAPICore : IRestAPICore
     {
         string url = Api + "messages";
         using var json = JsonContent.Create(message);
-        using var response = await PollyClient.PostAsJasonAsync(url, json);
+        using var response = await PollyClient.PostAsJsonAsync(url, json);
 
         if (response.StatusCode == HttpStatusCode.OK)
         {

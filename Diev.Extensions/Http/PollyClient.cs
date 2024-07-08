@@ -105,19 +105,19 @@ public static class PollyClient
     public static async Task<HttpResponseMessage> GetAsync(string url)
         => await ExecuteAsync(HttpMethod.Get, url);
 
-    public static async Task<HttpResponseMessage> GetFromJasonAsync(string url, JsonContent content)
+    public static async Task<HttpResponseMessage> GetFromJsonAsync(string url, JsonContent content)
         => await ExecuteAsync(HttpMethod.Get, url, content);
 
     public static async Task<HttpResponseMessage> PostAsync(string url, HttpContent? content = null)
         => await ExecuteAsync(HttpMethod.Post, url, content);
 
-    public static async Task<HttpResponseMessage> PostAsJasonAsync(string url, JsonContent content)
+    public static async Task<HttpResponseMessage> PostAsJsonAsync(string url, JsonContent content)
         => await ExecuteAsync(HttpMethod.Post, url, content);
 
     public static async Task<HttpResponseMessage> PutAsync(string url, HttpContent? content = null)
         => await ExecuteAsync(HttpMethod.Put, url, content);
 
-    public static async Task<HttpResponseMessage> PutAsJasonAsync(string url, JsonContent content)
+    public static async Task<HttpResponseMessage> PutAsJsonAsync(string url, JsonContent content)
         => await ExecuteAsync(HttpMethod.Put, url, content);
 
     public static async Task<HttpResponseMessage> PatchAsync(string url, HttpContent content)
