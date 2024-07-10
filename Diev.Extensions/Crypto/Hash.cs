@@ -64,16 +64,15 @@ public class Hash
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <returns>Строка хэша.</returns>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<string> CalcFileAsync(string file)
     {
         string cmdline = string.Format(CalcCommand, file);
-
-        var output = await StartWithOutputAsync(Exe, cmdline, Visible);
+        var (_, Output, _) = await StartWithOutputAsync(Exe, cmdline, Visible);
         // => A36D628486A17D934BE027C9CAF79B27D7CD9E4E49469D97312B40AD6228D26F
 
-        return output.Output;
+        return Output;
     }
 
     /// <summary>
@@ -82,7 +81,7 @@ public class Hash
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="hash">Имя исходного файла.</param>
     /// <returns>Результат проверки хэша.</returns>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> VerifyFileAsync(string file, string hash)
     {

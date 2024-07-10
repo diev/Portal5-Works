@@ -1126,8 +1126,8 @@ public class RestAPICore : IRestAPICore
                 remaining -= chunkSize;
             }
 
-            //var range = response.Content.Headers.ContentRange ?? throw new ApplicationException("В ответе нет Range");
-            //long size = range.Length ?? throw new ApplicationException("В ответе нет Range.Length");
+            //var range = response.Content.Headers.ContentRange ?? throw new Exception("В ответе нет Range");
+            //long size = range.Length ?? throw new Exception("В ответе нет Range.Length");
 
             //using var stream = MemoryMappedFile.CreateFromFile(path, FileMode.Create, null, size);
             //using var writer = stream.CreateViewAccessor();

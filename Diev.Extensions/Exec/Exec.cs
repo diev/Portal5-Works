@@ -44,7 +44,7 @@ public static class Exec
     /// <param name="exe">Запускаемая программа.</param>
     /// <param name="cmdline">Параметры для запускаемой программы.</param>
     /// <exception cref="FileNotFoundException"></exception>
-    /// <exception cref="SystemException"></exception>
+    /// <exception cref="Exception"></exception>
     public static void Start(string exe, string cmdline)
     {
         if (_init)
@@ -81,7 +81,7 @@ public static class Exec
         }
         catch (Exception ex)
         {
-            throw new SystemException($"Fail to start [\"{exe}\" {cmdline}]", ex);
+            throw new Exception($"Fail to start [\"{exe}\" {cmdline}]", ex);
         }
     }
 
@@ -93,7 +93,7 @@ public static class Exec
     /// <param name="visible">Показывать ли окно запускаемой программы.</param>
     /// <returns>Код возврата из программы.</returns>
     /// <exception cref="FileNotFoundException"></exception>
-    /// <exception cref="SystemException"></exception>
+    /// <exception cref="Exception"></exception>
     public static async Task<int> StartAsync(string exe, string cmdline, bool visible)
     {
         if (_init)
@@ -137,7 +137,7 @@ public static class Exec
         }
         catch (Exception ex)
         {
-            throw new SystemException(@$"Fail to start [""{exe}"" {cmdline}]", ex);
+            throw new Exception(@$"Fail to start [""{exe}"" {cmdline}]", ex);
         }
     }
 
@@ -152,7 +152,7 @@ public static class Exec
     /// <param name="visible">Показывать ли окно запускаемой программы.</param>
     /// <returns>Текст вывода из программы.</returns>
     /// <exception cref="FileNotFoundException"></exception>
-    /// <exception cref="SystemException"></exception>
+    /// <exception cref="Exception"></exception>
     public static async Task<(int ExitCode, string Output, string Error)> StartWithOutputAsync(string exe, string cmdline, bool visible)
     {
         if (_init)
@@ -222,7 +222,7 @@ public static class Exec
             }
 
             // Let the command run, collecting the output.
-            process.WaitForExit();
+            await process.WaitForExitAsync();
             result = process.ExitCode;
 
             //if (_streamError != null)
@@ -284,7 +284,7 @@ public static class Exec
         }
         catch (Exception ex)
         {
-            throw new SystemException(@$"Fail to start [""{exe}"" {cmdline}]", ex);
+            throw new Exception(@$"Fail to start [""{exe}"" {cmdline}]", ex);
         }
 
         return (result, _output.ToString(), _error.ToString());

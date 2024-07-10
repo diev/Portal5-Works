@@ -127,7 +127,7 @@ public class CryptoPro
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя подписанного файла.</param>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> SignFileAsync(string file, string resultFile)
     {
@@ -154,7 +154,7 @@ public class CryptoPro
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя подписанного файла.</param>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> SignDetachedFileAsync(string file, string resultFile)
     {
@@ -182,7 +182,7 @@ public class CryptoPro
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя файла без подписи.</param>
     /// <returns>Результат проверки подписи.</returns>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> VerifyFileAsync(string file, string resultFile)
     {
@@ -205,7 +205,7 @@ public class CryptoPro
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="signFile">Имя файла отдельной подписи.</param>
     /// <returns>Результат проверки подписи.</returns>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     public async Task<bool> VerifyDetachedFileAsync(string file, string signFile)
     {
         string cmdline = string.Format(VerifyCommand, file, signFile, My);
@@ -226,7 +226,7 @@ public class CryptoPro
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя зашифрованного файла.</param>
     /// <param name="to">Список отпечатков сертификатов получателей файла, куда будет добавлен и свой.</param>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> EncryptFileAsync(string file, string resultFile, string? to = null)
@@ -263,7 +263,7 @@ public class CryptoPro
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя расшифрованного файла.</param>
-    /// <exception cref="ApplicationException"></exception>
+    /// <exception cref="Exception"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> DecryptFileAsync(string file, string resultFile)
     {
