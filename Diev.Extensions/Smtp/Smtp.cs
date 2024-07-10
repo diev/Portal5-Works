@@ -24,6 +24,7 @@ using System.Text;
 
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Info;
+using Diev.Extensions.LogFile;
 
 namespace Diev.Extensions.Smtp;
 
@@ -132,13 +133,14 @@ public class Smtp : IDisposable
                 }
             }
 
+            Logger.TimeLine($"Sending mail to {emails}...");
             await _client.SendMailAsync(mail);
             //_queue.Enqueue(mail);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Sending mail '{subj}' failed.");
-            Console.WriteLine(ex.ToString());
+            Logger.TimeLine($"Sending mail '{subj}' failed.");
+            Logger.LastError(ex);
         }
     }
 }

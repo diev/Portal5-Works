@@ -32,6 +32,7 @@ internal static class Zadacha137
 
     //config
     private static string UploadPath { get; }
+    //private static string ArchivePath { get; }
     private static string Zip { get; }
     private static string? EncryptTo { get; }
     private static string? Subscribers { get; }
@@ -41,6 +42,7 @@ internal static class Zadacha137
         var config = Program.Config.GetSection(_task);
 
         UploadPath = Path.GetFullPath(config[nameof(UploadPath)] ?? ".");
+        //ArchivePath = string.Format(Path.GetFullPath(config[nameof(ArchivePath)] ?? "."), DateTime.Now);
         Zip = config[nameof(Zip)] ?? _zip;
         EncryptTo = config[nameof(EncryptTo)];
         Subscribers = config[nameof(Subscribers)];
@@ -58,6 +60,7 @@ internal static class Zadacha137
             var message = await CheckAsync(msgId, 20);
 
             string report = @$"Файл ""{zip}"", статус '{message.Status}'.{Environment.NewLine}{_title}";
+            Logger.TimeLine(report);
 
             await Program.SendDoneAsync(_task, _title, Subscribers);
         }

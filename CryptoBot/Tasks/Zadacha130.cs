@@ -21,6 +21,7 @@ using System.IO.Compression;
 
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
+using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 
 namespace CryptoBot.Tasks;
@@ -49,7 +50,10 @@ internal static class Zadacha130
             string zip = await DecryptAsync(enc);
             //await UnzipAsync(zip);
 
-            await Program.SendDoneAsync(_task, @$"Получен файл ""{Path.GetFileName(zip)}"".", Subscribers);
+            string report = @$"Получен файл ""{Path.GetFileName(zip)}"".";
+            Logger.TimeLine(report);
+
+            await Program.SendDoneAsync(_task, report, Subscribers);
         }
         catch (Exception ex)
         {
