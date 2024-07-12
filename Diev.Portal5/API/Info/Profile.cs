@@ -84,8 +84,8 @@ public record Profile
 
 /*
 {
-    "ShortName": "АО \"Сити Инвест Банк\"",
-    "FullName": "Акционерное общество \"Сити Инвест Банк\"",
+    "ShortName": "АО \"xxxx xxxxст Банк\"",
+    "FullName": "Акционерное общество \"xxxx xxxxст Банк\"",
     "Activities": [
         {
             "FullName": "Депозитарии",
@@ -116,13 +116,13 @@ public record Profile
             }
         }
     ],
-    "Inn": "7831001422",
-    "Ogrn": "1027800000095",
+    "Inn": "783100xxxx",
+    "Ogrn": "102780000xxxx",
     "InternationalId": null,
     "Opf": "Акционерные общества",
-    "Email": "lk-cbr@cibank.ru",
-    "Address": "191187, г. Санкт-Петербург, ул.Шпалерная, д. 2/4, литер А. ",
-    "Phone": "+78123240690",
+    "Email": "xxxx@xxxxnk.ru",
+    "Address": "19xxxx, г. Санкт-Петерxxxx, ул.xxxxерная, д.xxxx, литер А. ",
+    "Phone": "+7812324xxxx",
     "CreationDate": "0001-01-01T00:00:00Z",
     "Status": "Active"
 }
