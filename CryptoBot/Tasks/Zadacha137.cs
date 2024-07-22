@@ -19,6 +19,7 @@ limitations under the License.
 
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
+using Diev.Portal5;
 using Diev.Portal5.API.Messages;
 
 namespace CryptoBot.Tasks;
@@ -64,6 +65,22 @@ internal static class Zadacha137
 
             await Program.SendDoneAsync(_task, _title, Subscribers);
         }
+        catch (Portal5Exception ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(_task, "API: " + ex.Message, Subscribers);
+            Program.ExitCode = 3;
+        }
+        catch (TaskException ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(_task, "Task: " + ex.Message, Subscribers);
+            Program.ExitCode = 2;
+        }
         catch (Exception ex)
         {
             Logger.TimeLine(ex.Message);
@@ -86,7 +103,8 @@ internal static class Zadacha137
             }
         }
 
-        throw new Exception($"За {days} последних дней ни одного файла для отправки.");
+        throw new TaskException(
+            $"За {days} последних дней ни одного файла для отправки.");
     }
 
     private static async Task SignAndEncryptAsync(string path, string file, string temp)
@@ -98,10 +116,12 @@ internal static class Zadacha137
         string enc = Path.Combine(temp, file + ".enc");
 
         if (!await crypto.SignDetachedFileAsync(src, sig))
-            throw new Exception(@$"Подписать файл ""{src}"" не удалось.");
+            throw new TaskException(
+                @$"Подписать файл ""{src}"" не удалось.");
 
         if (!await crypto.EncryptFileAsync(src, enc, EncryptTo))
-            throw new Exception(@$"Зашифровать файл ""{src}"" не удалось.");
+            throw new TaskException(
+                @$"Зашифровать файл ""{src}"" не удалось.");
     }
 
     private static async Task<string> UploadAsync(string path)
@@ -111,7 +131,8 @@ internal static class Zadacha137
         if (msgId != null)
             return msgId;
 
-        throw new Exception("Отправить файл не удалось.");
+        throw new TaskException(
+            "Отправить файл не удалось.");
     }
 
     /// <summary>
@@ -141,12 +162,15 @@ internal static class Zadacha137
                     {
                         foreach (var receipt in message.Receipts)
                         {
-                            if ((receipt.Status == ReceiptOutStatus.Error) && (receipt.Message != null))
-                                throw new Exception("Получена ошибка контроля: " + receipt.Message);
+                            if ((receipt.Status == ReceiptOutStatus.Error) &&
+                                (receipt.Message != null))
+                                throw new TaskException(
+                                    "Получена ошибка контроля: " + receipt.Message);
                         }
                     }
 
-                    throw new Exception("Получена ошибка контроля, но нет квитанции.");
+                    throw new TaskException(
+                        "Получена ошибка контроля, но нет квитанции.");
                 }
             }
 
@@ -159,7 +183,8 @@ internal static class Zadacha137
             return message; // sent, delivered, [-error], processing, [-registered]
         }
 
-        throw new Exception($"За {minutes} минут так ничего и не получено по отправке.");
+        throw new TaskException(
+            $"За {minutes} минут так ничего и не получено по отправке.");
     }
 }
 

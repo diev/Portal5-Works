@@ -51,12 +51,12 @@ public class FormResponse
     /// <summary>
     /// Организация
     /// </summary>
-    public string Organization { get; set; }
+    public string? Organization { get; set; }
 
     /// <summary>
     /// Структурное подразделение Банка России
     /// </summary>
-    public string Departament { get; set; }
+    public string? Departament { get; set; }
 
     /// <summary>
     /// Указатель на папку СДС

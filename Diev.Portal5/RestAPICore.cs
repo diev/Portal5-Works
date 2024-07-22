@@ -28,6 +28,7 @@ using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Dictionaries;
+using Diev.Portal5.API.Errors;
 using Diev.Portal5.API.Info;
 using Diev.Portal5.API.Interfaces;
 using Diev.Portal5.API.Messages;
@@ -58,9 +59,7 @@ public class RestAPICore : IRestAPICore
 
     private void SetApi(string host)
     {
-        Api = host.EndsWith('/')
-            ? $"{host}back/rapi2/"
-            : $"{host}/back/rapi2/";
+        Api = (host.EndsWith('/') ? host : host + '/') + "back/rapi2/";
     }
 
     #region 3.1.3
@@ -364,6 +363,7 @@ public class RestAPICore : IRestAPICore
         }
 
         // HTTP 400 – Bad Request
+        // HTTP 401 - Unauthorized: ACCOUNT_NOT_FOUND (Аккаунт не найден) - недокументированный ответ
         await DoExceptionAsync(response);
         return null;
 
@@ -683,7 +683,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException($"Справочник задач не получен.");
+                DoException("Справочник задач не получен. " + e.Message);
                 return null;
             }
         }
@@ -712,7 +712,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException($"Информация о профиле не получена. " + e.Message);
+                DoException("Информация о профиле не получена. " + e.Message);
                 return null;
             }
         }
@@ -741,7 +741,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException($"Информация о квоте профиля не получена. " + e.Message);
+                DoException("Информация о квоте профиля не получена. " + e.Message);
                 return null;
             }
         }
@@ -772,7 +772,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException($"Информация о технических оповещениях не получена. " + e.Message);
+                DoException("Информация о технических оповещениях не получена. " + e.Message);
                 return null;
             }
         }
@@ -844,7 +844,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException("Список записей уровня 1 не не получен." + e.Message);
+                DoException("Список записей уровня 1 не получен." + e.Message);
                 return null;
             }
         }
@@ -885,7 +885,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException($"Список записей уровня 2 не не получен. " + e.Message);
+                DoException("Список записей уровня 2 не получен. " + e.Message);
                 return null;
             }
         }
@@ -926,7 +926,7 @@ public class RestAPICore : IRestAPICore
             }
             catch (Exception e)
             {
-                DoException($"Список записей уровня 3 не не получен. " + e.Message);
+                DoException("Список записей уровня 3 не получен. " + e.Message);
                 return null;
             }
         }
@@ -1261,7 +1261,33 @@ public class RestAPICore : IRestAPICore
 
     private async Task DoExceptionAsync(HttpResponseMessage response)
     {
-        DoException(await response.Content.ReadAsStringAsync());
+        // HTTP 400 – Bad Request
+        // HTTP 401 – Unauthorized
+        // HTTP 403 – Forbidden
+        // HTTP 404 – Not found
+        // HTTP 405 – Invalid input
+        // HTTP 406 – Not Acceptable
+        // HTTP 410 – Gone
+        // HTTP 411 – Length Required
+        // HTTP 413 – Message size too large
+        // HTTP 416 – Range Not Satisfiable
+        // HTTP 422 – Unprocessable Entity
+        int code = (int)response.StatusCode;
+        string message = await response.Content.ReadAsStringAsync();
+
+        if (message.StartsWith('{'))
+        {
+            try
+            {
+                var json = JsonSerializer.Deserialize<Error4XX>(message);
+
+                if (json != null)
+                    message = json.ErrorMessage;
+            }
+            catch { }
+        }
+
+        DoException($"{code} - {message}");
     }
 
     private void DoException(string message)
@@ -1271,8 +1297,7 @@ public class RestAPICore : IRestAPICore
         if (SkipExceptions)
             return;
 
-        throw new Exception(message);
+        throw new Portal5Exception(message);
     }
-
     #endregion Common Helpers
 }

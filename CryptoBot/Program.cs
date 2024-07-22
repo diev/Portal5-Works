@@ -221,13 +221,23 @@ internal static class Program
             files);
     }
 
+    public static async Task SendFailAsync(string task, string message, string? subscribers, string[]? files = null)
+    {
+        await Program.Smtp.SendMessageAsync(
+            ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
+            $"Portal5.{task}: {message}",
+            $"FAIL: {message}",
+            files);
+    }
+
     public static async Task SendFailAsync(string task, Exception ex, string? subscribers, string[]? files = null)
     {
         await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
-            $"Portal5.{task}: {RestAPI.GetErrorMessage(ex.Message)}",
+            $"Portal5.{task}: {ex.Message}",
             $"ERROR: {ex}",
             files);
     }
+
     #endregion Helpers
 }

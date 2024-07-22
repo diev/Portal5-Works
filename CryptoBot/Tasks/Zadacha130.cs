@@ -17,11 +17,11 @@ limitations under the License.
 */
 #endregion
 
-using System.IO.Compression;
+//using System.IO.Compression;
 
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
-using Diev.Portal5.API.Messages;
+using Diev.Portal5;
 using Diev.Portal5.API.Tools;
 
 namespace CryptoBot.Tasks;
@@ -55,6 +55,22 @@ internal static class Zadacha130
 
             await Program.SendDoneAsync(_task, report, Subscribers);
         }
+        catch (Portal5Exception ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(_task, "API: " + ex.Message, Subscribers);
+            Program.ExitCode = 3;
+        }
+        catch (TaskException ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(_task, "Task: " + ex.Message, Subscribers);
+            Program.ExitCode = 2;
+        }
         catch (Exception ex)
         {
             Logger.TimeLine(ex.Message);
@@ -80,13 +96,13 @@ internal static class Zadacha130
         var report = filter.MinDateTime?.ToString("dd.MM.yyyy");
 
         var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter)
-            ?? throw new Exception(
+            ?? throw new TaskException(
                 $"Не получено сообщений за {report}.");
 
         int count = messagesPage.Messages.Count;
 
         if (count == 0)
-            throw new Exception(
+            throw new TaskException(
                 $"Ноль сообщений за {report}.");
 
         string? lastName = null;
@@ -106,7 +122,7 @@ internal static class Zadacha130
         }
 
         if (fileId is null)
-            throw new Exception(
+            throw new TaskException(
                 $"Не получен Id файла из сообщения '{msgId}' за {report}.");
 
         Directory.CreateDirectory(DownloadPath);
@@ -115,7 +131,7 @@ internal static class Zadacha130
         if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
             return path;
 
-        throw new Exception(
+        throw new TaskException(
             @$"Не удалось получить файл ""{lastName}"" за {report}.");
     }
 
@@ -130,7 +146,7 @@ internal static class Zadacha130
             return zip;
         }
 
-        throw new Exception(
+        throw new TaskException(
             @$"Получен файл ""{Path.GetFileName(enc)}"", но расшифровать его не удалось.");
     }
 

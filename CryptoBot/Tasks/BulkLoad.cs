@@ -394,7 +394,7 @@ internal static class BulkLoad
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Неудача удаления сообщения: {ex.Message}");
+            Console.WriteLine("Неудача удаления сообщения: " + ex.Message);
         }
     }
 }
