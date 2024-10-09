@@ -31,7 +31,8 @@ set pack=%1-v%version%.zip
 if exist %pack% del %pack%
 echo === Pack %pack% ===
 
-"C:\Program Files\7-Zip\7z.exe" a %pack% LICENSE *.md *.sln *.cmd bin\ Diev.Expensions\ Diev.Portal5\
+"C:\Program Files\7-Zip\7z.exe" a %pack% LICENSE *.md *.sln *.cmd bin\
+"C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!bin -x!obj Diev.Extensions\ Diev.Portal5\
 "C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!.* -x!bin -x!obj -x!PublishProfiles -x!*.user %1\
 
 if exist %store% copy /y %pack% %store%

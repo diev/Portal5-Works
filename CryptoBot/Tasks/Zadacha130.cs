@@ -137,7 +137,7 @@ internal static class Zadacha130
 
     private static async Task<string> DecryptAsync(string enc)
     {
-        CryptoPro crypto = new();
+        CryptoPro crypto = new(Program.UtilName, Program.CryptoName);
         string zip = Path.ChangeExtension(enc, null);
 
         if (await crypto.DecryptFileAsync(enc, zip))

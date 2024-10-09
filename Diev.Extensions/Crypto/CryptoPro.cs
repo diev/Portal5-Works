@@ -26,6 +26,12 @@ using static Diev.Extensions.Exec.Exec;
 
 namespace Diev.Extensions.Crypto;
 
+public enum UtilName
+{
+    CspTest,
+    CryptCP
+}
+
 /// <summary>
 /// Класс работы с утилитой командной строки СКЗИ "КриптоПРО CSP".
 /// </summary>
@@ -34,9 +40,14 @@ public class CryptoPro
     private static readonly char[] _separator = [' ', ',', ';'];
 
     /// <summary>
+    /// Используемая утилита.
+    /// </summary>
+    public UtilName Util { get; set; }
+
+    /// <summary>
     /// Исполняемый файл командной строки.
     /// </summary>
-    public string Exe { get; set; } = @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
+    public string Exe { get; set; }
 
 
     /// <summary>
@@ -47,7 +58,7 @@ public class CryptoPro
     /// <summary>
     /// Отпечаток своего сертификата.
     /// </summary>
-    public string My { get; }
+    public string My { get; set; }
 
     /// <summary>
     /// Архив отпечатков своего сертификата.
@@ -57,7 +68,7 @@ public class CryptoPro
     /// <summary>
     /// Пароль своего сертификата.
     /// </summary>
-    private string? PIN { get; }
+    private string? PIN { get; set; }
 
     /// <summary>
     /// Команда подписи.
@@ -65,8 +76,7 @@ public class CryptoPro
     /// {1} - подписанный файл;
     /// {2} - отпечаток своего сертификата.
     /// </summary>
-    protected static string SignCommand
-        => @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";
+    public string SignCommand { get; set; }
 
     /// <summary>
     /// Команда отсоединенной подписи.
@@ -74,8 +84,7 @@ public class CryptoPro
     /// {1} - файл отсоединенной подписи;
     /// {2} - отпечаток своего сертификата.
     /// </summary>
-    protected static string SignDetachedCommand
-        => @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime -detached";
+    public string SignDetachedCommand { get; set; }
 
     /// <summary>
     /// Команда проверки и снятия подписи.
@@ -83,8 +92,7 @@ public class CryptoPro
     /// {1} - чистый файл;
     /// {2} - отпечаток своего сертификата.
     /// </summary>
-    protected static string VerifyCommand
-        => @"-sfsign -verify -silent -in ""{0}"" -out ""{1}"" -my {2}";
+    public string VerifyCommand { get; set; }
 
     /// <summary>
     /// Команда проверки отсоединенной подписи.
@@ -92,8 +100,7 @@ public class CryptoPro
     /// {1} - файл отсоединенной подписи;
     /// {2} - отпечаток своего сертификата.
     /// </summary>
-    protected static string VerifyDetachedCommand
-        => @"-sfsign -verify -silent -in ""{0}"" -signature ""{1}"" -my {2} -detached";
+    public string VerifyDetachedCommand { get; set; }
 
     /// <summary>
     /// Команда шифрования.
@@ -101,8 +108,7 @@ public class CryptoPro
     /// {1} - зашифрованный файл;
     /// {2} - отпечаток своего сертификата.
     /// </summary>
-    protected static string EncryptCommand
-        => @"-sfenc -encrypt -silent -in ""{0}"" -out ""{1}"" -cert {2}"; // -stream -1215gh
+    public string EncryptCommand { get; set; }
 
     /// <summary>
     /// Команда расшифрования.
@@ -110,16 +116,43 @@ public class CryptoPro
     /// {1} - расшифрованный файл;
     /// {2} - отпечаток своего сертификата.
     /// </summary>
-    protected static string DecryptCommand
-        => @"-sfenc -decrypt -silent -in ""{0}"" -out ""{1}"" -my {2}";
+    public string DecryptCommand { get; set; }
 
-    public CryptoPro()
+    public CryptoPro(string util = "csptest", string filter = "CryptoPro My")
     {
-        string filter = "CryptoPro My";
-        var cred = CredentialManager.ReadCredential(filter);
+        var cred = CredentialManager.ReadCredential(filter); //TODO Linux
         My = cred.UserName
             ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
         PIN = cred.Password;
+
+        if (util.Equals("CspTest", StringComparison.OrdinalIgnoreCase))
+        {
+            Util = UtilName.CspTest;
+
+            Exe = @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
+            SignCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";
+            SignDetachedCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime -detached";
+            VerifyCommand = @"-sfsign -verify -silent -in ""{0}"" -out ""{1}"" -my {2}";
+            VerifyDetachedCommand = @"-sfsign -verify -silent -in ""{0}"" -signature ""{1}"" -my {2} -detached";
+            EncryptCommand = @"-sfenc -encrypt -silent -in ""{0}"" -out ""{1}"" -cert {2}"; // -stream -1215gh
+            DecryptCommand = @"-sfenc -decrypt -silent -in ""{0}"" -out ""{1}"" -my {2}";
+        }
+        else if(util.Equals("CryptCP", StringComparison.OrdinalIgnoreCase))
+        {
+            Util = UtilName.CryptCP;
+
+            Exe = @"cryptcp.exe";
+            SignCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -attached";
+            SignDetachedCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -detached";
+            VerifyCommand = @"-verify ""{0}"" ""{1}"" -nochain -attached";
+            VerifyDetachedCommand = @"-verify ""{0}"" ""{1}"" -nochain -detached";
+            EncryptCommand = @"-encr ""{0}"" ""{1}"" -thumbprint {2} -nochain -der";
+            DecryptCommand = @"-decr ""{0}"" ""{1}"" -thumbprint {2} -nochain";
+        }
+        else
+        {
+            throw new ArgumentException("Указана неизвестная утилита КриптоПро.", nameof(util));
+        }
     }
 
     /// <summary>
@@ -135,7 +168,7 @@ public class CryptoPro
         cmd.AppendFormat(SignCommand, file, resultFile, My);
 
         if (PIN != null)
-            cmd.Append(" -password ").Append(PIN);
+            cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
         Logger.TimeLine(@$"Sign ""{file}"":{Environment.NewLine}{output.Output}");
@@ -162,7 +195,7 @@ public class CryptoPro
         cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 
         if (PIN != null)
-            cmd.Append(" -password ").Append(PIN);
+            cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
         Logger.TimeLine(@$"Sign detached ""{file}"":{Environment.NewLine}{output.Output}");
@@ -240,9 +273,9 @@ public class CryptoPro
         if (to != null)
         {
             foreach (var cert in to.Split(_separator,
-                StringSplitOptions.TrimEntries & StringSplitOptions.RemoveEmptyEntries))
+                StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
-                cmd.Append(" -cert ").Append(cert);
+                cmd.Append(Util == UtilName.CspTest ? " -cert " : " -thumbprint ").Append(cert);
             }
         }
 
@@ -273,7 +306,7 @@ public class CryptoPro
         cmd.AppendFormat(DecryptCommand, file, resultFile, My);
 
         if (PIN != null)
-            cmd.Append(" -password ").Append(PIN);
+            cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
         Logger.TimeLine(@$"Decrypt ""{file}"":{Environment.NewLine}{output.Output}");
@@ -292,7 +325,7 @@ public class CryptoPro
             cmd.Clear().AppendFormat(DecryptCommand, file, resultFile, old);
 
             if (PIN != null)
-                cmd.Append(" -password ").Append(PIN);
+                cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
             output = await StartWithOutputAsync(Exe, cmd, Visible);
             Logger.Line(@$"Try decrypt with {old}{Environment.NewLine}{output.Output}");

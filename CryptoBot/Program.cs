@@ -40,10 +40,13 @@ internal static class Program
     public static int ExitCode { get; set; } = 0;
     public static IConfiguration Config { get; } = null!;
     public static RestAPI RestAPI { get; } = null!;
-    public static Smtp Smtp { get; } = new();
+    public static Smtp Smtp { get; }
 
     //config
     public static string TargetName { get; }
+    public static string UtilName { get; }
+    public static string CryptoName { get; }
+    public static string SmtpName { get; }
     public static string? Subscribers { get; }
 
     static Program()
@@ -66,8 +69,12 @@ internal static class Program
 
         var config = Config.GetSection(nameof(Program));
         TargetName = config[nameof(TargetName)] ?? "Portal5test *";
+        UtilName = config[nameof(UtilName)] ?? "CspTest";
+        CryptoName = config[nameof(CryptoName)] ?? "CryptoPro My";
+        SmtpName = config[nameof(SmtpName)] ?? "SMTP *";
         Subscribers = config[nameof(Subscribers)];
 
+        Smtp = new(SmtpName);
         Logger.Reset();
 
         var portal5 = CredentialManager.ReadCredential(TargetName);

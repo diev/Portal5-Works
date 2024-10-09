@@ -36,18 +36,16 @@ public class Smtp : IDisposable
 
     public string UserName { get; }
     public string DisplayName { get; set; } = $"{App.Name} {Environment.MachineName}";
-    public string? Subscribers { get; set; }
 
     /// <summary>
     /// Create from Windows credentials manager.
     /// </summary>
-    public Smtp()
+    public Smtp(string filter = "SMTP *")
     {
         string host;
         int port;
         bool useTls;
 
-        string filter = "SMTP *";
         var cred = CredentialManager.ReadCredential(filter);
         string name = cred.TargetName;
 
@@ -108,7 +106,7 @@ public class Smtp : IDisposable
             };
 
             foreach (var email in emails.Split(_separator,
-                StringSplitOptions.TrimEntries & StringSplitOptions.RemoveEmptyEntries))
+                StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
                 mail.To.Add(email);
             }

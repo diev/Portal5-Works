@@ -1,13 +1,18 @@
 {
   "Program": {
     "TargetName": "Portal5test *",
+    "UtilName": "CryptCP",
+    "CryptoName": "CryptoPro My",
+    "SmtpName": "SMTP *",
     "Subscribers": null
   },
 
   "BulkLoad": {
     "DownloadPath": "Download\\Archive",
     "Overwrite": false,
-    "Decrypt": false
+    "Decrypt": false,
+    "DecryptTo": "",
+    "Delete": false
   },
 
   "Zadacha_130": {

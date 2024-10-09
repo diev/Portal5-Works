@@ -109,7 +109,7 @@ internal static class Zadacha137
 
     private static async Task SignAndEncryptAsync(string path, string file, string temp)
     {
-        CryptoPro crypto = new();
+        CryptoPro crypto = new(Program.UtilName, Program.CryptoName);
 
         string src = Path.Combine(path, file);
         string sig = Path.Combine(temp, file + ".sig");
