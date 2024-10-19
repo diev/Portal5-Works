@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Authors>Diev</Authors>
-    <Version>8.2024.1009</Version>
+    <Version>8.2024.1020</Version>
     <Description>Exchange point to upload/download with Portal5.</Description>
     <Copyright>Copyright 2022-2024 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -34,6 +34,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="CryptoBot.config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

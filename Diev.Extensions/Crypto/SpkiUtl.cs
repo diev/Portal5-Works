@@ -17,6 +17,8 @@ limitations under the License.
 */
 #endregion
 
+using System.Runtime.InteropServices;
+
 using static Diev.Extensions.Exec.Exec;
 
 namespace Diev.Extensions.Crypto;
@@ -78,6 +80,12 @@ public class SpkiUtl
     /// {1} - расшифрованный файл.
     /// </summary>
     public string DecryptCommand { get; set; } = "-decrypt -in {0} -out {1}";
+
+    public SpkiUtl()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            throw new InvalidOperationException("Операции с SpkiUtil доступны только в Windows.");
+    }
 
     /// <summary>
     /// Создание отсоединенной электронной подписи с помощью утилиты командной строки.

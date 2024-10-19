@@ -21,8 +21,8 @@ limitations under the License.
 
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
-using Diev.Portal5;
 using Diev.Portal5.API.Tools;
+using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
@@ -63,6 +63,12 @@ internal static class Zadacha130
             await Program.SendFailAsync(_task, "API: " + ex.Message, Subscribers);
             Program.ExitCode = 3;
         }
+        catch (NoMessagesException ex)
+        {
+            Logger.TimeLine(ex.Message);
+
+            await Program.SendDoneAsync(_task, ex.Message, Subscribers);
+        }
         catch (TaskException ex)
         {
             Logger.TimeLine(ex.Message);
@@ -102,8 +108,11 @@ internal static class Zadacha130
         int count = messagesPage.Messages.Count;
 
         if (count == 0)
-            throw new TaskException(
+        {
+            throw new NoMessagesException(
                 $"Ноль сообщений за {report}.");
+            //return null;
+        }
 
         string? lastName = null;
         string? fileId = null;

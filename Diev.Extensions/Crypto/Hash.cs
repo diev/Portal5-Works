@@ -17,6 +17,8 @@ limitations under the License.
 */
 #endregion
 
+using System.Runtime.InteropServices;
+
 using static Diev.Extensions.Exec.Exec;
 
 namespace Diev.Extensions.Crypto;
@@ -58,6 +60,12 @@ public class Hash
     /// Если {1} не указан, то значение будет взято из файла {0}.hsh
     /// </summary>
     public string VerifyCommand { get; set; } = "{0} -alg GR3411_2012_256 {1}";
+
+    public Hash()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
+            throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
+    }
 
     /// <summary>
     /// Вычислить хэш файла.

@@ -47,7 +47,7 @@ public interface IRestAPICore
     /* 3.1.4 Получение УИО сообщений, квитанций, файлов и информации. */
 
     // 3.1.4.1 Для получения всех сообщений с учетом необязательного фильтра(не более 100 сообщений за один запрос) используется метод GET.
-    public Task<MessagesPage?> GetMessagesPageAsync(MessagesFilter filter, int page = 1);
+    public Task<MessagesPage?> GetMessagesPageAsync(MessagesFilter filter);
     // 3.1.4.2 Для получения данных о конкретном сообщении используется метод GET
     public Task<Message?> GetMessageAsync(string msgId);
     // 3.1.4.3 Для скачивания конкретного сообщения используется метод GET

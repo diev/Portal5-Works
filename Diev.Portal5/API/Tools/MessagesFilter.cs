@@ -101,7 +101,7 @@ public class MessagesFilter
     /// </summary>
     public int? Page { get; set; }
 
-    public string GetQuery(int? page = 1)
+    public string GetQuery()
     {
         var query = new StringBuilder();
 
@@ -109,16 +109,16 @@ public class MessagesFilter
             query.Append("&Task=").Append(Task);
 
         if (MinDateTime != null)
-            query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd}T00:00:00Z", MinDateTime); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+            query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MinDateTime);
 
         if (MinDate != null)
-            query.Append("&MinDateTime=").AppendFormat("{0}T00:00:00Z", MinDate); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+            query.Append("&MinDateTime=").AppendFormat("{0}T00:00:00Z", MinDate);
 
         if (MaxDateTime != null)
-            query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd}T23:59:59Z", MaxDateTime); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+            query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MaxDateTime);
 
         if (MaxDate != null)
-            query.Append("&MaxDateTime=").AppendFormat("{0}T23:59:59Z", MaxDate); // {0:yyyy-MM-dd'T'HH:mm:ss'Z'}
+            query.Append("&MaxDateTime=").AppendFormat("{0}T23:59:59Z", MaxDate);
 
         if (MinSize != null)
             query.Append("&MinSize=").Append(MinSize);
@@ -132,11 +132,7 @@ public class MessagesFilter
         if (Status != null)
             query.Append("&Status=").Append(Status);
 
-        if (page != null && page > 1)
-        {
-            query.Append("&Page=").Append(page);
-        }
-        else if (Page != null && Page > 1)
+        if (Page != null && Page > 1)
         {
             query.Append("&Page=").Append(Page);
         }

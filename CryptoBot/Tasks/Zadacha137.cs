@@ -19,8 +19,8 @@ limitations under the License.
 
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
-using Diev.Portal5;
 using Diev.Portal5.API.Messages;
+using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
@@ -53,17 +53,20 @@ internal static class Zadacha137
     {
         try
         {
-            string zip = GetLastZipToUpload(UploadPath, Zip, 14);
+            string zip = GetLastZipToUpload(UploadPath, Zip, 14); //TODO delete sent; send today only
             string temp = Program.GetTempPath(UploadPath);
 
             await SignAndEncryptAsync(UploadPath, zip, temp);
             string msgId = await UploadAsync(temp);
+
+            Thread.Sleep(60000);
+
             var message = await CheckAsync(msgId, 20);
 
             string report = @$"Файл ""{zip}"", статус '{message.Status}'.{Environment.NewLine}{_title}";
             Logger.TimeLine(report);
 
-            await Program.SendDoneAsync(_task, _title, Subscribers);
+            await Program.SendDoneAsync(_task, report, Subscribers);
         }
         catch (Portal5Exception ex)
         {
@@ -156,7 +159,8 @@ internal static class Zadacha137
                 if (message.Status == MessageOutStatus.Registered)
                     return message; // OK
 
-                if (message.Status == MessageOutStatus.Error)
+                if (message.Status == MessageOutStatus.Error ||
+                    message.Status == MessageOutStatus.Rejected)
                 {
                     if (message.Receipts != null)
                     {
@@ -165,16 +169,21 @@ internal static class Zadacha137
                             if ((receipt.Status == ReceiptOutStatus.Error) &&
                                 (receipt.Message != null))
                                 throw new TaskException(
-                                    "Получена ошибка контроля: " + receipt.Message);
+                                    "Получена ошибка: " + receipt.Message);
+
+                            if ((receipt.Status == ReceiptOutStatus.Rejected) &&
+                                (receipt.Message != null))
+                                throw new TaskException(
+                                    "Получен отказ: " + receipt.Message);
                         }
                     }
 
                     throw new TaskException(
-                        "Получена ошибка контроля, но нет квитанции.");
+                        "Получены ошибка или отказ, но нет квитанции.");
                 }
             }
 
-            Thread.Sleep(10000);
+            Thread.Sleep(30000);
         }
 
         if (message != null)

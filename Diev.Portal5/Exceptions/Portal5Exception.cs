@@ -17,7 +17,7 @@ limitations under the License.
 */
 #endregion
 
-namespace Diev.Portal5;
+namespace Diev.Portal5.Exceptions;
 
 public class Portal5Exception : Exception
 {

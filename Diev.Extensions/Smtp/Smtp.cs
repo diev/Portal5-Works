@@ -38,7 +38,7 @@ public class Smtp : IDisposable
     public string DisplayName { get; set; } = $"{App.Name} {Environment.MachineName}";
 
     /// <summary>
-    /// Create from Windows credentials manager.
+    /// Create from Windows credentials manager or a text string.
     /// </summary>
     public Smtp(string filter = "SMTP *")
     {
@@ -51,7 +51,7 @@ public class Smtp : IDisposable
 
         try
         {
-            var p = name.Split(' ');
+            var p = name.Split();
 
             host = p[1];
             port = p.Length > 2 ? int.Parse(p[2]) : 25;

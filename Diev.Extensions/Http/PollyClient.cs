@@ -30,12 +30,12 @@ namespace Diev.Extensions.Http;
 public static class PollyClient
 {
     private static HttpClient _httpClient = null!;
-    private static int _chunkSize = 4 * 1048576; // 4Mb
+    private static int _chunkSize = 0x100000; // 4 * 1048576; // 4Mb
     private static DateTime _ddosAllowedTime = DateTime.Now;
 
     public static int RetrySecondsTimeout { get; set; } = 2; // retry * RetryTimeout
     public static int DdosSecondsTimeout { get; set; } = 1;
-    public static int WaitMinutesTimeout { get; set; } = 10;
+    public static int WaitMinutesTimeout { get; set; } = 20;
 
     public static int ChunkSize
     {
@@ -160,8 +160,15 @@ public static class PollyClient
                 var response = await _httpClient.SendAsync(request);
                 _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
 
-                if (!RetryRequired(response.StatusCode) || (DateTime.Now > end))
+                if (!RetryRequired(response.StatusCode))
                 {
+                    // Ok
+                    return response;
+                }
+
+                if (DateTime.Now > end)
+                {
+                    Logger.TimeLine($"Повторы прекращены за истечением {WaitMinutesTimeout} мин.");
                     return response;
                 }
             }
@@ -195,8 +202,15 @@ public static class PollyClient
                 var response = await _httpClient.SendAsync(request);
                 _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
 
-                if (!RetryRequired(response.StatusCode) || (DateTime.Now > end))
+                if (!RetryRequired(response.StatusCode))
                 {
+                    // Ok
+                    return response;
+                }
+
+                if (DateTime.Now > end)
+                {
+                    Logger.TimeLine($"Повторы прекращены за истечением {WaitMinutesTimeout} мин.");
                     return response;
                 }
             }

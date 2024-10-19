@@ -17,6 +17,7 @@ limitations under the License.
 */
 #endregion
 
+using System.Runtime.InteropServices;
 using System.Text;
 
 using Diev.Extensions.Credentials;
@@ -120,7 +121,10 @@ public class CryptoPro
 
     public CryptoPro(string util = "csptest", string filter = "CryptoPro My")
     {
-        var cred = CredentialManager.ReadCredential(filter); //TODO Linux
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
+            throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
+
+        var cred = CredentialManager.ReadCredential(filter);
         My = cred.UserName
             ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
         PIN = cred.Password;

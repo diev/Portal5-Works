@@ -19,6 +19,7 @@ limitations under the License.
 
 using System.CommandLine;
 using System.CommandLine.Builder;
+using System.CommandLine.Help;
 using System.CommandLine.Parsing;
 using System.Text;
 
@@ -29,7 +30,7 @@ using Diev.Extensions.Info;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Smtp;
 using Diev.Portal5;
-using Diev.Portal5.API.Tools;
+using Diev.Portal5.API.Messages;
 
 using Microsoft.Extensions.Configuration;
 
@@ -53,19 +54,32 @@ internal static class Program
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); // required for 1251
 
-        string appsettings = Path.ChangeExtension(Environment.ProcessPath!, ".config.json");
-        string comsettings = Path.Combine(App.CompanyData, Path.GetFileName(appsettings));
-
-        if (File.Exists(comsettings))
+        if (Environment.ProcessPath is null) // Linux?
         {
-            Console.WriteLine(@$"ВНИМАНИЕ: Настройки в файле ""{appsettings}""");
-            Console.WriteLine(@$"могут изменяться настройками в файле ""{comsettings}""!");
-        }
+            string appsettings = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
 
-        Config = new ConfigurationBuilder()
-            .AddJsonFile(appsettings, true, false) // optional app path\{appsettings}
-            .AddJsonFile(comsettings, true, false) // optional C:\ProgramData\{company}\{appsettings}
-            .Build();
+            Console.WriteLine(@$"ВНИМАНИЕ: Настройки в файле ""{appsettings}""");
+
+            Config = new ConfigurationBuilder()
+                .AddJsonFile(appsettings, true, false) // optional curdir
+                .Build();
+        }
+        else // Windows
+        {
+            string appsettings = Path.ChangeExtension(Environment.ProcessPath, ".config.json");
+            string comsettings = Path.Combine(App.CompanyData, Path.GetFileName(appsettings));
+
+            if (File.Exists(comsettings))
+            {
+                Console.WriteLine(@$"ВНИМАНИЕ: Настройки в файле ""{appsettings}""");
+                Console.WriteLine(@$"могут изменяться настройками в файле ""{comsettings}""!");
+            }
+
+            Config = new ConfigurationBuilder()
+                .AddJsonFile(appsettings, true, false) // optional app path\{appsettings}
+                .AddJsonFile(comsettings, true, false) // optional C:\ProgramData\{company}\{appsettings}
+                .Build();
+        }
 
         var config = Config.GetSection(nameof(Program));
         TargetName = config[nameof(TargetName)] ?? "Portal5test *";
@@ -85,72 +99,123 @@ internal static class Program
     {
         Console.WriteLine(App.Title);
 
-        // https://dev.to/karenpayneoregon/c-net-tools-withsystemcommandline-2nc2
-        // https://learn.microsoft.com/en-us/dotnet/standard/commandline/get-started-tutorial
+        var rootCommand = new RootCommand(App.Description);
 
-        var taskOption = new Option<string>("--zadacha")
+        #region clean
+        var cleanCommand = new Command("clean", "Очистить лишнее из отчетности старее 30 дней");
+        rootCommand.Add(cleanCommand);
+        cleanCommand.SetHandler(MessagesClean.RunAsync);
+        #endregion
+
+        #region load
+        var msgIdArgument = new Argument<string?>("id", "Идентификатор одного сообщения (guid)")
         {
-            Description = "Номер задачи XX ('Zadacha_XX')",
-            IsRequired = true
-        }
-        .FromAmong("0", "130", "137", "2-1", "3-1", "54");
+            Arity = ArgumentArity.ZeroOrOne
+        };
+
+        var taskOption = new Option<string?>("--zadacha", "Номер задачи XX ('Zadacha_XX')");
         taskOption.AddAlias("-z");
 
-        var todayOption = new Option<bool>("--today")
-        {
-            Description = "Текущий день"
-        };
+        var todayOption = new Option<bool>("--today", "Текущий день только");
         todayOption.AddAlias("-d");
-        todayOption.SetDefaultValue(false);
+        //todayOption.SetDefaultValue(false);
 
-        var fromOption = new Option<string?>("--from")
-        {
-            Description = "С какой даты (yyyy-mm-dd)"
-        };
-        fromOption.AddAlias("-f");
+        var minDateOption = new Option<string?>("--min-date", "С какой даты (yyyy-mm-dd)");
+        minDateOption.AddAlias("-f");
 
-        var toOption = new Option<string?>("--to")
-        {
-            Description = "По какую дату (yyyy-mm-dd)",
-        };
-        toOption.AddAlias("-t");
+        var maxDateOption = new Option<string?>("--max-date", "По какую дату (yyyy-mm-dd)");
+        maxDateOption.AddAlias("-t");
 
-        RootCommand rootCommand = new(App.Description)
+        var minSizeOption = new Option<int?>("--min-size", "От какого размера (байты)");
+        var maxSizeOption = new Option<int?>("--max-size", "До какого размера (байты)");
+
+        var inboxOption = new Option<bool>("--inbox", "Входящие сообщения только");
+        //inboxOption.SetDefaultValue(false);
+
+        var outboxOption = new Option<bool>("--outbox", "Исходящие сообщения только");
+        //outboxOption.SetDefaultValue(false);
+
+        var statusOption = new Option<string?>("--status", "Статус сообщений");
+        var status2 = string.Join(' ', MessageInStatus.Values) + ' ' +
+            string.Join(' ', MessageOutStatus.Values);
+        statusOption.FromAmong(status2.Split(' '));
+
+        var pageOption = new Option<int?>("--page", "Номер страницы по 100 сообщений");
+        //pageOption.SetDefaultValue(1);
+
+        var loadCommand = new Command("load", "Загрузить одно сообщение или все по фильтру")
         {
+            msgIdArgument,
             taskOption,
             todayOption,
-            fromOption,
-            toOption
+            minDateOption,
+            maxDateOption,
+            minSizeOption,
+            maxSizeOption,
+            inboxOption,
+            outboxOption,
+            statusOption,
+            pageOption
         };
+        rootCommand.Add(loadCommand);
+        loadCommand.SetHandler(MessagesLoad.RunAsync, msgIdArgument,
+            // or
+            new MessagesFilterBinder(taskOption,
+            todayOption, minDateOption, maxDateOption,
+            minSizeOption, maxSizeOption,
+            inboxOption, outboxOption,
+            statusOption, pageOption));
+        #endregion load
 
-        rootCommand.SetHandler(TaskCommandAsync, taskOption, todayOption, fromOption, toOption);
-        var commandLineBuilder = new CommandLineBuilder(rootCommand);
-
-        commandLineBuilder.AddMiddleware(async (context, next) =>
+        #region run
+        var runArgument = new Argument<string>("xx", "Номер задачи XX ('Zadacha_XX')")
         {
-            await next(context);
-        });
+            Arity = ArgumentArity.ExactlyOne
+        }
+        .FromAmong("130", "137");
 
-        commandLineBuilder.UseDefaults();
-        Parser parser = commandLineBuilder.Build();
+        var runCommand = new Command("z", "Запустить задачу XX")
+        {
+            runArgument
+        };
+        rootCommand.Add(runCommand);
+        runCommand.SetHandler(RunCommandAsync, runArgument);
+        #endregion run
+
+        #region parse
+        var parser = new CommandLineBuilder(rootCommand)
+            .UseDefaults()
+            .UseHelp(ctx =>
+            {
+                ctx.HelpBuilder.CustomizeSymbol(statusOption,
+                    $"--{statusOption.Name} <{statusOption.Name}>",
+                    statusOption.Description +
+                    Environment.NewLine +
+                    "для inbox: " + string.Join(", ", MessageInStatus.Values) + 
+                    Environment.NewLine +
+                    "для outbox: " + string.Join(", ", MessageOutStatus.Values));
+
+                ctx.HelpBuilder.CustomizeSymbol(runArgument,
+                    $"<{runArgument.Name}>",
+                    runArgument.Description +
+                    Environment.NewLine +
+                    "130: Получение информации об уровне риска ЮЛ/ИП" +
+                    Environment.NewLine +
+                    "137: Ежедневное информирование Банка России о составе и объеме клиентской базы");
+            })
+            .Build();
+
         await parser.InvokeAsync(args);
+        #endregion parse
 
         Logger.Flush();
         return ExitCode;
     }
 
-    internal static async Task TaskCommandAsync(string zadacha, bool today, string? from, string? to)
+    internal static async Task RunCommandAsync(string zadacha)
     {
-        string now = $"{DateTime.Now:yyyy-MM-dd}";
-
         switch (zadacha)
         {
-            case "0":
-                {
-                    await MessagesClean.RunAsync();
-                    return;
-                }
-
             case "130":
                 {
                     await Zadacha130.RunAsync();
@@ -160,39 +225,6 @@ internal static class Program
             case "137":
                 {
                     await Zadacha137.RunAsync();
-                    return;
-                }
-
-            case "2-1":
-                {
-                    await BulkLoad.RunAsync(new MessagesFilter()
-                    {
-                        Task = "Zadacha_" + zadacha,
-                        MinDate = today ? now : from,
-                        MaxDate = to
-                    });
-                    return;
-                }
-
-            case "3-1":
-                {
-                    await BulkLoad.RunAsync(new MessagesFilter()
-                    {
-                        Task = "Zadacha_" + zadacha,
-                        MinDate = today ? now : from,
-                        MaxDate = to
-                    });
-                    return;
-                }
-
-            case "54":
-                {
-                    await BulkLoad.RunAsync(new MessagesFilter()
-                    {
-                        Task = "Zadacha_" + zadacha,
-                        MinDate = today ? now : from,
-                        MaxDate = to
-                    });
                     return;
                 }
         }

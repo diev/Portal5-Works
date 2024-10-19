@@ -178,13 +178,13 @@ public class RestAPI(Credential cred, bool trace)
     /// <param name="filter"></param>
     /// <returns>Все сообщения с учетом фильтра или NULL.</returns>
     /// <exception cref="Exception"></exception>
-    public async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter, int page = 1)
+    public async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter)
     {
         Logger.Line("### Get messages.");
         List<Message> messages = [];
 
         // Get first page of 100
-        var messagesPage = await GetMessagesPageAsync(filter.GetQuery(page));
+        var messagesPage = await GetMessagesPageAsync(filter.GetQuery());
 
         if (messagesPage is null)
             return null;
@@ -199,7 +199,8 @@ public class RestAPI(Credential cred, bool trace)
                 break;
 
             // Get next page of 100
-            messagesPage = await GetMessagesPageAsync(filter.GetQuery(++page));
+            filter.Page++;
+            messagesPage = await GetMessagesPageAsync(filter.GetQuery());
 
             if (messagesPage is null)
                 return null;

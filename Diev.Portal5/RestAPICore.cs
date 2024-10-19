@@ -35,6 +35,7 @@ using Diev.Portal5.API.Interfaces;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Messages.Create;
 using Diev.Portal5.API.Tools;
+using Diev.Portal5.Exceptions;
 
 namespace Diev.Portal5;
 
@@ -316,7 +317,6 @@ public class RestAPICore : IRestAPICore
     /// GET: */messages
     /// </summary>
     /// <param name="filter"></param>
-    /// <param name="page">Номер страницы списка сообщений в разбивке по 100 сообщений
     /// (если не задан, то вернутся первые 100 сообщений).
     /// Допустимые значения: n > 0 (положительные целые числа, больше 0).
     /// Если запрос страницы не указан, возвращается первая страница сообщений.
@@ -324,9 +324,9 @@ public class RestAPICore : IRestAPICore
     /// В случае некорректного номера страницы – ошибка.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<MessagesPage?> GetMessagesPageAsync(MessagesFilter filter, int page = 1)
+    public async Task<MessagesPage?> GetMessagesPageAsync(MessagesFilter filter)
     {
-        return await GetMessagesPageAsync(filter.GetQuery(page));
+        return await GetMessagesPageAsync(filter.GetQuery());
     }
 
     /// <summary>
@@ -348,15 +348,27 @@ public class RestAPICore : IRestAPICore
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
-            var messages = await JsonSerializer.DeserializeAsync<IReadOnlyList<Message>>(response.Content.ReadAsStream(), JsonOptions) ?? [];
+            var messages = await JsonSerializer.DeserializeAsync<IReadOnlyList<Message>>(response.Content.ReadAsStream(), JsonOptions);
+
+            if (messages is null)
+            {
+                //TODO throw new NoMessagesException();
+                return new([], new(
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    100));
+            }
 
             var pages = new Pagination //TODO extract by return
             (
-                GetValue("EPVV-Total"),
-                GetValue("EPVV-TotalPages"),
-                GetValue("EPVV-CurrentPage"),
-                GetValue("EPVV-PerCurrentPage"),
-                GetValue("EPVV-PerNextPage"),
+                GetValue("EPVV-Total"),          // 0, 1, <=100, >100
+                GetValue("EPVV-TotalPages"),     // 0, 1, 1    , n
+                GetValue("EPVV-CurrentPage"),    // -, 1, 1    , 1
+                GetValue("EPVV-PerCurrentPage"), // -, 1, <=100, 100
+                GetValue("EPVV-PerNextPage"),    // -, -, -    , <100|100
                 100 // hardcoded const
             );
 
