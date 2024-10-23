@@ -4,29 +4,33 @@
       "commandName": "Project",
       "commandLineArgs": "\r\n"
     },
-    "CryptoBot -z 130": {
+    "CryptoBot load -z 2-1 (out)": {
       "commandName": "Project",
-      "commandLineArgs": "-z 130\r\n"
+      "commandLineArgs": "load -z 2-1 -f 2024-03-01\r\n"
     },
-    "CryptoBot -z 137": {
+    "CryptoBot load -z 3-1 (in)": {
       "commandName": "Project",
-      "commandLineArgs": "-z 137\r\n"
+      "commandLineArgs": "load -z 3-1 -f 2024-03-01\r\n"
     },
-    "CryptoBot -z 54": {
+    "CryptoBot load -z 3-1 today": {
       "commandName": "Project",
-      "commandLineArgs": "-z 54\r\n"
+      "commandLineArgs": "load -z 3-1 -d\r\n"
     },
-    "CryptoBot -z 2-1 (out)": {
+    "CryptoBot load id": {
       "commandName": "Project",
-      "commandLineArgs": "-z 2-1 -f 2024-03-01\r\n"
+      "commandLineArgs": "load e522488d-0973-419c-97e9-b21100d9d1ff\r\n"
     },
-    "CryptoBot -z 3-1 (in)": {
-      "commandName": "Project",
-      "commandLineArgs": "-z 3-1 -f 2024-03-01\r\n"
+    "WSL": {
+      "commandName": "WSL2",
+      "distributionName": ""
     },
-    "3-1 today": {
+    "CryptoBot z130": {
       "commandName": "Project",
-      "commandLineArgs": "-z 3-1 -d\r\n"
+      "commandLineArgs": "z130\r\n"
+    },
+    "CryptoBot z137": {
+      "commandName": "Project",
+      "commandLineArgs": "z137 -d 7\r\n"
     }
   }
 }

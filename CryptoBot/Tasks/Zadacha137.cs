@@ -17,6 +17,10 @@ limitations under the License.
 */
 #endregion
 
+using System.IO.Compression;
+using System.Xml;
+
+using Diev.Extensions;
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Messages;
@@ -35,6 +39,7 @@ internal static class Zadacha137
     private static string UploadPath { get; }
     //private static string ArchivePath { get; }
     private static string Zip { get; }
+    private static string? Xsd { get; }
     private static string? EncryptTo { get; }
     private static string? Subscribers { get; }
 
@@ -45,25 +50,28 @@ internal static class Zadacha137
         UploadPath = Path.GetFullPath(config[nameof(UploadPath)] ?? ".");
         //ArchivePath = string.Format(Path.GetFullPath(config[nameof(ArchivePath)] ?? "."), DateTime.Now);
         Zip = config[nameof(Zip)] ?? _zip;
+        Xsd = config[nameof(Xsd)]; // ClientFileXML.xsd
         EncryptTo = config[nameof(EncryptTo)];
         Subscribers = config[nameof(Subscribers)];
     }
 
-    public static async Task RunAsync()
+    public static async Task RunAsync(int? days)
     {
         try
         {
-            string zip = GetLastZipToUpload(UploadPath, Zip, 14); //TODO delete sent; send today only
+            string zip = GetZipToUpload(UploadPath, Zip, days ?? 0);
             string temp = Program.GetTempPath(UploadPath);
+
+            await CheckXsdAsync(UploadPath, zip, temp);
 
             await SignAndEncryptAsync(UploadPath, zip, temp);
             string msgId = await UploadAsync(temp);
 
             Thread.Sleep(60000);
 
-            var message = await CheckAsync(msgId, 20);
+            var message = await CheckStatusAsync(msgId, 20);
 
-            string report = @$"Файл ""{zip}"", статус '{message.Status}'.{Environment.NewLine}{_title}";
+            string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
             Logger.TimeLine(report);
 
             await Program.SendDoneAsync(_task, report, Subscribers);
@@ -94,9 +102,31 @@ internal static class Zadacha137
         }
     }
 
-    private static string GetLastZipToUpload(string path, string format, int days)
+    /// <summary>
+    /// Получить имя файла ZIP для отправки.
+    /// </summary>
+    /// <param name="path">Путь исходных файлов UploadPath.</param>
+    /// <param name="format">Маска имени файла zip с подстановочными символами для даты.</param>
+    /// <param name="days">Сколько дней назад перебрать в поисках последнего файла
+    /// или 0 - только с текущей датой.</param>
+    /// <returns>Имя найденного последнего файла zip без пути.</returns>
+    /// <exception cref="TaskException"></exception>
+    private static string GetZipToUpload(string path, string format, int days = 0)
     {
-        for (int i = 0; i > -days; i--)
+        if (days == 0)
+        {
+            string zip = string.Format(format, DateTime.Now);
+
+            if (File.Exists(Path.Combine(path, zip)))
+            {
+                return zip;
+            }
+
+            throw new TaskException(
+                $"Сегодня нет файла для отправки.");
+        }
+
+        for (int i = 0; i >= -days; i--)
         {
             string zip = string.Format(format, DateTime.Now.AddDays(i));
 
@@ -110,6 +140,68 @@ internal static class Zadacha137
             $"За {days} последних дней ни одного файла для отправки.");
     }
 
+    /// <summary>
+    /// Распаковать ZIP и проверить файл XML с помощью схемы XSD.
+    /// </summary>
+    /// <param name="path">Путь исходных файлов UploadPath.</param>
+    /// <param name="file">Имя исходного файла ZIP.</param>
+    /// <param name="temp">Временная папка.</param>
+    /// <returns>Ничего не возвращает, если успешно, или вызывает исключение.</returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    private static async Task CheckXsdAsync(string path, string file, string temp)
+    {
+        if (string.IsNullOrEmpty(Xsd))
+            return;
+
+        if (!File.Exists(Xsd))
+            throw new FileNotFoundException("Файл со схемой XSD не найден.", Path.GetFullPath(Xsd));
+
+        string src = Path.Combine(path, file);
+        ZipFile.ExtractToDirectory(src, temp, true);
+
+        foreach (var xml in Directory.GetFiles(temp))
+        {
+            XmlReaderSettings xmlReaderSettings = new()
+            {
+                Async = true
+            };
+            xmlReaderSettings.Schemas.Add(null, Xsd);
+            xmlReaderSettings.ValidationType = ValidationType.Schema;
+            xmlReaderSettings.ValidationEventHandler += XmlReaderSettings_ValidationEventHandler;
+
+            using (var form = XmlReader.Create(xml, xmlReaderSettings))
+                while (await form.ReadAsync()) { }
+
+            File.Delete(Path.Combine(temp, xml));
+        }
+    }
+
+    /// <summary>
+    /// Обработчик ошибок проверки схемы XSD.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    /// <exception cref="TaskException"></exception>
+    private static void XmlReaderSettings_ValidationEventHandler(object? sender, System.Xml.Schema.ValidationEventArgs e)
+    {
+        if (e.Severity == System.Xml.Schema.XmlSeverityType.Warning)
+        {
+            throw new TaskException("Warning: " + e.Message);
+        }
+        else if (e.Severity == System.Xml.Schema.XmlSeverityType.Error)
+        {
+            throw new TaskException(e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Создание файлов подписи и зашифрованного.
+    /// </summary>
+    /// <param name="path">Путь исходных файлов UploadPath.</param>
+    /// <param name="file">Имя исходного файла ZIP.</param>
+    /// <param name="temp">Временная папка с создаваемыми для отправки файлами.</param>
+    /// <returns></returns>
+    /// <exception cref="TaskException"></exception>
     private static async Task SignAndEncryptAsync(string path, string file, string temp)
     {
         CryptoPro crypto = new(Program.UtilName, Program.CryptoName);
@@ -120,13 +212,19 @@ internal static class Zadacha137
 
         if (!await crypto.SignDetachedFileAsync(src, sig))
             throw new TaskException(
-                @$"Подписать файл ""{src}"" не удалось.");
+                $"Подписать файл {src.PathQuoted()} не удалось.");
 
         if (!await crypto.EncryptFileAsync(src, enc, EncryptTo))
             throw new TaskException(
-                @$"Зашифровать файл ""{src}"" не удалось.");
+                $"Зашифровать файл {src.PathQuoted()} не удалось.");
     }
 
+    /// <summary>
+    /// Отправляет папку файлов на сервер.
+    /// </summary>
+    /// <param name="path">Путь к папке для отправки.</param>
+    /// <returns>Идентификатор созданного сообщения.</returns>
+    /// <exception cref="TaskException"></exception>
     private static async Task<string> UploadAsync(string path)
     {
         var msgId = await Program.RestAPI.UploadDirectoryAsync(_task, _title, path);
@@ -145,7 +243,7 @@ internal static class Zadacha137
     /// <param name="minutes">Время ожидания в минутах, прежде чем прекратить попытки.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    private static async Task<Message> CheckAsync(string msgId, int minutes)
+    private static async Task<Message> CheckStatusAsync(string msgId, int minutes)
     {
         var end = DateTime.Now.AddMinutes(minutes);
         Message? message = null;

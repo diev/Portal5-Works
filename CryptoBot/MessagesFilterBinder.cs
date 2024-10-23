@@ -26,7 +26,7 @@ namespace CryptoBot;
 
 public class MessagesFilterBinder(
     Option<string?> task,
-    Option<bool> today, Option<string?> minDate, Option<string?> maxDate,
+    Option<int?> days, Option<string?> minDate, Option<string?> maxDate,
     Option<int?> minSize, Option<int?> maxSize,
     Option<bool> inbox, Option<bool> outbox,
     Option<string?> status,
@@ -35,8 +35,8 @@ public class MessagesFilterBinder(
 {
     protected override MessagesFilter GetBoundValue(BindingContext ctx)
     {
-        string now = $"{DateTime.Now:yyyy-MM-dd}";
-        bool day = ctx.ParseResult.GetValueForOption(today);
+        int? d = ctx.ParseResult.GetValueForOption(days);
+        string? day = d is null ? null : $"{DateTime.Now.AddDays((double)-d):yyyy-MM-dd}";
         string? from = ctx.ParseResult.GetValueForOption(minDate);
         string? to = ctx.ParseResult.GetValueForOption(maxDate);
         bool ibx = ctx.ParseResult.GetValueForOption(inbox);
@@ -45,8 +45,8 @@ public class MessagesFilterBinder(
         return new()
         {
             Task = ctx.ParseResult.GetValueForOption(task),
-            MinDate = day ? now : from,
-            MaxDate = day ? now : to,
+            MinDate = d is null ? from : day,
+            MaxDate = d is null ? to : day,
             MinSize = ctx.ParseResult.GetValueForOption(minSize),
             MaxSize = ctx.ParseResult.GetValueForOption(maxSize),
             Type = ibx == obx ? null : ibx ? "inbox" : "outbox",

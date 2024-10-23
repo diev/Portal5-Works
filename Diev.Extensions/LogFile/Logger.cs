@@ -85,7 +85,7 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void TimeNote(string path, string text)
     {
-        TimeLine($@"""{path}"" {text}");
+        TimeLine($"{path.PathQuoted()} {text}");
     }
 
     /// <summary>
@@ -136,7 +136,7 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void WriteNote(string path, string text)
     {
-        Write(@$"""{path}"" {text}");
+        Write($"{path.PathQuoted()} {text}");
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void WriteNote(string path, string properties, string text)
     {
-        Write(@$"""{path}""{properties} {text}");
+        Write($"{path.PathQuoted()}{properties} {text}");
     }
 
     /// <summary>
@@ -230,7 +230,7 @@ public static class Logger
         }
         catch 
         { 
-            WriteLine(@$"Error: rename to ""{newFile}"" failed!");
+            WriteLine($"Error: rename to {newFile.PathQuoted()} failed!");
         }
     }
 }

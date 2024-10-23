@@ -18,17 +18,17 @@ rem 3 - Build a single-file app when no runtime required (NET embedded)
 rem 4 - Build an app with many dlls for Linux
 set option=2
 
-rem call :bin %1 %option% %prj% net6.0 x86
-rem call :bin %1 %option% %prj% net7.0 x86
-call :bin %1 %option% %prj% net8.0 x86
+rem call :bin %1 %option% %prj% net6.0 win-x86
+rem call :bin %1 %option% %prj% net7.0 win-x86
+call :bin %1 %option% %prj% net8.0 win-x86
 
-rem call :bin %1 %option% %prj% net6.0 x64
-rem call :bin %1 %option% %prj% net7.0 x64
-call :bin %1 %option% %prj% net8.0 x64
+rem call :bin %1 %option% %prj% net6.0 win-x64
+rem call :bin %1 %option% %prj% net7.0 win-x64
+call :bin %1 %option% %prj% net8.0 win-x64
 
 rem Linux
 set option=4
-call :bin %1 %option% %prj% net8.0 x64
+call :bin %1 %option% %prj% net8.0 linux-x64
 
 call :version_txt %1 %prj% > bin\version.txt
 
@@ -50,15 +50,19 @@ rem %3 - project.csproj
 rem %4 - net
 rem %5 - x86/x64
 echo === Build %1 %4 %5 ===
-if /%2/==/1/ dotnet publish %3 -o bin\%4.%5 -f %4 -r win-%5
-if /%2/==/2/ dotnet publish %3 -o bin\%4.%5 -f %4 -r win-%5 -p:PublishSingleFile=true --no-self-contained
-if /%2/==/3/ dotnet publish %3 -o bin\%4.%5 -f %4 -r win-%5 -p:PublishSingleFile=true
-if /%2/==/4/ dotnet publish %3 -o bin\%4.linux-%5 -f %4 -r linux-%5 --self-contained
+rem win
+if /%2/==/1/ dotnet publish %3 -o bin\%4.%5 -f %4 -r %5
+if /%2/==/2/ dotnet publish %3 -o bin\%4.%5 -f %4 -r %5 -p:PublishSingleFile=true --no-self-contained
+if /%2/==/3/ dotnet publish %3 -o bin\%4.%5 -f %4 -r %5 -p:PublishSingleFile=true
+rem linux
+if /%2/==/4/ dotnet publish %3 -o bin\%4.%5 -f %4 -r %5 --self-contained
 
+rem win
 if /%2/==/1/ del bin\%4.%5\appsettings.json
 if /%2/==/2/ del bin\%4.%5\appsettings.json
 if /%2/==/3/ del bin\%4.%5\appsettings.json
-if /%2/==/4/ del bin\%4.linux-%5\*.config.json
+rem linux
+if /%2/==/4/ del bin\%4.%5\*.config.json
 goto :eof
 
 :init
@@ -101,9 +105,8 @@ echo Requires SDK .NET to build
 echo Requires .NET [Desktop] Runtime to run
 echo Download from https://dotnet.microsoft.com/download
 echo.
-echo Run once to create %1.config.json
-echo correct it and switch NewConfig to false
-echo (or delete this row with NewConfig)
+echo Run with '--version' to get the version
+echo Run with '--help' to get the help
 echo.
 echo https://github.com/diev/%repo%
 echo https://gitverse.ru/diev/%repo%

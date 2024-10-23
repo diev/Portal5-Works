@@ -238,7 +238,7 @@ public static class ASN1
         }
         catch
         {
-            Logger.TimeLine(@$"Ошибка снятия ЭП с файла ""{sourcePath}"".");
+            Logger.TimeLine($"Ошибка снятия ЭП с файла {sourcePath.PathQuoted()}.");
             return false;
         }
     }

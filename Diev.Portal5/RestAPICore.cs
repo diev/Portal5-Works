@@ -1085,6 +1085,7 @@ public class RestAPICore : IRestAPICore
         {
             using var file = File.OpenWrite(path);
             await response.Content.CopyToAsync(file);
+            await file.FlushAsync();
 
             //using var file = File.OpenWrite(path);
             //await response.Content.CopyToAsync(file);
@@ -1136,6 +1137,7 @@ public class RestAPICore : IRestAPICore
                 }
 
                 await partResponse.Content.CopyToAsync(file);
+                await file.FlushAsync();
                 remaining -= chunkSize;
             }
 

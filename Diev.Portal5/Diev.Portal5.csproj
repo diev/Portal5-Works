@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
-    <Version>8.2024.1020</Version>
+    <Version>8.2024.1023</Version>
     <Description>Diev's extensions for Portal5.</Description>
     <Copyright>Copyright 2022-2024 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -27,15 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Diev.Extensions\Diev.Extensions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="API\Forms\XSD\FormResponse.xsd">
-      <SubType>Designer</SubType>
-    </None>
-    <None Update="API\Forms\XSD\cbr_ru_e-forms_mf_sadd_base_v00_01.xsd">
-      <SubType>Designer</SubType>
-    </None>
   </ItemGroup>
 
 </Project>

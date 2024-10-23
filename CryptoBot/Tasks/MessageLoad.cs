@@ -17,10 +17,12 @@ limitations under the License.
 */
 #endregion
 
+using Diev.Extensions;
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
 using Diev.Portal5;
 using Diev.Portal5.API.Messages;
+using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
@@ -38,6 +40,7 @@ internal static class MessageLoad
     public static bool Decrypt { get; }
     public static string? DecryptTo { get; }
     public static bool Delete { get; } //TODO
+    public static string? Subscribers { get; }
 
     static MessageLoad()
     {
@@ -47,6 +50,7 @@ internal static class MessageLoad
         Overwrite = bool.Parse(config[nameof(Overwrite)] ?? "false");
         Decrypt = bool.Parse(config[nameof(Decrypt)] ?? "false");
         Delete = bool.Parse(config[nameof(Delete)] ?? "false");
+        Subscribers = config[nameof(Subscribers)];
 
         if (Decrypt)
         {
@@ -70,10 +74,29 @@ internal static class MessageLoad
 
             await LoadMessageAsync(message);
         }
+        catch (Portal5Exception ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(nameof(MessagesLoad), "API: " + ex.Message, Subscribers);
+            Program.ExitCode = 3;
+        }
+        catch (TaskException ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(nameof(MessagesLoad), "Task: " + ex.Message, Subscribers);
+            Program.ExitCode = 2;
+        }
         catch (Exception ex)
         {
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
+
+            await Program.SendFailAsync(nameof(MessagesLoad), ex, Subscribers);
+            Program.ExitCode = 1;
         }
     }
 
@@ -113,7 +136,7 @@ internal static class MessageLoad
 
                 if (!await DownloadFileAsync(msgId, file, path))
                 {
-                    Logger.TimeLine($@"Ошибка загрузки ""{file.Name}"" из '{msgId}'!");
+                    Logger.TimeLine($"Ошибка загрузки {file.Name.PathQuoted()} из '{msgId}'!");
                     continue;
                 }
 
@@ -171,7 +194,12 @@ internal static class MessageLoad
         string dir = Path.Combine(
             Path.GetFullPath(DownloadPath),
             message.Type,
-            message.TaskName);
+            message.TaskName,
+            message.CreationDate.ToString("yyyy-MM"));
+
+        if (!Directory.CreateDirectory(dir).Exists)
+            throw new DirectoryNotFoundException($"Не удалось создать директорию {dir.PathQuoted()}.");
+
         string msgId = message.Id!;
         string json = Path.Combine(dir, msgId + ".json");
         string zip = Path.Combine(dir, msgId + ".zip");

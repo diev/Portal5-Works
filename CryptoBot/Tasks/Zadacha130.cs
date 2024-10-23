@@ -19,6 +19,7 @@ limitations under the License.
 
 //using System.IO.Compression;
 
+using Diev.Extensions;
 using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Tools;
@@ -50,7 +51,7 @@ internal static class Zadacha130
             string zip = await DecryptAsync(enc);
             //await UnzipAsync(zip);
 
-            string report = @$"Получен файл ""{Path.GetFileName(zip)}"".";
+            string report = $"Получен файл {Path.GetFileName(zip).PathQuoted()}.";
             Logger.TimeLine(report);
 
             await Program.SendDoneAsync(_task, report, Subscribers);
@@ -141,9 +142,15 @@ internal static class Zadacha130
             return path;
 
         throw new TaskException(
-            @$"Не удалось получить файл ""{lastName}"" за {report}.");
+            $"Не удалось получить файл {lastName?.PathQuoted()} за {report}.");
     }
 
+    /// <summary>
+    /// Расшифровка файла zip.enc.
+    /// </summary>
+    /// <param name="enc">Исходный файл zip.enc.</param>
+    /// <returns>Расшифрованный файл zip.</returns>
+    /// <exception cref="TaskException"></exception>
     private static async Task<string> DecryptAsync(string enc)
     {
         CryptoPro crypto = new(Program.UtilName, Program.CryptoName);
@@ -156,7 +163,7 @@ internal static class Zadacha130
         }
 
         throw new TaskException(
-            @$"Получен файл ""{Path.GetFileName(enc)}"", но расшифровать его не удалось.");
+            $"Получен файл {Path.GetFileName(enc).PathQuoted()}, но расшифровать его не удалось.");
     }
 
     //private static async Task UnzipAsync(string zip)

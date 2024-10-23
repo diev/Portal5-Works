@@ -19,6 +19,7 @@ limitations under the License.
 
 using System.Net;
 
+using Diev.Extensions;
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
 using Diev.Extensions.LogFile;
@@ -46,7 +47,7 @@ public class RestAPI(Credential cred, bool trace)
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<string?> UploadDirectoryAsync(string task, string? title, string path)
     {
-        Logger.Title(@$"Upload directory ""{path}""");
+        Logger.Title($"Upload directory {path.PathQuoted()}");
 
         var draft = new DraftMessage
         {
@@ -121,7 +122,7 @@ public class RestAPI(Credential cred, bool trace)
             var expiration = uploadSession.ExpirationDateTime.ToLocalTime();
 
             // Step3 - upload new file
-            Logger.Title(@$"3.{sent + 1}. Upload new file ""{messageFile.Name}"".");
+            Logger.Title($"3.{sent + 1}. Upload new file {messageFile.Name.PathQuoted()}.");
 
             string file = Path.Combine(path, messageFile.Name);
 
@@ -218,7 +219,7 @@ public class RestAPI(Credential cred, bool trace)
     /// <returns></returns>
     public async Task<bool> DownloadMessageJsonAsync(string msgId, string path, bool overwrite = false)
     {
-        Logger.Line($@"Download ""{path}"".");
+        Logger.Line($"Download {path.PathQuoted()}.");
 
         if (SkipExisting(path, overwrite))
             return true;

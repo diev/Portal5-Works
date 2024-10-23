@@ -25,6 +25,7 @@ using System.Text;
 
 using CryptoBot.Tasks;
 
+using Diev.Extensions;
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Info;
 using Diev.Extensions.LogFile;
@@ -58,7 +59,7 @@ internal static class Program
         {
             string appsettings = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
 
-            Console.WriteLine(@$"ВНИМАНИЕ: Настройки в файле ""{appsettings}""");
+            Console.WriteLine($"ВНИМАНИЕ: Настройки в файле {appsettings.PathQuoted()}");
 
             Config = new ConfigurationBuilder()
                 .AddJsonFile(appsettings, true, false) // optional curdir
@@ -71,8 +72,8 @@ internal static class Program
 
             if (File.Exists(comsettings))
             {
-                Console.WriteLine(@$"ВНИМАНИЕ: Настройки в файле ""{appsettings}""");
-                Console.WriteLine(@$"могут изменяться настройками в файле ""{comsettings}""!");
+                Console.WriteLine($"ВНИМАНИЕ: Настройки в файле {appsettings.PathQuoted()}");
+                Console.WriteLine($"могут изменяться настройками в файле {comsettings.PathQuoted()}!");
             }
 
             Config = new ConfigurationBuilder()
@@ -116,9 +117,8 @@ internal static class Program
         var taskOption = new Option<string?>("--zadacha", "Номер задачи XX ('Zadacha_XX')");
         taskOption.AddAlias("-z");
 
-        var todayOption = new Option<bool>("--today", "Текущий день только");
-        todayOption.AddAlias("-d");
-        //todayOption.SetDefaultValue(false);
+        var daysOption = new Option<int?>("--days", "Сколько конкретно дней назад [0]");
+        daysOption.AddAlias("-d");
 
         var minDateOption = new Option<string?>("--min-date", "С какой даты (yyyy-mm-dd)");
         minDateOption.AddAlias("-f");
@@ -130,10 +130,8 @@ internal static class Program
         var maxSizeOption = new Option<int?>("--max-size", "До какого размера (байты)");
 
         var inboxOption = new Option<bool>("--inbox", "Входящие сообщения только");
-        //inboxOption.SetDefaultValue(false);
 
         var outboxOption = new Option<bool>("--outbox", "Исходящие сообщения только");
-        //outboxOption.SetDefaultValue(false);
 
         var statusOption = new Option<string?>("--status", "Статус сообщений");
         var status2 = string.Join(' ', MessageInStatus.Values) + ' ' +
@@ -141,13 +139,12 @@ internal static class Program
         statusOption.FromAmong(status2.Split(' '));
 
         var pageOption = new Option<int?>("--page", "Номер страницы по 100 сообщений");
-        //pageOption.SetDefaultValue(1);
 
-        var loadCommand = new Command("load", "Загрузить одно сообщение или все по фильтру")
+        var loadCommand = new Command("load", "Загрузить одно сообщение или все по фильтру (см. help)")
         {
             msgIdArgument,
             taskOption,
-            todayOption,
+            daysOption,
             minDateOption,
             maxDateOption,
             minSizeOption,
@@ -161,26 +158,29 @@ internal static class Program
         loadCommand.SetHandler(MessagesLoad.RunAsync, msgIdArgument,
             // or
             new MessagesFilterBinder(taskOption,
-            todayOption, minDateOption, maxDateOption,
+            daysOption, minDateOption, maxDateOption,
             minSizeOption, maxSizeOption,
             inboxOption, outboxOption,
             statusOption, pageOption));
         #endregion load
 
-        #region run
-        var runArgument = new Argument<string>("xx", "Номер задачи XX ('Zadacha_XX')")
-        {
-            Arity = ArgumentArity.ExactlyOne
-        }
-        .FromAmong("130", "137");
+        #region tasks
+        var z130Command = new Command("z130", "Получение информации об уровне риска ЮЛ/ИП");
+        rootCommand.Add(z130Command);
+        z130Command.SetHandler(Zadacha130.RunAsync);
 
-        var runCommand = new Command("z", "Запустить задачу XX")
+        var z137Argument = new Argument<int?>("days", "Сколько дней назад может быть файл [0]")
         {
-            runArgument
+            Arity = ArgumentArity.ZeroOrOne
         };
-        rootCommand.Add(runCommand);
-        runCommand.SetHandler(RunCommandAsync, runArgument);
-        #endregion run
+
+        var z137Command = new Command("z137", "Ежедневное информирование Банка России о составе и объеме клиентской базы")
+        {
+            z137Argument
+        };
+        rootCommand.Add(z137Command);
+        z137Command.SetHandler(Zadacha137.RunAsync, z137Argument);
+        #endregion tasks
 
         #region parse
         var parser = new CommandLineBuilder(rootCommand)
@@ -194,14 +194,6 @@ internal static class Program
                     "для inbox: " + string.Join(", ", MessageInStatus.Values) + 
                     Environment.NewLine +
                     "для outbox: " + string.Join(", ", MessageOutStatus.Values));
-
-                ctx.HelpBuilder.CustomizeSymbol(runArgument,
-                    $"<{runArgument.Name}>",
-                    runArgument.Description +
-                    Environment.NewLine +
-                    "130: Получение информации об уровне риска ЮЛ/ИП" +
-                    Environment.NewLine +
-                    "137: Ежедневное информирование Банка России о составе и объеме клиентской базы");
             })
             .Build();
 
@@ -210,24 +202,6 @@ internal static class Program
 
         Logger.Flush();
         return ExitCode;
-    }
-
-    internal static async Task RunCommandAsync(string zadacha)
-    {
-        switch (zadacha)
-        {
-            case "130":
-                {
-                    await Zadacha130.RunAsync();
-                    return;
-                }
-
-            case "137":
-                {
-                    await Zadacha137.RunAsync();
-                    return;
-                }
-        }
     }
 
     #region Helpers
@@ -241,12 +215,10 @@ internal static class Program
             Directory.Delete(temp, true);
 
         if (Directory.Exists(temp))
-            throw new Exception(@$"Не удалось удалить старую директорию ""{temp}"".");
+            throw new Exception($"Не удалось удалить старую директорию {temp.PathQuoted()}.");
 
-        Directory.CreateDirectory(temp);
-
-        if (!Directory.Exists(temp))
-            throw new Exception(@$"Не удалось создать новую директорию ""{temp}"".");
+        if (!Directory.CreateDirectory(temp).Exists)
+            throw new DirectoryNotFoundException($"Не удалось создать новую директорию {temp.PathQuoted()}.");
 
         return temp;
     }

@@ -175,12 +175,12 @@ public class CryptoPro
             cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine(@$"Sign ""{file}"":{Environment.NewLine}{output.Output}");
+        Logger.TimeLine($"Sign {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
 
-        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Signed file not created.", resultFile);
         return false;
@@ -202,12 +202,12 @@ public class CryptoPro
             cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine(@$"Sign detached ""{file}"":{Environment.NewLine}{output.Output}");
+        Logger.TimeLine($"Sign detached {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
         
-        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Detached sign file not created.", resultFile);
         return false;
@@ -225,12 +225,12 @@ public class CryptoPro
     {
         string cmdline = string.Format(VerifyCommand, file, resultFile, My);
         var output = await StartWithOutputAsync(Exe, cmdline, Visible);
-        Logger.TimeLine(@$"Verify ""{file}"":{Environment.NewLine}{output.Output}");
+        Logger.TimeLine($"Verify {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return output.ExitCode == 0;
 
-        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Unsigned file not created.", resultFile);
         return false;
@@ -247,11 +247,11 @@ public class CryptoPro
     {
         string cmdline = string.Format(VerifyCommand, file, signFile, My);
         var output = await StartWithOutputAsync(Exe, cmdline, Visible);
-        Logger.TimeLine(@$"Verify detached ""{file}"":{Environment.NewLine}{output.Output}");
+        Logger.TimeLine($"Verify detached {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
 
         if (output.Error.Length > 0)
         {
-            Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+            Logger.Line($"Error:{Environment.NewLine}{output.Error}");
         }
 
         return output.ExitCode == 0;
@@ -284,12 +284,12 @@ public class CryptoPro
         }
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine(@$"Encrypt ""{file}"":{Environment.NewLine}{output.Output}");
+        Logger.TimeLine($"Encrypt {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
 
-        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
 
         //throw new FileNotFoundException("Encrypted file not created.", resultFile);
         return false;
@@ -313,13 +313,13 @@ public class CryptoPro
             cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine(@$"Decrypt ""{file}"":{Environment.NewLine}{output.Output}");
+        Logger.TimeLine($"Decrypt {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
 
         if (File.Exists(resultFile))
             return true;
 
         //Logger.Line(@$"Fail: ""{Exe}"" {cmd}");
-        Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
 
         if (MyOld is null)
             return false;
@@ -332,13 +332,13 @@ public class CryptoPro
                 cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
             output = await StartWithOutputAsync(Exe, cmd, Visible);
-            Logger.Line(@$"Try decrypt with {old}{Environment.NewLine}{output.Output}");
+            Logger.Line($"Try decrypt with {old}{Environment.NewLine}{output.Output}");
 
             if (File.Exists(resultFile))
                 return true;
 
             //Logger.Line(@$"Fail: ""{Exe}"" {cmd}");
-            Logger.Line(@$"Error:{Environment.NewLine}{output.Error}");
+            Logger.Line($"Error:{Environment.NewLine}{output.Error}");
         }
 
         //throw new FileNotFoundException("Decrypted file not created.", resultFile);

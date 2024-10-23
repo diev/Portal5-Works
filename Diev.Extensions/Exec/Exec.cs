@@ -107,7 +107,7 @@ public static class Exec
         }
 
 #if DEBUG
-        string test = @$"""{exe}"" {cmdline}";
+        string test = $"{exe.PathQuoted()} {cmdline}";
         Console.WriteLine(test);
 #endif
 
@@ -137,7 +137,7 @@ public static class Exec
         }
         catch (Exception ex)
         {
-            throw new Exception(@$"Fail to start [""{exe}"" {cmdline}]", ex);
+            throw new Exception($"Fail to start [{exe.PathQuoted()} {cmdline}]", ex);
         }
     }
 
@@ -284,7 +284,7 @@ public static class Exec
         }
         catch (Exception ex)
         {
-            throw new Exception(@$"Fail to start [""{exe}"" {cmdline}]", ex);
+            throw new Exception($"Fail to start [{exe.PathQuoted()} {cmdline}]", ex);
         }
 
         return (result, _output.ToString(), _error.ToString());

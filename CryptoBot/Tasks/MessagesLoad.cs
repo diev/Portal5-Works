@@ -19,6 +19,7 @@ limitations under the License.
 
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Tools;
+using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
@@ -75,10 +76,29 @@ internal static class MessagesLoad
 
             Console.WriteLine("--- Page end ---");
         }
+        catch (Portal5Exception ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(nameof(MessagesLoad), "API: " + ex.Message, MessageLoad.Subscribers);
+            Program.ExitCode = 3;
+        }
+        catch (TaskException ex)
+        {
+            Logger.TimeLine(ex.Message);
+            Logger.LastError(ex);
+
+            await Program.SendFailAsync(nameof(MessagesLoad), "Task: " + ex.Message, MessageLoad.Subscribers);
+            Program.ExitCode = 2;
+        }
         catch (Exception ex)
         {
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
+
+            await Program.SendFailAsync(nameof(MessagesLoad), ex, MessageLoad.Subscribers);
+            Program.ExitCode = 1;
         }
     }
 
