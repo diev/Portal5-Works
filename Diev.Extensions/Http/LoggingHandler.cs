@@ -54,11 +54,11 @@ internal class LoggingHandler : DelegatingHandler
 
         Logger.TimeLine($"Request {request}");
 
-        if (request.Content != null)
+        if (request.Content is not null)
         {
             var type = request.Content.Headers.ContentType;
 
-            if (type?.MediaType != null)
+            if (type?.MediaType is not null)
             {
                 if (type.MediaType.Contains("json", StringComparison.Ordinal))
                 {
@@ -90,18 +90,22 @@ internal class LoggingHandler : DelegatingHandler
 
         Logger.TimeLine($"Response {response}");
 
-        if (response.Content != null)
+        if (response.Content is not null)
         {
             var type = response.Content.Headers.ContentType;
 
-            if (type?.MediaType != null)
+            if (type?.MediaType is not null)
             {
                 if (type.MediaType.Contains("json", StringComparison.Ordinal))
                 {
+                    //WARNING: DO NOT EDIT THIS CODE BLOCK!!!
+
+                    //var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+
                     using MemoryStream stream = new();
                     await response.Content.CopyToAsync(stream, cancellationToken);
 
-                    stream.Seek(0, SeekOrigin.Begin);
+                    stream.Seek(0, SeekOrigin.Begin); //MemoryStream only
                     using var sr = new StreamReader(stream, Encoding.UTF8);
                     string json = await sr.ReadToEndAsync(cancellationToken);
 
@@ -111,6 +115,10 @@ internal class LoggingHandler : DelegatingHandler
                     }
 
                     Logger.Line($"{stream.Length} bytes received");
+
+                    //stream.Seek(0, SeekOrigin.Begin);
+                    //using var binaryReader = new BinaryReader(stream);
+                    //response.Content = new ByteArrayContent(binaryReader.ReadBytes((int)stream.Length));
 
                     response.Content = new ByteArrayContent(stream.ToArray());
                     response.Content.Headers.ContentType = type;
@@ -132,11 +140,11 @@ internal class LoggingHandler : DelegatingHandler
         //await logger.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} Request {request}");
         //await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-        //if (request.Content != null)
+        //if (request.Content is not null)
         //{
         //    var type = request.Content.Headers.ContentType;
 
-        //    if (type?.MediaType != null)
+        //    if (type?.MediaType is not null)
         //    {
         //        if (type.MediaType.Contains("json", StringComparison.Ordinal))
         //        {
@@ -179,11 +187,11 @@ internal class LoggingHandler : DelegatingHandler
         //await logger.WriteLineAsync($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} Response {response}");
         //await logger.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-        //if (response.Content != null)
+        //if (response.Content is not null)
         //{
         //    var type = response.Content.Headers.ContentType;
 
-        //    if (type?.MediaType != null)
+        //    if (type?.MediaType is not null)
         //    {
         //        if (type.MediaType.Contains("json", StringComparison.Ordinal))
         //        {

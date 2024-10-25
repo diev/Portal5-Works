@@ -27,7 +27,7 @@ internal static class MessagesLoad
 {
     public static async Task RunAsync(string? msgId, MessagesFilter filter)
     {
-        if (msgId != null)
+        if (msgId is not null)
         {
             await MessageLoad.RunAsync(msgId);
             return;

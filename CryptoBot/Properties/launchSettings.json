@@ -18,7 +18,7 @@
     },
     "CryptoBot load id": {
       "commandName": "Project",
-      "commandLineArgs": "load e522488d-0973-419c-97e9-b21100d9d1ff\r\n"
+      "commandLineArgs": "load 11f38996-e2b8-430f-8c7b-b21200ff6cb1\r\n"
     },
     "WSL": {
       "commandName": "WSL2",
@@ -31,6 +31,10 @@
     "CryptoBot z137": {
       "commandName": "Project",
       "commandLineArgs": "z137 -d 7\r\n"
+    },
+    "CryptoBot load -z 3-1 day-1": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 3-1 -d 2\r\n"
     }
   }
 }

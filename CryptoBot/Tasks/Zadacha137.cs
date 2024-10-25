@@ -229,7 +229,7 @@ internal static class Zadacha137
     {
         var msgId = await Program.RestAPI.UploadDirectoryAsync(_task, _title, path);
 
-        if (msgId != null)
+        if (msgId is not null)
             return msgId;
 
         throw new TaskException(
@@ -252,7 +252,7 @@ internal static class Zadacha137
         {
             message = await Program.RestAPI.GetMessageAsync(msgId);
 
-            if (message != null)
+            if (message is not null)
             {
                 if (message.Status == MessageOutStatus.Registered)
                     return message; // OK
@@ -260,17 +260,17 @@ internal static class Zadacha137
                 if (message.Status == MessageOutStatus.Error ||
                     message.Status == MessageOutStatus.Rejected)
                 {
-                    if (message.Receipts != null)
+                    if (message.Receipts is not null)
                     {
                         foreach (var receipt in message.Receipts)
                         {
                             if ((receipt.Status == ReceiptOutStatus.Error) &&
-                                (receipt.Message != null))
+                                (receipt.Message is not null))
                                 throw new TaskException(
                                     "Получена ошибка: " + receipt.Message);
 
                             if ((receipt.Status == ReceiptOutStatus.Rejected) &&
-                                (receipt.Message != null))
+                                (receipt.Message is not null))
                                 throw new TaskException(
                                     "Получен отказ: " + receipt.Message);
                         }
@@ -284,7 +284,7 @@ internal static class Zadacha137
             Thread.Sleep(30000);
         }
 
-        if (message != null)
+        if (message is not null)
         {
             //throw new Exception($"За {minutes} минут статус лишь '{message.Status}'.");
             return message; // sent, delivered, [-error], processing, [-registered]

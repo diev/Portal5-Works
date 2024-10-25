@@ -105,34 +105,40 @@ public class MessagesFilter
     {
         var query = new StringBuilder();
 
-        if (Task != null)
+        if (Task is not null)
             query.Append("&Task=").Append(Task);
 
-        if (MinDateTime != null)
+        if (MinDateTime is not null)
             query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MinDateTime);
 
-        if (MinDate != null)
-            query.Append("&MinDateTime=").AppendFormat("{0}T00:00:00Z", MinDate);
+        if (MinDate is not null)
+        {
+            query.Append("&MinDateTime=").Append(MinDate);
+            if (MinDate.Length == 10) query.Append("T00:00:00Z");
+        }
 
-        if (MaxDateTime != null)
+        if (MaxDateTime is not null)
             query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MaxDateTime);
 
-        if (MaxDate != null)
-            query.Append("&MaxDateTime=").AppendFormat("{0}T23:59:59Z", MaxDate);
+        if (MaxDate is not null)
+        {
+            query.Append("&MaxDateTime=").Append(MaxDate);
+            if (MaxDate.Length == 10) query.Append("T23:59:59Z");
+        }
 
-        if (MinSize != null)
+        if (MinSize is not null)
             query.Append("&MinSize=").Append(MinSize);
 
-        if (MaxSize != null)
+        if (MaxSize is not null)
             query.Append("&MaxSize=").Append(MaxSize);
 
-        if (Type != null)
+        if (Type is not null)
             query.Append("&Type=").Append(Type);
 
-        if (Status != null)
+        if (Status is not null)
             query.Append("&Status=").Append(Status);
 
-        if (Page != null && Page > 1)
+        if (Page is not null && Page > 1)
         {
             query.Append("&Page=").Append(Page);
         }

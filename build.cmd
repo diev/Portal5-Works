@@ -28,7 +28,7 @@ call :bin %1 %option% %prj% net8.0 win-x64
 
 rem Linux
 set option=4
-call :bin %1 %option% %prj% net8.0 linux-x64
+rem call :bin %1 %option% %prj% net8.0 linux-x64
 
 call :version_txt %1 %prj% > bin\version.txt
 

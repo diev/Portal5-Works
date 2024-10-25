@@ -36,7 +36,7 @@ internal static class MessageLoad
 
     //config
     public static string DownloadPath { get; }
-    public static bool Overwrite { get; }
+    public static bool Overwrite { get; } //TODO
     public static bool Decrypt { get; }
     public static string? DecryptTo { get; }
     public static bool Delete { get; } //TODO
@@ -69,6 +69,11 @@ internal static class MessageLoad
     {
         try
         {
+            if (id.Contains('/'))
+            {
+                id = id[(id.LastIndexOf('/') + 1)..];
+            }
+
             var message = await Program.RestAPI.GetMessageAsync(id)
                 ?? throw new Exception("Не получено сообщения.");
 
@@ -161,20 +166,28 @@ internal static class MessageLoad
             Logger.TimeLine($"Save {msgInfo.PathName}");
             await File.AppendAllTextAsync(info, msgInfo.Description);
 
-            string dir = Path.Combine(
+            string save = Path.Combine(
                 Path.GetFullPath(DownloadPath),
                 message.Type,
                 message.TaskName,
-                msgInfo.Date[0..7]); // 2024-10-04 => 2024-10
+                msgInfo.Date[0..7], // 2024-10-04 => 2024-10
+                msgInfo.PathName);
 
-            string save = Path.Combine(dir, msgInfo.PathName);
+            var src = new DirectoryInfo(temp);
+            int lsrc = src.FullName.Length;
+            Directory.CreateDirectory(save);
 
-            Directory.CreateDirectory(dir);
+            foreach (var di in src.EnumerateDirectories("*", SearchOption.AllDirectories))
+            {
+                string s = di.FullName[lsrc..];
+                Directory.CreateDirectory(save + s);
+            }
 
-            if (Directory.Exists(save))
-                Directory.Delete(save, true);
-
-            Directory.Move(temp, save);
+            foreach (var fi in src.EnumerateFiles("*", SearchOption.AllDirectories))
+            {
+                string s = fi.FullName[lsrc..];
+                fi.MoveTo(save + s, true); //TODO if Overwrite
+            }
 
             if (Delete)
             {
@@ -215,7 +228,7 @@ internal static class MessageLoad
 
     private static bool SkipFile(string dir, MessageFile file)
     {
-        if (file.SignedFile != null) // file.Name.EndsWith(".sig", StringComparison.Ordinal)
+        if (file.SignedFile is not null) // file.Name.EndsWith(".sig", StringComparison.Ordinal)
             return true;
 
         string path = Path.Combine(dir, file.Name);

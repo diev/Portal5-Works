@@ -134,7 +134,7 @@ public static class CredentialManager
             UserName = Marshal.StringToCoTaskMemUni(userName ?? Environment.UserName)
         };
 
-        if (secret != null)
+        if (secret is not null)
         {
             byte[] byteArray = Encoding.Unicode.GetBytes(secret);
 

@@ -85,7 +85,7 @@ public class Smtp : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing && _client != null)
+        if (disposing && _client is not null)
         {
             _client.Dispose();
         }
@@ -111,7 +111,7 @@ public class Smtp : IDisposable
                 mail.To.Add(email);
             }
 
-            if (files != null)
+            if (files is not null)
             {
                 foreach (var file in files)
                 {

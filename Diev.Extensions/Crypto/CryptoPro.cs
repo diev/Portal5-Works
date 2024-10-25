@@ -171,7 +171,7 @@ public class CryptoPro
         StringBuilder cmd = new();
         cmd.AppendFormat(SignCommand, file, resultFile, My);
 
-        if (PIN != null)
+        if (PIN is not null)
             cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
@@ -198,7 +198,7 @@ public class CryptoPro
         StringBuilder cmd = new();
         cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 
-        if (PIN != null)
+        if (PIN is not null)
             cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
@@ -274,7 +274,7 @@ public class CryptoPro
         StringBuilder cmd = new();
         cmd.AppendFormat(EncryptCommand, file, resultFile, My);
 
-        if (to != null)
+        if (to is not null)
         {
             foreach (var cert in to.Split(_separator,
                 StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
@@ -309,7 +309,7 @@ public class CryptoPro
         StringBuilder cmd = new();
         cmd.AppendFormat(DecryptCommand, file, resultFile, My);
 
-        if (PIN != null)
+        if (PIN is not null)
             cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
         var output = await StartWithOutputAsync(Exe, cmd, Visible);
@@ -328,7 +328,7 @@ public class CryptoPro
         {
             cmd.Clear().AppendFormat(DecryptCommand, file, resultFile, old);
 
-            if (PIN != null)
+            if (PIN is not null)
                 cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
 
             output = await StartWithOutputAsync(Exe, cmd, Visible);

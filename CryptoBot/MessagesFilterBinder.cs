@@ -44,7 +44,7 @@ public class MessagesFilterBinder(
 
         return new()
         {
-            Task = ctx.ParseResult.GetValueForOption(task),
+            Task = "Zadacha_" + ctx.ParseResult.GetValueForOption(task),
             MinDate = d is null ? from : day,
             MaxDate = d is null ? to : day,
             MinSize = ctx.ParseResult.GetValueForOption(minSize),

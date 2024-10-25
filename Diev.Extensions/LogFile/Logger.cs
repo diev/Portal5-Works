@@ -201,7 +201,7 @@ public static class Logger
         LogToConsole = true;
         WriteLine("Exception: " + e.Message);
 
-        if (e.InnerException != null)
+        if (e.InnerException is not null)
         {
             WriteLine("Inner exception: " + e.InnerException.Message);
         }

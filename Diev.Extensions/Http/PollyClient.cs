@@ -30,7 +30,7 @@ namespace Diev.Extensions.Http;
 public static class PollyClient
 {
     private static HttpClient _httpClient = null!;
-    private static int _chunkSize = 0x100000; // 4 * 1048576; // 4Mb
+    private static int _chunkSize = 0x1000000; // 16Mb | 0x400000; // 4Mb
     private static DateTime _ddosAllowedTime = DateTime.Now;
 
     public static int RetrySecondsTimeout { get; set; } = 2; // retry * RetryTimeout
@@ -61,7 +61,7 @@ public static class PollyClient
         //var app = Assembly.GetExecutingAssembly().GetName();
         var app = Assembly.GetEntryAssembly()?.GetName();
 
-        //    if (UseProxy && ProxyAddress != null)
+        //    if (UseProxy && ProxyAddress is not null)
         //    {
         //        handler.Proxy = new WebProxy(new Uri(ProxyAddress)); // or null;
         //    }
@@ -194,7 +194,7 @@ public static class PollyClient
 
             using (var request = new HttpRequestMessage(method, url))
             {
-                if (content != null)
+                if (content is not null)
                 {
                     request.Content = content;
                 }

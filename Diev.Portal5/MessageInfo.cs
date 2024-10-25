@@ -47,11 +47,10 @@ public class MessageInfo
 
         string? date = null;
         string? number = null;
-        string text;
+        string title = $"{message.Title} {message.Text} {message.RegNumber}";
 
         if (message.Type.Equals("outbox", StringComparison.OrdinalIgnoreCase))
         {
-            text = CorrId is null ? "Запрос " : "Ответ ";
             string form = Path.Combine(path, "form.xml");
 
             if (File.Exists(form))
@@ -64,16 +63,24 @@ public class MessageInfo
                     var node = doc.GetElementsByTagName("mf:doc_out")[0];
                     date = node?.Attributes?[nameof(Date)]?.Value;
                     number = node?.Attributes?[nameof(Number)]?.Value;
-                    text += doc.GetElementsByTagName("mf:doc_text")[0]?.InnerText;
+                    title = doc.GetElementsByTagName("mf:doc_text")[0]?.InnerText ?? "без темы";
                 }
-                catch
+                catch { }
+            }
+
+            if (CorrId is null)
+            {
+                if (!title.StartsWith("Запрос ", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    text = $"{message.Title} {message.Text} {message.RegNumber}";
+                    title = "Запрос " + title;
                 }
             }
             else
             {
-                text += $"{message.Title} {message.Text} {message.RegNumber}";
+                if (!title.StartsWith("Ответ ", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    title = "Ответ " + title;
+                }
             }
         }
         else // if (message.Type.Equals("inbox", StringComparison.OrdinalIgnoreCase))
@@ -90,17 +97,10 @@ public class MessageInfo
                     var node = doc.GetElementsByTagName("RegNumer")[0];
                     date = node?.Attributes?["regdate"]?.Value;
                     number = node?.InnerText;
-                    text = doc.GetElementsByTagName("document")[0]?
+                    title = doc.GetElementsByTagName("document")[0]?
                         .Attributes?["annotation"]?.Value ?? string.Empty;
                 }
-                catch
-                {
-                    text = $"{message.Title} {message.Text} {message.RegNumber}";
-                }
-            }
-            else
-            {
-                text = $"{message.Title} {message.Text} {message.RegNumber}";
+                catch { }
             }
         }
 
@@ -108,13 +108,13 @@ public class MessageInfo
 
         Date = date ?? message.CreationDate.ToString("yyyy-MM-dd");
         Number = number ?? message.RegNumber ?? Id[0..8];
-        Subject = string.Join(' ', text.Split(' ', so));
+        Subject = string.Join(' ', title.Split(' ', so));
 
         number = string.Join('-', Number.Split(' ', so));
-        text = $"{Date}-{number} {Subject}";
-        text = string.Join('-', text.Split(Path.GetInvalidFileNameChars(), so));
+        title = $"{Date}-{number} {Subject}";
+        title = string.Join('-', title.Split(Path.GetInvalidFileNameChars(), so));
 
-        PathName = text.Length > 64 ? text[..64].Trim() : text;
+        PathName = title.Length > 64 ? title[..64].Trim() : title;
 
         StringBuilder info = new();
         info.AppendLine($"{Date} N {Number}");

@@ -1,7 +1,7 @@
 {
   "Program": {
     "TargetName": "Portal5test *",
-    "UtilName": "CryptCP",
+    "UtilName": "CspTest",
     "CryptoName": "CryptoPro My",
     "SmtpName": "SMTP *",
     "Subscribers": null

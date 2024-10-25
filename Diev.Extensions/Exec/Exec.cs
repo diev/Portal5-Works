@@ -225,7 +225,7 @@ public static class Exec
             await process.WaitForExitAsync();
             result = process.ExitCode;
 
-            //if (_streamError != null)
+            //if (_streamError is not null)
             //{
             //    // Close the error file.
             //    _streamError.Close();
@@ -318,7 +318,7 @@ public static class Exec
         //{
         //    if (!_errorsWritten)
         //    {
-        //        if (_streamError == null)
+        //        if (_streamError is null)
         //        {
         //            // Open the file.
         //            try
@@ -332,7 +332,7 @@ public static class Exec
         //            }
         //        }
 
-        //        if (_streamError != null)
+        //        if (_streamError is not null)
         //        {
         //            // Write a header to the file
         //            // if this is the first call to the error output handler.
@@ -344,7 +344,7 @@ public static class Exec
         //        _errorsWritten = true;
         //    }
 
-        //    if (_streamError != null)
+        //    if (_streamError is not null)
         //    {
         //        // Write redirected errors to the file.
         //        _streamError.WriteLine(errLine.Data);

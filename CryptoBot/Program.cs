@@ -109,7 +109,7 @@ internal static class Program
         #endregion
 
         #region load
-        var msgIdArgument = new Argument<string?>("id", "Идентификатор одного сообщения (guid)")
+        var msgIdArgument = new Argument<string?>("id", "Идентификатор одного сообщения (guid или url/guid)")
         {
             Arity = ArgumentArity.ZeroOrOne
         };

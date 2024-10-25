@@ -680,7 +680,7 @@ public class RestAPICore : IRestAPICore
     {
         string url = Api + "tasks";
 
-        if (direction != null)
+        if (direction is not null)
         {
             url += $"?direction={direction}";
         }
@@ -1099,7 +1099,7 @@ public class RestAPICore : IRestAPICore
         {
             var range = response.Content.Headers.ContentRange;
 
-            if (range == null || range.Length == null)
+            if (range is null || range.Length is null)
             {
                 DoException("В ответе нет Range или Range.Length");
                 return false;
@@ -1296,7 +1296,7 @@ public class RestAPICore : IRestAPICore
             {
                 var json = JsonSerializer.Deserialize<Error4XX>(message);
 
-                if (json != null)
+                if (json is not null)
                     message = json.ErrorMessage;
             }
             catch { }
