@@ -17,10 +17,14 @@ limitations under the License.
 */
 #endregion
 
-namespace Diev.Extensions;
+namespace Diev.Extensions.Tools;
 
 public static class StringExtensions
 {
-    public static string PathQuoted(this string s) =>
-        s.Contains(' ') ? '"' + s + '"' : s;
+    public static string PathQuoted(this string? s) =>
+        s is null
+            ? @""""""
+            : s.Contains(' ')
+                ? '"' + s + '"'
+                : s;
 }

@@ -24,12 +24,12 @@ using System.CommandLine.Parsing;
 using System.Text;
 
 using CryptoBot.Tasks;
-
-using Diev.Extensions;
 using Diev.Extensions.Credentials;
+using Diev.Extensions.Crypto;
 using Diev.Extensions.Info;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Smtp;
+using Diev.Extensions.Tools;
 using Diev.Portal5;
 using Diev.Portal5.API.Messages;
 
@@ -41,6 +41,7 @@ internal static class Program
 {
     public static int ExitCode { get; set; } = 0;
     public static IConfiguration Config { get; } = null!;
+    public static ICrypto Crypto { get; } = null!;
     public static RestAPI RestAPI { get; } = null!;
     public static Smtp Smtp { get; }
 
@@ -50,6 +51,7 @@ internal static class Program
     public static string CryptoName { get; }
     public static string SmtpName { get; }
     public static string? Subscribers { get; }
+    public static bool Debug { get; }
 
     static Program()
     {
@@ -89,6 +91,14 @@ internal static class Program
         SmtpName = config[nameof(SmtpName)] ?? "SMTP *";
         Subscribers = config[nameof(Subscribers)];
 
+        Debug = bool.Parse(config[nameof(Debug)] ?? "false");
+
+        Crypto = UtilName switch
+        {
+            nameof(CryptCP) => new CryptCP(CryptoName),
+            _ => new CspTest(CryptoName),
+        };
+
         Smtp = new(SmtpName);
         Logger.Reset();
 
@@ -101,33 +111,30 @@ internal static class Program
         Console.WriteLine(App.Title);
 
         var rootCommand = new RootCommand(App.Description);
+        
+        #region filter
+        var idOption = new Option<Guid?>("--id", "Идентификатор одного сообщения (guid)");
 
-        #region clean
-        var cleanCommand = new Command("clean", "Очистить лишнее из отчетности старее 30 дней");
-        rootCommand.Add(cleanCommand);
-        cleanCommand.SetHandler(MessagesClean.RunAsync);
-        #endregion
-
-        #region load
-        var msgIdArgument = new Argument<string?>("id", "Идентификатор одного сообщения (guid или url/guid)")
-        {
-            Arity = ArgumentArity.ZeroOrOne
-        };
-
-        var taskOption = new Option<string?>("--zadacha", "Номер задачи XX ('Zadacha_XX')");
+        var taskOption = new Option<string?>("--zadacha", "Номер задачи XX[,XX, ...]");
         taskOption.AddAlias("-z");
 
-        var daysOption = new Option<int?>("--days", "Сколько конкретно дней назад [0]");
+        var beforeOption = new Option<uint?>("--before", "Ранее скольки дней назад (7 - раньше недели назад)");
+        beforeOption.AddAlias("-b");
+
+        var daysOption = new Option<uint?>("--days", "Сколько последних дней (7 - на этой неделе)");
         daysOption.AddAlias("-d");
 
-        var minDateOption = new Option<string?>("--min-date", "С какой даты (yyyy-mm-dd)");
-        minDateOption.AddAlias("-f");
+        var dayOption = new Option<uint?>("--day", "Какой день назад конкретно (1 - вчера)");
+        dayOption.AddAlias("-n");
 
-        var maxDateOption = new Option<string?>("--max-date", "По какую дату (yyyy-mm-dd)");
-        maxDateOption.AddAlias("-t");
+        var minDateTimeOption = new Option<DateTime?>("--min-datetime", "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])");
+        minDateTimeOption.AddAlias("-f");
 
-        var minSizeOption = new Option<int?>("--min-size", "От какого размера (байты)");
-        var maxSizeOption = new Option<int?>("--max-size", "До какого размера (байты)");
+        var maxDateTimeOption = new Option<DateTime?>("--max-datetime", "До какой даты (время по умолчанию 00:00!)");
+        maxDateTimeOption.AddAlias("-t");
+
+        var minSizeOption = new Option<uint?>("--min-size", "От какого размера (байты)");
+        var maxSizeOption = new Option<uint?>("--max-size", "До какого размера (байты)");
 
         var inboxOption = new Option<bool>("--inbox", "Входящие сообщения только");
 
@@ -138,48 +145,80 @@ internal static class Program
             string.Join(' ', MessageOutStatus.Values);
         statusOption.FromAmong(status2.Split(' '));
 
-        var pageOption = new Option<int?>("--page", "Номер страницы по 100 сообщений");
+        var pageOption = new Option<uint?>("--page", "Номер страницы (по 100 сообщений)");
+        #endregion filter
 
-        var loadCommand = new Command("load", "Загрузить одно сообщение или все по фильтру (см. help)")
+        #region filter commands
+        var loadCommand = new Command("load", "Загрузить сообщения по <id> или по фильтру из опций")
         {
-            msgIdArgument,
+            idOption,
+            // or
             taskOption,
-            daysOption,
-            minDateOption,
-            maxDateOption,
-            minSizeOption,
-            maxSizeOption,
-            inboxOption,
-            outboxOption,
+            beforeOption, daysOption, dayOption,
+            minDateTimeOption, maxDateTimeOption,
+            minSizeOption, maxSizeOption,
+            inboxOption, outboxOption,
             statusOption,
             pageOption
         };
-        rootCommand.Add(loadCommand);
-        loadCommand.SetHandler(MessagesLoad.RunAsync, msgIdArgument,
+
+        var cleanCommand = new Command("clean", "Удалить сообщения по <id> или по фильтру из опций")
+        {
+            idOption,
             // or
-            new MessagesFilterBinder(taskOption,
-            daysOption, minDateOption, maxDateOption,
+            taskOption,
+            beforeOption, daysOption, dayOption,
+            minDateTimeOption, maxDateTimeOption,
             minSizeOption, maxSizeOption,
             inboxOption, outboxOption,
-            statusOption, pageOption));
-        #endregion load
+            statusOption,
+            pageOption
+        };
+        #endregion filter commands
+
+        #region messages
+        rootCommand.AddCommand(loadCommand);
+        rootCommand.AddCommand(cleanCommand);
+
+        loadCommand.SetHandler(Messages.LoadAsync, 
+            idOption,
+            // or
+            new MessagesFilterBinder(
+                taskOption,
+                beforeOption, daysOption, dayOption,
+                minDateTimeOption, maxDateTimeOption,
+                minSizeOption, maxSizeOption,
+                inboxOption, outboxOption,
+                statusOption,
+                pageOption));
+
+        cleanCommand.SetHandler(Messages.CleanAsync,
+            idOption,
+            // or
+            new MessagesFilterBinder(
+                taskOption,
+                beforeOption, daysOption, dayOption,
+                minDateTimeOption, maxDateTimeOption,
+                minSizeOption, maxSizeOption,
+                inboxOption, outboxOption,
+                statusOption,
+                pageOption));
+        #endregion messages
 
         #region tasks
-        var z130Command = new Command("z130", "Получение информации об уровне риска ЮЛ/ИП");
-        rootCommand.Add(z130Command);
-        z130Command.SetHandler(Zadacha130.RunAsync);
-
-        var z137Argument = new Argument<int?>("days", "Сколько дней назад может быть файл [0]")
+        var z130Command = new Command("z130", "Получение информации об уровне риска ЮЛ/ИП")
         {
-            Arity = ArgumentArity.ZeroOrOne
+            daysOption
         };
+        rootCommand.Add(z130Command);
+        z130Command.SetHandler(Zadacha130.RunAsync, daysOption);
 
         var z137Command = new Command("z137", "Ежедневное информирование Банка России о составе и объеме клиентской базы")
         {
-            z137Argument
+            daysOption
         };
         rootCommand.Add(z137Command);
-        z137Command.SetHandler(Zadacha137.RunAsync, z137Argument);
+        z137Command.SetHandler(Zadacha137.RunAsync, daysOption);
         #endregion tasks
 
         #region parse

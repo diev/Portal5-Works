@@ -26,27 +26,40 @@ namespace CryptoBot;
 
 public class MessagesFilterBinder(
     Option<string?> task,
-    Option<int?> days, Option<string?> minDate, Option<string?> maxDate,
-    Option<int?> minSize, Option<int?> maxSize,
+    Option<uint?> before, Option<uint?> days, Option<uint?> day,
+    Option<DateTime?> minDateTime, Option<DateTime?> maxDateTime,
+    Option<uint?> minSize, Option<uint?> maxSize,
     Option<bool> inbox, Option<bool> outbox,
     Option<string?> status,
-    Option<int?> page)
+    Option<uint?> page)
     : BinderBase<MessagesFilter>
 {
     protected override MessagesFilter GetBoundValue(BindingContext ctx)
     {
-        int? d = ctx.ParseResult.GetValueForOption(days);
-        string? day = d is null ? null : $"{DateTime.Now.AddDays((double)-d):yyyy-MM-dd}";
-        string? from = ctx.ParseResult.GetValueForOption(minDate);
-        string? to = ctx.ParseResult.GetValueForOption(maxDate);
+        var today = DateTime.Today; // next 00:00
+
+        uint? b = ctx.ParseResult.GetValueForOption(before);
+        uint? d = ctx.ParseResult.GetValueForOption(days);
+        uint? n = ctx.ParseResult.GetValueForOption(day);
+
+        DateTime? day1 = n is null
+            ? null
+            : today.AddDays((double)-n);
+        DateTime? from = d is null
+            ? ctx.ParseResult.GetValueForOption(minDateTime)
+            : today.AddDays((double)-d);
+        DateTime? to = b is null
+            ? ctx.ParseResult.GetValueForOption(maxDateTime)
+            : today.AddDays((double)-b);
+
         bool ibx = ctx.ParseResult.GetValueForOption(inbox);
         bool obx = ctx.ParseResult.GetValueForOption(outbox);
 
         return new()
         {
-            Task = "Zadacha_" + ctx.ParseResult.GetValueForOption(task),
-            MinDate = d is null ? from : day,
-            MaxDate = d is null ? to : day,
+            Task = ctx.ParseResult.GetValueForOption(task),
+            MinDateTime = n is null ? from : day1,
+            MaxDateTime = n is null ? to : day1!.Value.AddDays(1),
             MinSize = ctx.ParseResult.GetValueForOption(minSize),
             MaxSize = ctx.ParseResult.GetValueForOption(maxSize),
             Type = ibx == obx ? null : ibx ? "inbox" : "outbox",

@@ -20,15 +20,18 @@ set option=2
 
 rem call :bin %1 %option% %prj% net6.0 win-x86
 rem call :bin %1 %option% %prj% net7.0 win-x86
-call :bin %1 %option% %prj% net8.0 win-x86
+rem call :bin %1 %option% %prj% net8.0 win-x86
+rem call :bin %1 %option% %prj% net9.0 win-x86
 
 rem call :bin %1 %option% %prj% net6.0 win-x64
 rem call :bin %1 %option% %prj% net7.0 win-x64
 call :bin %1 %option% %prj% net8.0 win-x64
+rem call :bin %1 %option% %prj% net9.0 win-x64
 
 rem Linux
 set option=4
 rem call :bin %1 %option% %prj% net8.0 linux-x64
+rem call :bin %1 %option% %prj% net9.0 linux-x64
 
 call :version_txt %1 %prj% > bin\version.txt
 

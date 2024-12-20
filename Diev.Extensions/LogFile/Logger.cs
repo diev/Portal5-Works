@@ -18,7 +18,7 @@ limitations under the License.
 #endregion
 
 using System.Text;
-
+using Diev.Extensions.Tools;
 using Path = System.IO.Path;
 
 namespace Diev.Extensions.LogFile;
@@ -75,6 +75,21 @@ public static class Logger
     public static void TimeLine(string text)
     {
         _lines.AppendFormat(LineFormat, DateTime.Now, text)
+            .AppendLine();
+    }
+
+    /// <summary>
+    /// Add "DATE-TIME ### Text line."
+    /// </summary>
+    /// <param name="text">Text line.</param>
+    public static void TimeZZZLine(string text)
+    {
+        //if (LogToConsole)
+        //{
+            Console.WriteLine(text);
+        //}
+
+        _lines.AppendFormat(LineFormat, DateTime.Now, "### " + text)
             .AppendLine();
     }
 

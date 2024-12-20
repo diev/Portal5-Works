@@ -17,13 +17,9 @@ limitations under the License.
 */
 #endregion
 
-using System.IO.Compression;
-using System.Xml;
-
-using Diev.Extensions;
-using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
-using Diev.Portal5.API.Messages;
+using Diev.Extensions.Tools;
+using Diev.Extensions.Xml;
 using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
@@ -55,24 +51,51 @@ internal static class Zadacha137
         Subscribers = config[nameof(Subscribers)];
     }
 
-    public static async Task RunAsync(int? days)
+    public static async Task RunAsync(uint? days)
     {
         try
         {
+            if (string.IsNullOrEmpty(Xsd))
+                throw new TaskException("В конфиге не указан файл схемы XSD.");
+
+            if (!File.Exists(Xsd))
+                throw new TaskException($"Не найден файл схемы {Xsd.PathQuoted}.");
+
+            if (string.IsNullOrEmpty(EncryptTo))
+                throw new TaskException("В конфиге не указано на кого шифровать.");
+
             string zip = GetZipToUpload(UploadPath, Zip, days ?? 0);
+            string zipFullName = Path.Combine(UploadPath, zip);
             string temp = Program.GetTempPath(UploadPath);
 
-            await CheckXsdAsync(UploadPath, zip, temp);
+            await Files.UnzipToDirectoryAsync(zipFullName, temp);
 
-            await SignAndEncryptAsync(UploadPath, zip, temp);
+            Logger.TimeZZZLine("Проверка XML по схеме XSD");
+
+            foreach (var xml in Directory.EnumerateFiles(temp, "*.xml"))
+            {
+                await XsdChecker.CheckAsync(xml, Xsd);
+            }
+
+            Logger.TimeZZZLine("Подпись и шифрование");
+
+            await Files.SignAndEncryptToDirectoryAsync(zipFullName, EncryptTo, temp);
+
+            Logger.TimeZZZLine("Отправка файла");
+
+            if (Program.Debug)
+                throw new TaskException("Программа в отладочном режиме");
+
             string msgId = await UploadAsync(temp);
 
             Thread.Sleep(60000);
 
-            var message = await CheckStatusAsync(msgId, 20);
+            Logger.TimeZZZLine("Запрос статуса принятия");
+
+            var message = await Messages.CheckStatusAsync(msgId, 20);
 
             string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-            Logger.TimeLine(report);
+            Logger.TimeZZZLine(report);
 
             await Program.SendDoneAsync(_task, report, Subscribers);
         }
@@ -111,7 +134,7 @@ internal static class Zadacha137
     /// или 0 - только с текущей датой.</param>
     /// <returns>Имя найденного последнего файла zip без пути.</returns>
     /// <exception cref="TaskException"></exception>
-    private static string GetZipToUpload(string path, string format, int days = 0)
+    private static string GetZipToUpload(string path, string format, uint days = 0)
     {
         if (days == 0)
         {
@@ -123,7 +146,7 @@ internal static class Zadacha137
             }
 
             throw new TaskException(
-                $"Сегодня нет файла для отправки.");
+                "Сегодня нет файла для отправки.");
         }
 
         for (int i = 0; i >= -days; i--)
@@ -141,85 +164,6 @@ internal static class Zadacha137
     }
 
     /// <summary>
-    /// Распаковать ZIP и проверить файл XML с помощью схемы XSD.
-    /// </summary>
-    /// <param name="path">Путь исходных файлов UploadPath.</param>
-    /// <param name="file">Имя исходного файла ZIP.</param>
-    /// <param name="temp">Временная папка.</param>
-    /// <returns>Ничего не возвращает, если успешно, или вызывает исключение.</returns>
-    /// <exception cref="FileNotFoundException"></exception>
-    private static async Task CheckXsdAsync(string path, string file, string temp)
-    {
-        if (string.IsNullOrEmpty(Xsd))
-            return;
-
-        if (!File.Exists(Xsd))
-            throw new FileNotFoundException("Файл со схемой XSD не найден.", Path.GetFullPath(Xsd));
-
-        string src = Path.Combine(path, file);
-        ZipFile.ExtractToDirectory(src, temp, true);
-
-        foreach (var xml in Directory.GetFiles(temp))
-        {
-            XmlReaderSettings xmlReaderSettings = new()
-            {
-                Async = true
-            };
-            xmlReaderSettings.Schemas.Add(null, Xsd);
-            xmlReaderSettings.ValidationType = ValidationType.Schema;
-            xmlReaderSettings.ValidationEventHandler += XmlReaderSettings_ValidationEventHandler;
-
-            using (var form = XmlReader.Create(xml, xmlReaderSettings))
-                while (await form.ReadAsync()) { }
-
-            File.Delete(Path.Combine(temp, xml));
-        }
-    }
-
-    /// <summary>
-    /// Обработчик ошибок проверки схемы XSD.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    /// <exception cref="TaskException"></exception>
-    private static void XmlReaderSettings_ValidationEventHandler(object? sender, System.Xml.Schema.ValidationEventArgs e)
-    {
-        if (e.Severity == System.Xml.Schema.XmlSeverityType.Warning)
-        {
-            throw new TaskException("Warning: " + e.Message);
-        }
-        else if (e.Severity == System.Xml.Schema.XmlSeverityType.Error)
-        {
-            throw new TaskException(e.Message);
-        }
-    }
-
-    /// <summary>
-    /// Создание файлов подписи и зашифрованного.
-    /// </summary>
-    /// <param name="path">Путь исходных файлов UploadPath.</param>
-    /// <param name="file">Имя исходного файла ZIP.</param>
-    /// <param name="temp">Временная папка с создаваемыми для отправки файлами.</param>
-    /// <returns></returns>
-    /// <exception cref="TaskException"></exception>
-    private static async Task SignAndEncryptAsync(string path, string file, string temp)
-    {
-        CryptoPro crypto = new(Program.UtilName, Program.CryptoName);
-
-        string src = Path.Combine(path, file);
-        string sig = Path.Combine(temp, file + ".sig");
-        string enc = Path.Combine(temp, file + ".enc");
-
-        if (!await crypto.SignDetachedFileAsync(src, sig))
-            throw new TaskException(
-                $"Подписать файл {src.PathQuoted()} не удалось.");
-
-        if (!await crypto.EncryptFileAsync(src, enc, EncryptTo))
-            throw new TaskException(
-                $"Зашифровать файл {src.PathQuoted()} не удалось.");
-    }
-
-    /// <summary>
     /// Отправляет папку файлов на сервер.
     /// </summary>
     /// <param name="path">Путь к папке для отправки.</param>
@@ -234,64 +178,6 @@ internal static class Zadacha137
 
         throw new TaskException(
             "Отправить файл не удалось.");
-    }
-
-    /// <summary>
-    /// Получение регистрации элетронного сообщения.
-    /// </summary>
-    /// <param name="msgId">Идентификатор сообщения.</param>
-    /// <param name="minutes">Время ожидания в минутах, прежде чем прекратить попытки.</param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    private static async Task<Message> CheckStatusAsync(string msgId, int minutes)
-    {
-        var end = DateTime.Now.AddMinutes(minutes);
-        Message? message = null;
-
-        while (DateTime.Now < end)
-        {
-            message = await Program.RestAPI.GetMessageAsync(msgId);
-
-            if (message is not null)
-            {
-                if (message.Status == MessageOutStatus.Registered)
-                    return message; // OK
-
-                if (message.Status == MessageOutStatus.Error ||
-                    message.Status == MessageOutStatus.Rejected)
-                {
-                    if (message.Receipts is not null)
-                    {
-                        foreach (var receipt in message.Receipts)
-                        {
-                            if ((receipt.Status == ReceiptOutStatus.Error) &&
-                                (receipt.Message is not null))
-                                throw new TaskException(
-                                    "Получена ошибка: " + receipt.Message);
-
-                            if ((receipt.Status == ReceiptOutStatus.Rejected) &&
-                                (receipt.Message is not null))
-                                throw new TaskException(
-                                    "Получен отказ: " + receipt.Message);
-                        }
-                    }
-
-                    throw new TaskException(
-                        "Получены ошибка или отказ, но нет квитанции.");
-                }
-            }
-
-            Thread.Sleep(30000);
-        }
-
-        if (message is not null)
-        {
-            //throw new Exception($"За {minutes} минут статус лишь '{message.Status}'.");
-            return message; // sent, delivered, [-error], processing, [-registered]
-        }
-
-        throw new TaskException(
-            $"За {minutes} минут так ничего и не получено по отправке.");
     }
 }
 

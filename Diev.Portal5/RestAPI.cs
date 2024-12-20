@@ -19,10 +19,10 @@ limitations under the License.
 
 using System.Net;
 
-using Diev.Extensions;
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Http;
 using Diev.Extensions.LogFile;
+using Diev.Extensions.Tools;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Messages.Create;
 using Diev.Portal5.API.Tools;
@@ -173,8 +173,9 @@ public class RestAPI(Credential cred, bool trace)
     /// <summary>
     /// 3.1.4.1 Для получения всех сообщений с учетом фильтра используется метод GET.
     /// GET: */messages
-    /// Осторожно, эта функция загружает в память ВСЕ сообщения - 
+    /// Осторожно: эта функция загружает в память ВСЕ сообщения - 
     /// без разбиения на страницы по 100 сообщений.
+    /// Бонус: в фильтре можно указать несколько задач через запятую.
     /// </summary>
     /// <param name="filter"></param>
     /// <returns>Все сообщения с учетом фильтра или NULL.</returns>
@@ -182,6 +183,31 @@ public class RestAPI(Credential cred, bool trace)
     public async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter)
     {
         Logger.Line("### Get messages.");
+
+        if (filter.Task is null || !filter.Task.Contains(','))
+        {
+            return await GetMessagesCoreAsync(filter);
+        }
+
+        List<Message> messages = [];
+        var tasks = filter.Task.Split(',');
+
+        foreach (var task in tasks)
+        {
+            filter.Task = task;
+            var range = await GetMessagesCoreAsync(filter);
+
+            if (range is null)
+                return null;
+
+            messages.AddRange(range);
+        }
+
+        return messages;
+    }
+
+    private async Task<List<Message>?> GetMessagesCoreAsync(MessagesFilter filter)
+    {
         List<Message> messages = [];
 
         // Get first page of 100

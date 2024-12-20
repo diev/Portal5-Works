@@ -39,34 +39,22 @@ public class MessagesFilter
     public DateTime? MinDateTime { get; set; }
 
     /// <summary>
-    /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
-    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные позднее указанной даты).
-    /// </summary>
-    public string? MinDate { get; set; }
-
-    /// <summary>
     /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
     /// </summary>
     public DateTime? MaxDateTime { get; set; }
 
     /// <summary>
-    /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)
-    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
-    /// </summary>
-    public string? MaxDate { get; set; }
-
-    /// <summary>
     /// Минимально возможный размер сообщения в байтах
     /// (если параметр будет указан, то будут возвращены только сообщения больше указанного размера).
     /// </summary>
-    public int? MinSize { get; set; }
+    public uint? MinSize { get; set; }
 
     /// <summary>
     /// Максимально возможный размер сообщения в байтах
     /// (если параметр будет указан, то будут возвращены только сообщения больше указанного размера).
     /// </summary>
-    public int? MaxSize { get; set; }
+    public uint? MaxSize { get; set; }
 
     /// <summary>
     /// Тип сообщения исходящее (значение: outbox), входящее (значение: inbox).
@@ -99,32 +87,29 @@ public class MessagesFilter
     /// Если n за границами диапазона страниц, то вернется пустой массив сообщений.
     /// В случае некорректного номера страницы – ошибка. 
     /// </summary>
-    public int? Page { get; set; }
+    public uint? Page { get; set; }
 
     public string GetQuery()
     {
         var query = new StringBuilder();
 
         if (Task is not null)
-            query.Append("&Task=").Append(Task);
+        {
+            if (Task.StartsWith("Zadacha_"))
+            {
+                query.Append("&Task=").Append(Task);
+            }
+            else
+            {
+                query.Append("&Task=Zadacha_").Append(Task);
+            }
+        }
 
         if (MinDateTime is not null)
             query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MinDateTime);
 
-        if (MinDate is not null)
-        {
-            query.Append("&MinDateTime=").Append(MinDate);
-            if (MinDate.Length == 10) query.Append("T00:00:00Z");
-        }
-
         if (MaxDateTime is not null)
             query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MaxDateTime);
-
-        if (MaxDate is not null)
-        {
-            query.Append("&MaxDateTime=").Append(MaxDate);
-            if (MaxDate.Length == 10) query.Append("T23:59:59Z");
-        }
 
         if (MinSize is not null)
             query.Append("&MinSize=").Append(MinSize);
@@ -148,6 +133,9 @@ public class MessagesFilter
             return string.Empty;
         }
 
-        return "?" + query.ToString()[1..];
+        return '?' + query.ToString()[1..];
     }
+
+    public bool IsEmpty() =>
+        !GetQuery().Contains('=');
 }

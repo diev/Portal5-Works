@@ -22,34 +22,22 @@ using System.Text;
 
 using Diev.Extensions.Credentials;
 using Diev.Extensions.LogFile;
-
+using Diev.Extensions.Tools;
 using static Diev.Extensions.Exec.Exec;
 
 namespace Diev.Extensions.Crypto;
 
-public enum UtilName
-{
-    CspTest,
-    CryptCP
-}
-
 /// <summary>
-/// Класс работы с утилитой командной строки СКЗИ "КриптоПРО CSP".
+/// Класс работы с тестовой утилитой командной строки СКЗИ "КриптоПРО CSP".
 /// </summary>
-public class CryptoPro
+public class CspTest : ICrypto
 {
     private static readonly char[] _separator = [' ', ',', ';'];
-
-    /// <summary>
-    /// Используемая утилита.
-    /// </summary>
-    public UtilName Util { get; set; }
 
     /// <summary>
     /// Исполняемый файл командной строки.
     /// </summary>
     public string Exe { get; set; }
-
 
     /// <summary>
     /// Запускать ли программу видимой.
@@ -119,7 +107,7 @@ public class CryptoPro
     /// </summary>
     public string DecryptCommand { get; set; }
 
-    public CryptoPro(string util = "csptest", string filter = "CryptoPro My")
+    public CspTest(string filter = "CryptoPro My")
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
             throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
@@ -129,34 +117,13 @@ public class CryptoPro
             ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
         PIN = cred.Password;
 
-        if (util.Equals("CspTest", StringComparison.OrdinalIgnoreCase))
-        {
-            Util = UtilName.CspTest;
-
-            Exe = @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
-            SignCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";
-            SignDetachedCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime -detached";
-            VerifyCommand = @"-sfsign -verify -silent -in ""{0}"" -out ""{1}"" -my {2}";
-            VerifyDetachedCommand = @"-sfsign -verify -silent -in ""{0}"" -signature ""{1}"" -my {2} -detached";
-            EncryptCommand = @"-sfenc -encrypt -silent -in ""{0}"" -out ""{1}"" -cert {2}"; // -stream -1215gh
-            DecryptCommand = @"-sfenc -decrypt -silent -in ""{0}"" -out ""{1}"" -my {2}";
-        }
-        else if(util.Equals("CryptCP", StringComparison.OrdinalIgnoreCase))
-        {
-            Util = UtilName.CryptCP;
-
-            Exe = @"cryptcp.exe";
-            SignCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -attached";
-            SignDetachedCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -detached";
-            VerifyCommand = @"-verify ""{0}"" ""{1}"" -nochain -attached";
-            VerifyDetachedCommand = @"-verify ""{0}"" ""{1}"" -nochain -detached";
-            EncryptCommand = @"-encr ""{0}"" ""{1}"" -thumbprint {2} -nochain -der";
-            DecryptCommand = @"-decr ""{0}"" ""{1}"" -thumbprint {2} -nochain";
-        }
-        else
-        {
-            throw new ArgumentException("Указана неизвестная утилита КриптоПро.", nameof(util));
-        }
+        Exe = @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
+        SignCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";
+        SignDetachedCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime -detached";
+        VerifyCommand = @"-sfsign -verify -silent -in ""{0}"" -out ""{1}"" -my {2}";
+        VerifyDetachedCommand = @"-sfsign -verify -silent -in ""{0}"" -signature ""{1}"" -my {2} -detached";
+        EncryptCommand = @"-sfenc -encrypt -silent -in ""{0}"" -out ""{1}"" -cert {2}"; // -stream -1215gh
+        DecryptCommand = @"-sfenc -decrypt -silent -in ""{0}"" -out ""{1}"" -my {2}";
     }
 
     /// <summary>
@@ -172,15 +139,14 @@ public class CryptoPro
         cmd.AppendFormat(SignCommand, file, resultFile, My);
 
         if (PIN is not null)
-            cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
-
-        var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine($"Sign {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
+            cmd.Append(" -password ").Append(PIN);
+        var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine($"Sign {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
         if (File.Exists(resultFile))
             return true;
 
-        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
 
         //throw new FileNotFoundException("Signed file not created.", resultFile);
         return false;
@@ -199,15 +165,15 @@ public class CryptoPro
         cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 
         if (PIN is not null)
-            cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
+            cmd.Append(" -password ").Append(PIN);
 
-        var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine($"Sign detached {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
+        var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine($"Sign detached {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
         if (File.Exists(resultFile))
             return true;
-        
-        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+
+        Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
 
         //throw new FileNotFoundException("Detached sign file not created.", resultFile);
         return false;
@@ -224,13 +190,13 @@ public class CryptoPro
     public async Task<bool> VerifyFileAsync(string file, string resultFile)
     {
         string cmdline = string.Format(VerifyCommand, file, resultFile, My);
-        var output = await StartWithOutputAsync(Exe, cmdline, Visible);
-        Logger.TimeLine($"Verify {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
+        var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmdline, Visible);
+        Logger.TimeLine($"Verify {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
         if (File.Exists(resultFile))
-            return output.ExitCode == 0;
+            return ExitCode == 0;
 
-        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
 
         //throw new FileNotFoundException("Unsigned file not created.", resultFile);
         return false;
@@ -246,15 +212,15 @@ public class CryptoPro
     public async Task<bool> VerifyDetachedFileAsync(string file, string signFile)
     {
         string cmdline = string.Format(VerifyCommand, file, signFile, My);
-        var output = await StartWithOutputAsync(Exe, cmdline, Visible);
-        Logger.TimeLine($"Verify detached {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
+        var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmdline, Visible);
+        Logger.TimeLine($"Verify detached {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
-        if (output.Error.Length > 0)
+        if (Error.Length > 0)
         {
-            Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+            Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
         }
 
-        return output.ExitCode == 0;
+        return ExitCode == 0;
     }
 
     /// <summary>
@@ -279,17 +245,17 @@ public class CryptoPro
             foreach (var cert in to.Split(_separator,
                 StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
-                cmd.Append(Util == UtilName.CspTest ? " -cert " : " -thumbprint ").Append(cert);
+                cmd.Append(" -cert ").Append(cert);
             }
         }
 
-        var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine($"Encrypt {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
+        var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine($"Encrypt {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
         if (File.Exists(resultFile))
             return true;
 
-        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
 
         //throw new FileNotFoundException("Encrypted file not created.", resultFile);
         return false;
@@ -310,16 +276,16 @@ public class CryptoPro
         cmd.AppendFormat(DecryptCommand, file, resultFile, My);
 
         if (PIN is not null)
-            cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
+            cmd.Append(" -password ").Append(PIN);
 
-        var output = await StartWithOutputAsync(Exe, cmd, Visible);
-        Logger.TimeLine($"Decrypt {file.PathQuoted()}:{Environment.NewLine}{output.Output}");
+        (int ExitCode, string Output, string Error) = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine($"Decrypt {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
         if (File.Exists(resultFile))
             return true;
 
         //Logger.Line(@$"Fail: ""{Exe}"" {cmd}");
-        Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+        Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
 
         if (MyOld is null)
             return false;
@@ -329,16 +295,16 @@ public class CryptoPro
             cmd.Clear().AppendFormat(DecryptCommand, file, resultFile, old);
 
             if (PIN is not null)
-                cmd.Append(Util == UtilName.CspTest ? " -password " : " -pin ").Append(PIN);
+                cmd.Append(" -password ").Append(PIN);
 
-            output = await StartWithOutputAsync(Exe, cmd, Visible);
-            Logger.Line($"Try decrypt with {old}{Environment.NewLine}{output.Output}");
+            (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
+            Logger.Line($"Try decrypt with {old}{Environment.NewLine}{Output}");
 
             if (File.Exists(resultFile))
                 return true;
 
             //Logger.Line(@$"Fail: ""{Exe}"" {cmd}");
-            Logger.Line($"Error:{Environment.NewLine}{output.Error}");
+            Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
         }
 
         //throw new FileNotFoundException("Decrypted file not created.", resultFile);

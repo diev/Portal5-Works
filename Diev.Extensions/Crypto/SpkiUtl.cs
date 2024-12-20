@@ -18,6 +18,11 @@ limitations under the License.
 #endregion
 
 using System.Runtime.InteropServices;
+using System.Text;
+
+using Diev.Extensions.LogFile;
+
+using Diev.Extensions.Tools;
 
 using static Diev.Extensions.Exec.Exec;
 
@@ -26,12 +31,27 @@ namespace Diev.Extensions.Crypto;
 /// <summary>
 /// Класс работы с утилитой командной строки СКАД "Сигнатура".
 /// </summary>
-public class SpkiUtl
+public class SpkiUtl : ICrypto
 {
     /// <summary>
     /// Исполняемый файл командной строки.
     /// </summary>
-    public string Exe { get; set; } = @"C:\Program Files\MDPREI\spki\spki1utl.exe";
+    public string Exe { get; set; }
+
+    /// <summary>
+    /// Запускать ли программу видимой.
+    /// </summary>
+    public bool Visible { get; set; }
+
+    /// <summary>
+    /// Отпечаток своего сертификата.
+    /// </summary>
+    public string My { get; set; }
+
+    /// <summary>
+    /// Архив отпечатков своего сертификата.
+    /// </summary>
+    public string[]? MyOld { get; set; }
 
     /// <summary>
     /// Пароль своего сертификата.
@@ -43,28 +63,28 @@ public class SpkiUtl
     /// {0} - исходный файл;
     /// {1} - подписанный файл.
     /// </summary>
-    public string SignCommand { get; set; } = "-sign -data {0} -out {1}";
+    public string SignCommand { get; set; }
 
     /// <summary>
     /// Команда отсоединенной подписи.
     /// {0} - исходный файл;
     /// {1} - файл отсоединенной подписи.
     /// </summary>
-    public string SignDetachedCommand { get; set; } = "-sign -data {0} -out {1} -detached";
+    public string SignDetachedCommand { get; set; }
 
     /// <summary>
     /// Команда проверки и снятия подписи.
     /// {0} - исходный файл;
     /// {1} - чистый файл.
     /// </summary>
-    public string VerifyCommand { get; set; } = "-verify -in {0} -out {1} -delete 1";
+    public string VerifyCommand { get; set; }
 
     /// <summary>
     /// Команда проверки отсоединенной подписи.
     /// {0} - исходный файл;
     /// {1} - файл отсоединенной подписи.
     /// </summary>
-    public string VerifyDetachedCommand { get; set; } = "-verify -in {0} -signature {1} -detached"; //TODO
+    public string VerifyDetachedCommand { get; set; }
 
     /// <summary>
     /// Команда шифрования.
@@ -72,49 +92,86 @@ public class SpkiUtl
     /// {1} - зашифрованный файл;
     /// {2} - номер сертификата получателя.
     /// </summary>
-    public string EncryptCommand { get; set; } = "-encrypt -stream -1215gh -1215mac -in {0} -out {1} -reckeyid {2}";
+    public string EncryptCommand { get; set; }
 
     /// <summary>
     /// Команда расшифрования.
     /// {0} - исходный файл;
     /// {1} - расшифрованный файл.
     /// </summary>
-    public string DecryptCommand { get; set; } = "-decrypt -in {0} -out {1}";
+    public string DecryptCommand { get; set; }
 
     public SpkiUtl()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             throw new InvalidOperationException("Операции с SpkiUtil доступны только в Windows.");
+
+        //var cred = CredentialManager.ReadCredential(filter);
+        //My = cred.UserName
+        My = string.Empty;
+        //    ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
+        //PIN = cred.Password;
+        PIN = null;
+
+        Exe = @"C:\Program Files\MDPREI\spki\spki1utl.exe";
+        SignCommand = "-sign -data {0} -out {1}";
+        SignDetachedCommand = "-sign -data {0} -out {1} -detached";
+        VerifyCommand = "-verify -in {0} -out {1} -delete 1";
+        VerifyDetachedCommand = "-verify -in {0} -signature {1} -detached"; //TODO
+        EncryptCommand = "-encrypt -stream -1215gh -1215mac -in {0} -out {1} -reckeyid {2}";
+        DecryptCommand = "-decrypt -in {0} -out {1}";
     }
 
     /// <summary>
     /// Создание отсоединенной электронной подписи с помощью утилиты командной строки.
     /// </summary>
-    /// <param name="sourceFileName">Исходный файл.</param>
-    /// <param name="p7d">Двоичный файл создаваемой электронной подписи.</param>
-    /// <param name="overwrite">Переписывать ли файл, если он уже есть.</param>
+    /// <param name="file">Имя исходного файла.</param>
+    /// <param name="resultFile">Двоичный файл создаваемой электронной подписи (p7d).</param>
     /// <returns>Создан ли файл электронной подписи.</returns>
-    public bool CreateSignDetached(string sourceFileName, string p7d, bool overwrite = false)
+    /// <exception cref="Exception"></exception>
+    /// <exception cref="FileNotFoundException"></exception>
+    public async Task<bool> SignDetachedFileAsync(string file, string resultFile)
     {
-        if (File.Exists(p7d))
-        {
-            if (overwrite)
-            {
-                File.Delete(p7d);
-            }
-            else
-            {
-                return true;
-            }
-        }
+        StringBuilder cmd = new();
+        cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 
-        string cmdline = string.Format(SignDetachedCommand, sourceFileName, p7d);
-        //Task.Run(async () =>
-        //{
-        //    await StartAsync(Exe, cmdline); 
-        //});
-        Start(Exe, cmdline);
+        if (PIN is not null)
+            cmd.Append(" -password ").Append(PIN);
 
-        return File.Exists(p7d);
+        var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
+        Logger.TimeLine($"Sign detached {file.PathQuoted()}:{Environment.NewLine}{Output}");
+
+        if (File.Exists(resultFile))
+            return true;
+
+        Logger.Line($"Error {ExitCode}:{Environment.NewLine}{Error}");
+
+        //throw new FileNotFoundException("Detached sign file not created.", resultFile);
+        return false;
+    }
+
+    public Task<bool> DecryptFileAsync(string file, string resultFile)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> EncryptFileAsync(string file, string resultFile, string? to = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> SignFileAsync(string file, string resultFile)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> VerifyDetachedFileAsync(string file, string signFile)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> VerifyFileAsync(string file, string resultFile)
+    {
+        throw new NotImplementedException();
     }
 }

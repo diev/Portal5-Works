@@ -20,6 +20,7 @@ limitations under the License.
 using System.Text;
 
 using Diev.Extensions.LogFile;
+using Diev.Extensions.Tools;
 
 namespace Diev.Extensions.Crypto;
 
@@ -238,7 +239,7 @@ public static class ASN1
         }
         catch
         {
-            Logger.TimeLine($"Ошибка снятия ЭП с файла {sourcePath.PathQuoted()}.");
+            Logger.TimeLine($"Ошибка извлечения данных из {sourcePath.PathQuoted()}.");
             return false;
         }
     }

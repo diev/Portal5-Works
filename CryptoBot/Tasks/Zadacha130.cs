@@ -17,11 +17,8 @@ limitations under the License.
 */
 #endregion
 
-//using System.IO.Compression;
-
-using Diev.Extensions;
-using Diev.Extensions.Crypto;
 using Diev.Extensions.LogFile;
+using Diev.Extensions.Tools;
 using Diev.Portal5.API.Tools;
 using Diev.Portal5.Exceptions;
 
@@ -43,16 +40,30 @@ internal static class Zadacha130
         Subscribers = config[nameof(Subscribers)];
     }
 
-    public static async Task RunAsync()
+    public static async Task RunAsync(uint? days)
     {
         try
         {
-            string enc = await DownloadAsync();
-            string zip = await DecryptAsync(enc);
-            //await UnzipAsync(zip);
+            var filter = new MessagesFilter()
+            {
+                Task = _task,
+                MinDateTime = DateTime.Today.AddDays(-days ?? 0)
+            };
+
+            Logger.TimeZZZLine("Запрос загрузки последнего файла");
+
+            if (Program.Debug)
+                throw new TaskException("Программа в отладочном режиме");
+
+            string enc = await Files.DownloadLastEncryptedAsync(filter, DownloadPath);
+
+            Logger.TimeZZZLine("Расшифровка полученного файла");
+
+            string zip = await Files.DecryptAsync(enc);
+            //await Files.UnzipToDirectoryAsync(zip, DownloadPath);
 
             string report = $"Получен файл {Path.GetFileName(zip).PathQuoted()}.";
-            Logger.TimeLine(report);
+            Logger.TimeZZZLine(report);
 
             await Program.SendDoneAsync(_task, report, Subscribers);
         }
@@ -87,92 +98,6 @@ internal static class Zadacha130
             Program.ExitCode = 1;
         }
     }
-
-    private static async Task<string> DownloadAsync()
-    {
-        // url = "back/rapi2/messages/8a3306a7-2025-4726-8d7c-ae3200aacaf0/files/948b6d20-c122-417c-9b92-2c3a14ec8de3/download";
-        // path = "KGR_20220204_132116_request_128779.zip";
-
-        var filter = new MessagesFilter()
-        {
-            Task = _task,
-            MinDateTime = DateTime.Now // required Today only!
-            //MinDateTime = DateTime.Now.AddDays(-1) // debug last day
-        };
-
-        var report = filter.MinDateTime?.ToString("dd.MM.yyyy");
-
-        var messagesPage = await Program.RestAPI.GetMessagesPageAsync(filter)
-            ?? throw new TaskException(
-                $"Не получено сообщений за {report}.");
-
-        int count = messagesPage.Messages.Count;
-
-        if (count == 0)
-        {
-            throw new NoMessagesException(
-                $"Ноль сообщений за {report}.");
-            //return null;
-        }
-
-        string? lastName = null;
-        string? fileId = null;
-
-        var message = messagesPage.Messages[count - 1];
-        string msgId = message.Id;
-
-        foreach (var file in message.Files)
-        {
-            if (file.Encrypted)
-            {
-                lastName = file.Name; // "KYC_yyyyMMdd.xml.zip.enc";
-                fileId = file.Id;
-                break;
-            }
-        }
-
-        if (fileId is null)
-            throw new TaskException(
-                $"Не получен Id файла из сообщения '{msgId}' за {report}.");
-
-        Directory.CreateDirectory(DownloadPath);
-        string path = Path.Combine(DownloadPath, lastName!);
-
-        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
-            return path;
-
-        throw new TaskException(
-            $"Не удалось получить файл {lastName?.PathQuoted()} за {report}.");
-    }
-
-    /// <summary>
-    /// Расшифровка файла zip.enc.
-    /// </summary>
-    /// <param name="enc">Исходный файл zip.enc.</param>
-    /// <returns>Расшифрованный файл zip.</returns>
-    /// <exception cref="TaskException"></exception>
-    private static async Task<string> DecryptAsync(string enc)
-    {
-        CryptoPro crypto = new(Program.UtilName, Program.CryptoName);
-        string zip = Path.ChangeExtension(enc, null);
-
-        if (await crypto.DecryptFileAsync(enc, zip))
-        {
-            File.Delete(enc);
-            return zip;
-        }
-
-        throw new TaskException(
-            $"Получен файл {Path.GetFileName(enc).PathQuoted()}, но расшифровать его не удалось.");
-    }
-
-    //private static async Task UnzipAsync(string zip)
-    //{
-    //    await Task.Run(() =>
-    //    {
-    //        ZipFile.ExtractToDirectory(zip, DownloadPath, true); //TODO skip existing file
-    //    });
-    //}
 }
 
 /*

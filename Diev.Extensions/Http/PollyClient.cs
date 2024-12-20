@@ -47,7 +47,9 @@ public static class PollyClient
     //{
     //    JsonOptions = new JsonSerializerOptions()
     //    {
+    //        // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/character-encoding#serialize-all-characters
     //        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+    //        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     //    };
     //}
 
@@ -77,7 +79,7 @@ public static class PollyClient
         _httpClient = new(trace ? new LoggingHandler(handler) : handler, true)
         {
             BaseAddress = new Uri(host),
-            Timeout = TimeSpan.FromMinutes(3)
+            Timeout = TimeSpan.FromMinutes(10)
         };
 
         _httpClient.DefaultRequestHeaders.UserAgent.Add(

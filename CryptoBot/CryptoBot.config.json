@@ -7,7 +7,7 @@
     "Subscribers": null
   },
 
-  "MessagesLoad": {
+  "Messages": {
     "DownloadPath": "Download\\Archive",
     "Overwrite": false,
     "Decrypt": false,

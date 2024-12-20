@@ -1,40 +1,48 @@
 {
   "profiles": {
-    "CryptoBot": {
-      "commandName": "Project",
-      "commandLineArgs": "\r\n"
-    },
-    "CryptoBot load -z 2-1 (out)": {
-      "commandName": "Project",
-      "commandLineArgs": "load -z 2-1 -f 2024-03-01\r\n"
-    },
-    "CryptoBot load -z 3-1 (in)": {
-      "commandName": "Project",
-      "commandLineArgs": "load -z 3-1 -f 2024-03-01\r\n"
-    },
-    "CryptoBot load -z 3-1 today": {
-      "commandName": "Project",
-      "commandLineArgs": "load -z 3-1 -d\r\n"
-    },
-    "CryptoBot load id": {
-      "commandName": "Project",
-      "commandLineArgs": "load 11f38996-e2b8-430f-8c7b-b21200ff6cb1\r\n"
-    },
     "WSL": {
       "commandName": "WSL2",
       "distributionName": ""
     },
-    "CryptoBot z130": {
+    "load -d 0": {
       "commandName": "Project",
-      "commandLineArgs": "z130\r\n"
+      "commandLineArgs": "load -d 0\r\n"
     },
-    "CryptoBot z137": {
+    "load -z 3-1 test": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 3-1 -n 1\r\n"
+    },
+    "load -id": {
+      "commandName": "Project",
+      "commandLineArgs": "load --id 18e32b14-bdb1-4aff-90c0-b22000ed8c2f"
+    },
+    "load -z 130 -f (in)": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 130 -f 2024-03-01\r\n"
+    },
+    "z137": {
       "commandName": "Project",
       "commandLineArgs": "z137 -d 7\r\n"
     },
-    "CryptoBot load -z 3-1 day-1": {
+    "z130": {
       "commandName": "Project",
-      "commandLineArgs": "load -z 3-1 -d 2\r\n"
+      "commandLineArgs": "z130\r\n"
+    },
+    "load -z 3-1 (in)": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 3-1 -f 2024-03-01\r\n"
+    },
+    "load -z 2-1 (out)": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 2-1 -f 2024-03-01\r\n"
+    },
+    "-?": {
+      "commandName": "Project",
+      "commandLineArgs": "\r\n"
+    },
+    "load -f": {
+      "commandName": "Project",
+      "commandLineArgs": "load -f 2024-11-01\r\n"
     }
   }
 }
