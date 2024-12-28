@@ -56,7 +56,9 @@ public class RestAPICore : IRestAPICore
     public RestAPICore(Credential cred, bool trace)
     {
         PollyClient.Login(cred, trace);
-        SetApi(cred.TargetName.Split(' ')[1]);
+        SetApi(cred.TargetName.Contains(' ')
+            ? cred.TargetName.Split(' ')[1] // Windows Credential Manager
+            : cred.TargetName); // open text
     }
 
     private void SetApi(string host)

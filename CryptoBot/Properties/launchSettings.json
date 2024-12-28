@@ -14,7 +14,7 @@
     },
     "load -id": {
       "commandName": "Project",
-      "commandLineArgs": "load --id 18e32b14-bdb1-4aff-90c0-b22000ed8c2f"
+      "commandLineArgs": "load --id 44d94bf2-5a6b-4170-93eb-b252007762cf"
     },
     "load -z 130 -f (in)": {
       "commandName": "Project",
@@ -34,7 +34,7 @@
     },
     "load -z 2-1 (out)": {
       "commandName": "Project",
-      "commandLineArgs": "load -z 2-1 -f 2024-03-01\r\n"
+      "commandLineArgs": "load -z 2-1 -f 2024-12-27\r\n"
     },
     "-?": {
       "commandName": "Project",
@@ -43,6 +43,14 @@
     "load -f": {
       "commandName": "Project",
       "commandLineArgs": "load -f 2024-11-01\r\n"
+    },
+    "clean delta": {
+      "commandName": "Project",
+      "commandLineArgs": "clean -z 97,107,114,123,133,140,156,169,155 -b 30\r\n"
+    },
+    "load -z XX,XX -d 1": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 130,137 -d 1\r\n"
     }
   }
 }

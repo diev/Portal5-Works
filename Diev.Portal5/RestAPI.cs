@@ -195,12 +195,15 @@ public class RestAPI(Credential cred, bool trace)
         foreach (var task in tasks)
         {
             filter.Task = task;
+            filter.Page = null;
+
             var range = await GetMessagesCoreAsync(filter);
 
             if (range is null)
                 return null;
 
-            messages.AddRange(range);
+            if (range.Count > 0)
+                messages.AddRange(range);
         }
 
         return messages;
@@ -226,7 +229,7 @@ public class RestAPI(Credential cred, bool trace)
                 break;
 
             // Get next page of 100
-            filter.Page++;
+            filter.Page = (uint)messagesPage.Pages.CurrentPage + 1;
             messagesPage = await GetMessagesPageAsync(filter.GetQuery());
 
             if (messagesPage is null)

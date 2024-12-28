@@ -74,7 +74,9 @@ public static class PollyClient
             Credentials = new NetworkCredential(cred.UserName, cred.Password)
         };
 
-        string host = cred.TargetName.Split(' ')[1];
+        string host = cred.TargetName.Contains(' ')
+            ? cred.TargetName.Split(' ')[1] // Windows Credential Manager
+            : cred.TargetName; // open text
 
         _httpClient = new(trace ? new LoggingHandler(handler) : handler, true)
         {
