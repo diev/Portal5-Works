@@ -17,20 +17,20 @@ limitations under the License.
 */
 #endregion
 
-using System.Runtime.InteropServices;
 using System.Text;
 
 using Diev.Extensions.Credentials;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Tools;
+
 using static Diev.Extensions.Exec.Exec;
 
 namespace Diev.Extensions.Crypto;
 
 /// <summary>
-/// Класс работы с тестовой утилитой командной строки СКЗИ "КриптоПРО CSP".
+/// Класс работы с командной строкой КриптоАРМ
 /// </summary>
-public class CspTest : ICrypto
+public class CryptoARM : ICrypto
 {
     private static readonly char[] _separator = [' ', ',', ';'];
 
@@ -107,23 +107,24 @@ public class CspTest : ICrypto
     /// </summary>
     public string DecryptCommand { get; set; }
 
-    public CspTest(string filter = "CryptoPro My")
+    public CryptoARM(string filter = "CryptoPro My")
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
-            throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
+        //if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
+        //    throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
 
         var cred = CredentialManager.ReadCredential(filter);
         My = cred.UserName
             ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
         PIN = cred.Password;
 
-        Exe = @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
-        SignCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";
-        SignDetachedCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime -detached";
-        VerifyCommand = @"-sfsign -verify -silent -in ""{0}"" -out ""{1}"" -my {2}";
-        VerifyDetachedCommand = @"-sfsign -verify -silent -in ""{0}"" -signature ""{1}"" -my {2} -detached";
-        EncryptCommand = @"-sfenc -encrypt -silent -in ""{0}"" -out ""{1}"" -cert {2}"; // -stream -1215gh
-        DecryptCommand = @"-sfenc -decrypt -silent -in ""{0}"" -out ""{1}"" -my {2}";
+        Exe = @"cryptoarm.exe"; //?
+        //TODO, TODO, TODO
+        SignCommand = @"sig --source-file ""{0}"" ""{1}"" --cert {2}";
+        SignDetachedCommand = @"sig --source-file ""{0}"" ""{1}"" --cert {2} -detached";
+        VerifyCommand = @"ver --source-file ""{0}"" ""{1}""";
+        VerifyDetachedCommand = @"ver --source-file ""{0}"" --document ""{1}""";
+        EncryptCommand = @"enc --source-file ""{0}"" --encrypted-file-path ""{1}"" --cert {2}";
+        DecryptCommand = @"dec --source-file ""{0}"" --encrypted-file-path ""{1}""";
     }
 
     /// <summary>
@@ -145,7 +146,7 @@ public class CspTest : ICrypto
         cmd.AppendFormat(SignCommand, file, resultFile, My);
 
         if (PIN is not null)
-            cmd.Append(" -password ").Append(PIN);
+            cmd.Append(" --pin ").Append(PIN);
         var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
         Logger.TimeLine($"Sign {file.PathQuoted()}:{Environment.NewLine}{Output}");
 
@@ -177,7 +178,7 @@ public class CspTest : ICrypto
         cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 
         if (PIN is not null)
-            cmd.Append(" -password ").Append(PIN);
+            cmd.Append(" --pin ").Append(PIN);
 
         var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
         Logger.TimeLine($"Sign detached {file.PathQuoted()}:{Environment.NewLine}{Output}");
@@ -281,7 +282,7 @@ public class CspTest : ICrypto
             foreach (var cert in to.Split(_separator,
                 StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {
-                cmd.Append(" -cert ").Append(cert);
+                cmd.Append(" --cert ").Append(cert);
             }
         }
 
@@ -318,7 +319,7 @@ public class CspTest : ICrypto
         cmd.AppendFormat(DecryptCommand, file, resultFile, My);
 
         if (PIN is not null)
-            cmd.Append(" -password ").Append(PIN);
+            cmd.Append(" --pin ").Append(PIN);
 
         (int ExitCode, string Output, string Error) = await StartWithOutputAsync(Exe, cmd, Visible);
         Logger.TimeLine($"Decrypt {file.PathQuoted()}:{Environment.NewLine}{Output}");
@@ -337,7 +338,7 @@ public class CspTest : ICrypto
             cmd.Clear().AppendFormat(DecryptCommand, file, resultFile, old);
 
             if (PIN is not null)
-                cmd.Append(" -password ").Append(PIN);
+                cmd.Append(" --pin ").Append(PIN);
 
             (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmd, Visible);
             Logger.Line($"Try decrypt with {old}{Environment.NewLine}{Output}");

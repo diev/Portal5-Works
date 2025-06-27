@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +22,8 @@ using Diev.Portal5.API.Tools;
 namespace Diev.Portal5.API.Dictionaries;
 
 /// <summary>
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a (level 1)
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a?page=1
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a (level 1)<br/>
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a?page=1<br/>
 /// 200 OK
 /// </summary>
 public record Level1ItemsPage
@@ -46,41 +46,70 @@ public record Level1ItemsPage
     Pagination Pages
 );
 
-/*
+public static class MockLevel1ItemsPage
 {
-    "Items": [
-        {
-            "Code": "4",
-            "Subjects1": "Банк России",
-            "TypeIE": "АД",
-            "Id": "6fc60350-fa90-450e-9fea-1b0703501d6a"
-        },
-        {
-            "Code": "3",
-            "Subjects1": "Руководство Банка России",
-            "TypeIE": "РУ",
-            "Id": "4f1f9428-63b0-437f-bdb1-4b25d4f89007"
-        },
-        {
-            "Code": "1",
-            "Subjects1": "Центральный аппарат",
-            "TypeIE": "ЦА",
-            "Id": "41941a8b-a18a-406c-b1a1-eb6546a7e033"
-        },
-        {
-            "Code": "2",
-            "Subjects1": "Территориальное учреждение",
-            "TypeIE": "ТУ",
-            "Id": "eda671ab-7270-4c27-82d9-ed2f7e1c6624"
-        }
-    ],
-    "PaginationInfo": {
-        "TotalRecords": 4,
-        "TotalPages": 1,
-        "CurrentPage": 1,
-        "PerCurrentPage": 4,
-        "PerNextPage": null,
-        "MaxPerPage": 100
-    }
+    /// <summary>
+    /// dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a
+    /// </summary>
+    /// <returns></returns>
+    /// <remarks>
+    /// Header:<br/>
+    /// EPVV-Total: 4<br/>
+    /// EPVV-TotalPages: 1<br/>
+    /// EPVV-CurrentPage: 1<br/>
+    /// EPVV-PerCurrentPage: 4
+    /// </remarks>
+    public static string Page(int page = 1) => page switch
+    {
+        1 => """
+            {
+                "Items": [
+                    {
+                        "Code": "1",
+                        "Subjects1": "Центральный аппарат",
+                        "TypeIE": "ЦА",
+                        "Id": "41941a8b-a18a-406c-b1a1-eb6546a7e033"
+                    },
+                    {
+                        "Code": "3",
+                        "Subjects1": "Руководство Банка России",
+                        "TypeIE": "РУ",
+                        "Id": "4f1f9428-63b0-437f-bdb1-4b25d4f89007"
+                    },
+                    {
+                        "Code": "4",
+                        "Subjects1": "Банк России",
+                        "TypeIE": "АД",
+                        "Id": "6fc60350-fa90-450e-9fea-1b0703501d6a"
+                    },
+                    {
+                        "Code": "2",
+                        "Subjects1": "Территориальное учреждение",
+                        "TypeIE": "ТУ",
+                        "Id": "eda671ab-7270-4c27-82d9-ed2f7e1c6624"
+                    }
+                ],
+                "PaginationInfo": {
+                    "TotalRecords": 4,
+                    "TotalPages": 1,
+                    "CurrentPage": 1,
+                    "PerCurrentPage": 4,
+                    "PerNextPage": null,
+                    "MaxPerPage": 100
+                }
+            }
+            """,
+
+        _ => $$"""
+            {
+                "HTTPStatus": 400,
+                "ErrorCode": "INCORRECT_PAGE_NUM",
+                "ErrorMessage": "Произошла ошибка. Некорректное значение страницы: {{page}}",
+                "MoreInfo": {
+                    "TotalItems": 4,
+                    "TotalPages": 1
+                }
+            }
+            """,
+    };
 }
-*/

@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,16 +69,22 @@ public class DraftMessageFile
     public long Size { get; set; }
 }
 
-/*
+public static class MockDraftMessageFile
 {
-    "Name": "KYC_20231031.xml.zip.enc",
-    "Encrypted": true,
-    "Size": 3324863,
-},
-
-{
-    "Name": "KYC_20231031.xml.zip.sig",
-    "SignedFile": "3d9f1174-ad1d-485e-8149-109ae7353688",
-    "Size": 3399,
+    public static string Text(bool encrypted = false) => encrypted ?
+        """
+        {
+            "Name": "KYC_20231031.xml.zip.enc",
+            "Encrypted": true,
+            "Size": 3324863,
+        }
+        """
+        :
+        """
+        {
+            "Name": "KYC_20231031.xml.zip.sig",
+            "SignedFile": "3d9f1174-ad1d-485e-8149-109ae7353688",
+            "Size": 3399,
+        }
+        """;
 }
-*/

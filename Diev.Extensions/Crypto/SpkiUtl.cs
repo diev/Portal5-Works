@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -128,10 +128,16 @@ public class SpkiUtl : ICrypto
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Двоичный файл создаваемой электронной подписи (p7d).</param>
     /// <returns>Создан ли файл электронной подписи.</returns>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> SignDetachedFileAsync(string file, string resultFile)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
         StringBuilder cmd = new();
         cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 

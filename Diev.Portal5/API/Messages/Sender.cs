@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,12 +55,16 @@ public record Sender
     string? DivisionCode
 );
 
-/*
+public static class MockSender
 {
-    "Inn": "7710168307",
-    "Ogrn": "1037739236578",
-    "Bik": null,
-    "RegNum": null,
-    "DivisionCode": null
+    public static string Text() =>
+        """
+        {
+            "Inn": "7710168307",
+            "Ogrn": "1037739236578",
+            "Bik": null,
+            "RegNum": null,
+            "DivisionCode": null
+        }
+        """;
 }
-*/

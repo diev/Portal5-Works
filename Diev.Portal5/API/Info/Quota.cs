@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +20,8 @@ limitations under the License.
 namespace Diev.Portal5.API.Info;
 
 /// <summary>
-/// Информации о квоте профиля.
-/// GET https://portal5.cbr.ru/back/rapi2/profile/quota
+/// 3.1.6.3. Информации о квоте профиля.<br/>
+/// GET https://portal5.cbr.ru/back/rapi2/profile/quota<br/>
 /// 200 OK
 /// </summary>
 public record Quota
@@ -45,10 +45,18 @@ public record Quota
     long MessageSize
 );
 
-/*
+public static class MockQuota
 {
-    "TotalQuota": 10737418240,
-    "UsedQuota": 7518173722,
-    "MessageSize": 2147483648
+    /// <summary>
+    /// profile/quota
+    /// </summary>
+    /// <returns></returns>
+    public static string Text() =>
+        """
+        {
+            "TotalQuota": 16106127360,
+            "UsedQuota": 1506413991,
+            "MessageSize": 2147483648
+        }
+        """;
 }
-*/

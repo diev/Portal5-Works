@@ -51,6 +51,18 @@
     "load -z XX,XX -d 1": {
       "commandName": "Project",
       "commandLineArgs": "load -z 130,137 -d 1\r\n"
+    },
+    "z221 -req": {
+      "commandName": "Project",
+      "commandLineArgs": "z221 --req 414f7ce1-07d6-4680-980d-b1ff01109dda"
+    },
+    "lki": {
+      "commandName": "Project",
+      "commandLineArgs": "lki -d 4"
+    },
+    "lko": {
+      "commandName": "Project",
+      "commandLineArgs": "lko"
     }
   }
 }

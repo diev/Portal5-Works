@@ -20,7 +20,7 @@ limitations under the License.
 using System.Net;
 using System.Text;
 
-namespace Diev.Extensions.Http;
+namespace Diev.Extensions.Http.Mock;
 
 internal class MockHandler(string json, HttpMessageHandler innerHandler) : DelegatingHandler(innerHandler)
 {

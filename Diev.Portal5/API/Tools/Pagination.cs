@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,56 +20,56 @@ limitations under the License.
 namespace Diev.Portal5.API.Tools;
 
 /// <summary>
-/// Информация о пагинации (разбиении на страницы).
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a (level 1)
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/25338cfb-5713-4634-bc53-a81129483752 (level 2)
-/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314?page=2 (level 3 Addresse)
+/// Информация о пагинации (разбиении на страницы).<br/>
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a (level 1)<br/>
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/25338cfb-5713-4634-bc53-a81129483752 (level 2)<br/>
+/// GET https://portal5.cbr.ru/back/rapi2/dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314?page=2 (level 3 Addresse)<br/>
 /// 200 OK
 /// </summary>
 public record Pagination
 (
     /// <summary>
-    /// Всего записей в справочнике.
-    /// Example (4): 4
+    /// Всего записей в справочнике.<br/>
+    /// Example (4): 4<br/>
     /// Example (124): 124
     /// </summary>
     //[JsonProperty("EPVV-Total")]
     int TotalRecords,
 
     /// <summary>
-    /// Всего страниц с разбивкой не более 100 записей на странице.
-    /// Example (4): 1
+    /// Всего страниц с разбивкой не более 100 записей на странице.<br/>
+    /// Example (4): 1<br/>
     /// Example (124): 2
     /// </summary>
     //[JsonProperty("EPVV-TotalPages")]
     int TotalPages,
 
     /// <summary>
-    /// Текущая страница (соответствует n из запроса page={n}).
-    /// Example (4): 1
+    /// Текущая страница (соответствует n из запроса page={n}).<br/>
+    /// Example (4): 1<br/>
     /// Example (124): 1
     /// </summary>
     //[JsonProperty("EPVV-CurrentPage")]
     int CurrentPage,
 
     /// <summary>
-    /// Число записей на текущей странице или null, если запрошенная страница не существует.
-    /// Example (4): 4
+    /// Число записей на текущей странице или null, если запрошенная страница не существует.<br/>
+    /// Example (4): 4<br/>
     /// Example (124): 100
     /// </summary>
     //[JsonProperty("EPVV-PerCurrentPage")]
     int? PerCurrentPage,
 
     /// <summary>
-    /// Число записей на следующей страница или null, если страница не существует.
-    /// Example (4): null
+    /// Число записей на следующей страница или null, если страница не существует.<br/>
+    /// Example (4): null<br/>
     /// Example (124): 24
     /// </summary>
     //[JsonProperty("EPVV-PerNextPage")]
     int? PerNextPage,
 
     /// <summary>
-    /// Максимальное количество записей на странице (всегда 100).
+    /// Максимальное количество записей на странице (всегда 100).<br/>
     /// Example: 100
     /// </summary>
     //[JsonProperty("EPVV-MaxPerPage")]

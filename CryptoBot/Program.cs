@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,6 +85,7 @@ internal static class Program
         }
 
         var config = Config.GetSection(nameof(Program));
+
         TargetName = config[nameof(TargetName)] ?? "Portal5test *";
         UtilName = config[nameof(UtilName)] ?? "CspTest";
         CryptoName = config[nameof(CryptoName)] ?? "CryptoPro My";
@@ -103,7 +104,7 @@ internal static class Program
         Logger.Reset();
 
         var portal5 = CredentialManager.ReadCredential(TargetName);
-        RestAPI = new(portal5, true);
+        RestAPI = new(portal5, true, Debug);
     }
 
     internal static async Task<int> Main(string[] args)
@@ -113,43 +114,116 @@ internal static class Program
         var rootCommand = new RootCommand(App.Description);
         
         #region filter
-        var idOption = new Option<Guid?>("--id", "Идентификатор одного сообщения (guid)");
+        var idOption = new Option<Guid?>(
+            "--id", "Идентификатор одного сообщения (guid)");
 
-        var taskOption = new Option<string?>("--zadacha", "Номер задачи XX[,XX, ...]");
-        taskOption.AddAlias("-z");
+        var taskOption = new Option<string?>(
+            "--zadacha", "Номер задачи XX[,XX, ...]");
+        taskOption.AddAlias(
+            "-z");
 
-        var beforeOption = new Option<uint?>("--before", "Ранее скольки дней назад (7 - раньше недели назад)");
-        beforeOption.AddAlias("-b");
+        var beforeOption = new Option<uint?>(
+            "--before", "Ранее скольки дней назад (7 - раньше недели назад)");
+        beforeOption.AddAlias(
+            "-b");
 
-        var daysOption = new Option<uint?>("--days", "Сколько последних дней (7 - на этой неделе)");
-        daysOption.AddAlias("-d");
+        var daysOption = new Option<uint?>(
+            "--days", "Сколько последних дней (7 - на этой неделе)");
+        daysOption.AddAlias(
+            "-d");
 
-        var dayOption = new Option<uint?>("--day", "Какой день назад конкретно (1 - вчера)");
-        dayOption.AddAlias("-n");
+        var dayOption = new Option<uint?>(
+            "--day", "Какой день назад конкретно (1 - вчера)");
+        dayOption.AddAlias(
+            "-n");
 
-        var minDateTimeOption = new Option<DateTime?>("--min-datetime", "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])");
-        minDateTimeOption.AddAlias("-f");
+        var minDateTimeOption = new Option<DateTime?>(
+            "--min-date", "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])");
+        minDateTimeOption.AddAlias(
+            "-f");
 
-        var maxDateTimeOption = new Option<DateTime?>("--max-datetime", "До какой даты (время по умолчанию 00:00!)");
-        maxDateTimeOption.AddAlias("-t");
+        var maxDateTimeOption = new Option<DateTime?>(
+            "--max-date", "До какой даты (время по умолчанию 00:00!)");
+        maxDateTimeOption.AddAlias(
+            "-t");
 
-        var minSizeOption = new Option<uint?>("--min-size", "От какого размера (байты)");
-        var maxSizeOption = new Option<uint?>("--max-size", "До какого размера (байты)");
+        var minSizeOption = new Option<uint?>(
+            "--min-size", "От какого размера (байты)");
+        var maxSizeOption = new Option<uint?>(
+            "--max-size", "До какого размера (байты)");
 
-        var inboxOption = new Option<bool>("--inbox", "Входящие сообщения только");
+        var inboxOption = new Option<bool>(
+            "--inbox", "Входящие сообщения только");
 
-        var outboxOption = new Option<bool>("--outbox", "Исходящие сообщения только");
+        var outboxOption = new Option<bool>(
+            "--outbox", "Исходящие сообщения только");
 
-        var statusOption = new Option<string?>("--status", "Статус сообщений");
+        var statusOption = new Option<string?>(
+            "--status", "Статус сообщений");
         var status2 = string.Join(' ', MessageInStatus.Values) + ' ' +
             string.Join(' ', MessageOutStatus.Values);
         statusOption.FromAmong(status2.Split(' '));
 
-        var pageOption = new Option<uint?>("--page", "Номер страницы (по 100 сообщений)");
+        var pageOption = new Option<uint?>(
+            "--page", "Номер страницы (по 100 сообщений)");
         #endregion filter
 
+        #region tasks
+        var lkiCommand = new Command(
+            "lki", "ЛК: Входящие")
+        {
+            daysOption
+        };
+        rootCommand.Add(lkiCommand);
+        lkiCommand.SetHandler(LKI.RunAsync, daysOption);
+
+        var lkoCommand = new Command(
+            "lko", "ЛК: Исходящие")
+        {
+            daysOption
+        };
+        rootCommand.Add(lkoCommand);
+        lkoCommand.SetHandler(LKO.RunAsync, daysOption);
+
+        var z130Command = new Command(
+            "z130", "ЗСК: Получение информации об уровне риска ЮЛ/ИП")
+        {
+            daysOption
+        };
+        rootCommand.Add(z130Command);
+        z130Command.SetHandler(Zadacha130.RunAsync, daysOption);
+
+        var z137Command = new Command(
+            "z137", "ЗСК: Ежедневное информирование Банка России о составе и объеме клиентской базы")
+        {
+            daysOption
+        };
+        rootCommand.Add(z137Command);
+        z137Command.SetHandler(Zadacha137.RunAsync, daysOption);
+
+        var z222Command = new Command(
+            "z222", "ZBR: Получение Запроса информации о платежах КО")
+        {
+            daysOption
+        };
+        rootCommand.Add(z222Command);
+        z222Command.SetHandler(Zadacha222.RunAsync, daysOption);
+
+        var reqOption = new Option<Guid>(
+            "--req", "Идентификатор Запроса (guid)");
+
+        var z221Command = new Command(
+            "z221", "ZBR: Ответ на Запрос информации о платежах КО")
+        {
+            reqOption
+        };
+        rootCommand.Add(z221Command);
+        z221Command.SetHandler(Zadacha221.RunAsync, reqOption);
+        #endregion tasks
+
         #region filter commands
-        var loadCommand = new Command("load", "Загрузить сообщения по <id> или по фильтру из опций")
+        var loadCommand = new Command(
+            "load", "API: Загрузить сообщения по <id> или по фильтру")
         {
             idOption,
             // or
@@ -162,7 +236,8 @@ internal static class Program
             pageOption
         };
 
-        var cleanCommand = new Command("clean", "Удалить сообщения по <id> или по фильтру из опций")
+        var cleanCommand = new Command(
+            "clean", "API: Удалить сообщения по <id> или по фильтру")
         {
             idOption,
             // or
@@ -180,7 +255,7 @@ internal static class Program
         rootCommand.AddCommand(loadCommand);
         rootCommand.AddCommand(cleanCommand);
 
-        loadCommand.SetHandler(Messages.LoadAsync, 
+        loadCommand.SetHandler(Loader.RunAsync,
             idOption,
             // or
             new MessagesFilterBinder(
@@ -192,7 +267,7 @@ internal static class Program
                 statusOption,
                 pageOption));
 
-        cleanCommand.SetHandler(Messages.CleanAsync,
+        cleanCommand.SetHandler(Cleaner.RunAsync,
             idOption,
             // or
             new MessagesFilterBinder(
@@ -204,22 +279,6 @@ internal static class Program
                 statusOption,
                 pageOption));
         #endregion messages
-
-        #region tasks
-        var z130Command = new Command("z130", "Получение информации об уровне риска ЮЛ/ИП")
-        {
-            daysOption
-        };
-        rootCommand.Add(z130Command);
-        z130Command.SetHandler(Zadacha130.RunAsync, daysOption);
-
-        var z137Command = new Command("z137", "Ежедневное информирование Банка России о составе и объеме клиентской базы")
-        {
-            daysOption
-        };
-        rootCommand.Add(z137Command);
-        z137Command.SetHandler(Zadacha137.RunAsync, daysOption);
-        #endregion tasks
 
         #region parse
         var parser = new CommandLineBuilder(rootCommand)
@@ -260,6 +319,15 @@ internal static class Program
             throw new DirectoryNotFoundException($"Не удалось создать новую директорию {temp.PathQuoted()}.");
 
         return temp;
+    }
+
+    public static async Task SendAsync(string subject, string body, string? subscribers, string[]? files = null)
+    {
+        await Program.Smtp.SendMessageAsync(
+            ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
+            subject,
+            body,
+            files);
     }
 
     public static async Task SendDoneAsync(string task, string body, string? subscribers, string[]? files = null)

@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,21 +26,21 @@ namespace Diev.Portal5.API.Tools;
 public record Repository
 (
     /// <summary>
-    /// Тип репозитория (значения: aspera, http).
+    /// Тип репозитория (значения: aspera, http).<br/>
     /// Example: "http"
     /// </summary>
     string? RepositoryType,
 
     /// <summary>
-    /// IP адрес или имя узла репозитория.
-    /// Example: "https://portal5.cbr.ru"
+    /// IP адрес или имя узла репозитория.<br/>
+    /// Example: "https://portal5.cbr.ru"<br/>
     /// Example: "https://portal5test.cbr.ru"
     /// </summary>
     string? Host,
 
     /// <summary>
-    /// Порт для обращения к репозиторию.
-    /// Example: 81
+    /// Порт для обращения к репозиторию.<br/>
+    /// Example: 81<br/>
     /// Example: 443
     /// </summary>
     int? Port,
@@ -56,19 +56,23 @@ public record Repository
     string? CheckSumType,
 
     /// <summary>
-    /// Путь к файлу в репозитории.
+    /// Путь к файлу в репозитории.<br/>
     /// Example: "back/rapi2/messages/6e16a6ad-018f-4136-a8c6-b088010899bc/files/af868884-9e08-4a0c-9f21-bd25a3528085/download"
     /// </summary>
     string? Path
 );
 
-/*
-[
-    {
-        "RepositoryType": "http",
-        "Host": "https://portal5.cbr.ru",
-        "Port": 81,
-        "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/3d9f1174-ad1d-485e-8149-109ae7353688/download"
-    }
-]
-*/
+public static class MockRepository
+{
+    public static string Text() =>
+        """
+        [
+            {
+                "RepositoryType": "http",
+                "Host": "https://portal5.cbr.ru",
+                "Port": 81,
+                "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/3d9f1174-ad1d-485e-8149-109ae7353688/download"
+            }
+        ]
+        """;
+}

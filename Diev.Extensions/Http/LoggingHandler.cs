@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024 Dmitrii Evdokimov
+Copyright 2024-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@ limitations under the License.
 */
 #endregion
 
+using System.Net;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -29,8 +30,9 @@ namespace Diev.Extensions.Http;
 
 internal class LoggingHandler : DelegatingHandler
 {
-    public static bool Json { get; set; } = true;
-    public static bool Pretty { get; set; } = true;
+    public bool Json { get; set; } = true;
+    public bool Pretty { get; set; } = true;
+    public bool Debug { get; set; } = false;
     public JsonSerializerOptions JsonOptions { get; set; }
 
     public LoggingHandler(HttpMessageHandler innerHandler)
@@ -86,7 +88,9 @@ internal class LoggingHandler : DelegatingHandler
 
         Logger.Flush(1);
 
-        var response = await base.SendAsync(request, cancellationToken);
+        var response = Debug
+            ? new HttpResponseMessage() { StatusCode = HttpStatusCode.ServiceUnavailable } // don't touch the server!
+            : await base.SendAsync(request, cancellationToken); // send to the server
 
         Logger.TimeLine($"Response {response}");
 

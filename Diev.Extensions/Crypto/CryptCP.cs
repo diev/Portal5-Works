@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -118,8 +118,8 @@ public class CryptCP : ICrypto
         PIN = cred.Password;
 
         Exe = @"cryptcp.exe";
-        SignCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -attached";
-        SignDetachedCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -detached";
+        SignCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -attached -addchain";
+        SignDetachedCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -detached -addchain";
         VerifyCommand = @"-verify ""{0}"" ""{1}"" -nochain -attached";
         VerifyDetachedCommand = @"-verify ""{0}"" ""{1}"" -nochain -detached";
         EncryptCommand = @"-encr ""{0}"" ""{1}"" -thumbprint {2} -nochain -der";
@@ -131,10 +131,16 @@ public class CryptCP : ICrypto
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя подписанного файла.</param>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> SignFileAsync(string file, string resultFile)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
         StringBuilder cmd = new();
         cmd.AppendFormat(SignCommand, file, resultFile, My);
 
@@ -157,10 +163,16 @@ public class CryptCP : ICrypto
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя подписанного файла.</param>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> SignDetachedFileAsync(string file, string resultFile)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
         StringBuilder cmd = new();
         cmd.AppendFormat(SignDetachedCommand, file, resultFile, My);
 
@@ -185,10 +197,16 @@ public class CryptCP : ICrypto
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя файла без подписи.</param>
     /// <returns>Результат проверки подписи.</returns>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> VerifyFileAsync(string file, string resultFile)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
         string cmdline = string.Format(VerifyCommand, file, resultFile, My);
         var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmdline, Visible);
         Logger.TimeLine($"Verify {file.PathQuoted()}:{Environment.NewLine}{Output}");
@@ -208,9 +226,22 @@ public class CryptCP : ICrypto
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="signFile">Имя файла отдельной подписи.</param>
     /// <returns>Результат проверки подписи.</returns>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> VerifyDetachedFileAsync(string file, string signFile)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (string.IsNullOrEmpty(signFile))
+            throw new ArgumentNullException(nameof(signFile));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
+        if (!File.Exists(signFile))
+            throw new FileNotFoundException("Not found", signFile);
+
         string cmdline = string.Format(VerifyCommand, file, signFile, My);
         var (ExitCode, Output, Error) = await StartWithOutputAsync(Exe, cmdline, Visible);
         Logger.TimeLine($"Verify detached {file.PathQuoted()}:{Environment.NewLine}{Output}");
@@ -229,13 +260,18 @@ public class CryptCP : ICrypto
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя зашифрованного файла.</param>
     /// <param name="to">Список отпечатков сертификатов получателей файла, куда будет добавлен и свой.</param>
-    /// <exception cref="Exception"></exception>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> EncryptFileAsync(string file, string resultFile, string? to = null)
     {
         // Файлы более 256k (или все) должны шифроваться потоковым методом (-stream)
         // Файлы должны шифроваться по ГОСТ Р 34.12-2015 Кузнечик (-1215gh)
+
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
 
         StringBuilder cmd = new();
         cmd.AppendFormat(EncryptCommand, file, resultFile, My);
@@ -266,11 +302,17 @@ public class CryptCP : ICrypto
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="resultFile">Имя расшифрованного файла.</param>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> DecryptFileAsync(string file, string resultFile)
     {
         //TODO file.Size == 0
+
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
 
         StringBuilder cmd = new();
         cmd.AppendFormat(DecryptCommand, file, resultFile, My);

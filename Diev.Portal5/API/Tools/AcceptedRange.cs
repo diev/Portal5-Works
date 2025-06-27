@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,13 @@ public record class AcceptedRange
     DateTime ExpirationDateTime
 );
 
-/*
+public static class MockAcceptedRange
 {
-  "NextExpectedRange":["4096-8191","8192-8713"],
-  "ExpirationDateTime":"2023-11-29T09:38:35Z"
+    public static string Text() =>
+        """
+        {
+          "NextExpectedRange":["4096-8191","8192-8713"],
+          "ExpirationDateTime":"2023-11-29T09:38:35Z"
+        }
+        """;
 }
-*/

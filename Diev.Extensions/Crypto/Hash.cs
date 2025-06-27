@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024 Dmitrii Evdokimov
+Copyright 2024-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,10 +72,16 @@ public class Hash
     /// </summary>
     /// <param name="file">Имя исходного файла.</param>
     /// <returns>Строка хэша.</returns>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<string> CalcFileAsync(string file)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
         string cmdline = string.Format(CalcCommand, file);
         var (_, Output, _) = await StartWithOutputAsync(Exe, cmdline, Visible);
         // => A36D628486A17D934BE027C9CAF79B27D7CD9E4E49469D97312B40AD6228D26F
@@ -89,10 +95,19 @@ public class Hash
     /// <param name="file">Имя исходного файла.</param>
     /// <param name="hash">Имя исходного файла.</param>
     /// <returns>Результат проверки хэша.</returns>
-    /// <exception cref="Exception"></exception>
+    /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
     public async Task<bool> VerifyFileAsync(string file, string hash)
     {
+        if (string.IsNullOrEmpty(file))
+            throw new ArgumentNullException(nameof(file));
+
+        if (string.IsNullOrEmpty(hash))
+            throw new ArgumentNullException(nameof(hash));
+
+        if (!File.Exists(file))
+            throw new FileNotFoundException("Not found", file);
+
         string cmdline = string.Format(VerifyCommand, file, hash);
         int exit = await StartAsync(Exe, cmdline, Visible);
 

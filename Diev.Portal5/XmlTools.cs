@@ -60,7 +60,7 @@ public static class XmlTools
     /// <returns>Идентификатор в виде yyyy-MM-dd-Number.</returns>
     public static string GetFormId(string path)
     {
-        // if (message.Type.Equals("outbox") && File.Exists("form.xml"))
+        // if (message.Type.Equals(MessageType.Outbox) && File.Exists("form.xml"))
         // parse <mf:doc_out Number="44-3-1" Date="2024-03-13"/>
         // => "2024-03-13-44-3-1"
 
@@ -123,7 +123,7 @@ public static class XmlTools
         string? number = null;
         string? subj = null;
 
-        if (message.Type.Equals("outbox", StringComparison.OrdinalIgnoreCase))
+        if (message.Type.Equals(MessageType.Outbox, StringComparison.OrdinalIgnoreCase))
         {
             string form = Path.Combine(path, "form.xml");
 
@@ -141,7 +141,7 @@ public static class XmlTools
                 subj = $"{(message.CorrelationId is null ? "Запрос" : "Ответ")} {message.Text}";
             }
         }
-        else // if (message.Type.Equals("inbox", StringComparison.OrdinalIgnoreCase))
+        else // if (message.Type.Equals(MessageType.Inbox, StringComparison.Ordinal))
         {
             string passport = Path.Combine(path, "passport.xml");
 

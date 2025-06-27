@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,38 +90,44 @@ public record MessageFile
     IReadOnlyList<Repository>? RepositoryInfo
 );
 
-/*
+public static class MockMessageFile
 {
-    "Id": "3d9f1174-ad1d-485e-8149-109ae7353688",
-    "Name": "KYC_20231031.xml.zip.enc",
-    "Description": null,
-    "Encrypted": true,
-    "SignedFile": null,
-    "Size": 3324863,
-    "RepositoryInfo": [
+    public static string Text(bool encrypted = false) => encrypted ?
+        """
         {
-            "RepositoryType": "http",
-            "Host": "https://portal5.cbr.ru",
-            "Port": 81,
-            "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/3d9f1174-ad1d-485e-8149-109ae7353688/download"
+            "Id": "3d9f1174-ad1d-485e-8149-109ae7353688",
+            "Name": "KYC_20231031.xml.zip.enc",
+            "Description": null,
+            "Encrypted": true,
+            "SignedFile": null,
+            "Size": 3324863,
+            "RepositoryInfo": [
+                {
+                    "RepositoryType": "http",
+                    "Host": "https://portal5.cbr.ru",
+                    "Port": 81,
+                    "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/3d9f1174-ad1d-485e-8149-109ae7353688/download"
+                }
+            ]
         }
-    ]
-},
-
-{
-    "Id": "d2a087db-55b8-4348-9ec7-5313c935ec41",
-    "Name": "KYC_20231031.xml.zip.sig",
-    "Description": null,
-    "Encrypted": false,
-    "SignedFile": "3d9f1174-ad1d-485e-8149-109ae7353688",
-    "Size": 3399,
-    "RepositoryInfo": [
+        """
+        :
+        """
         {
-            "RepositoryType": "http",
-            "Host": "https://portal5.cbr.ru",
-            "Port": 81,
-            "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/d2a087db-55b8-4348-9ec7-5313c935ec41/download"
+            "Id": "d2a087db-55b8-4348-9ec7-5313c935ec41",
+            "Name": "KYC_20231031.xml.zip.sig",
+            "Description": null,
+            "Encrypted": false,
+            "SignedFile": "3d9f1174-ad1d-485e-8149-109ae7353688",
+            "Size": 3399,
+            "RepositoryInfo": [
+                {
+                    "RepositoryType": "http",
+                    "Host": "https://portal5.cbr.ru",
+                    "Port": 81,
+                    "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/d2a087db-55b8-4348-9ec7-5313c935ec41/download"
+                }
+            ]
         }
-    ]
+        """;
 }
-*/

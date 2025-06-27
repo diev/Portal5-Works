@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,8 +34,9 @@ namespace Diev.Portal5;
 /// </summary>
 /// <param name="cred">Windows Credential Manager credential.</param>
 /// <param name="trace">Trace HTTP.</param>
-public class RestAPI(Credential cred, bool trace)
-    : RestAPICore(cred, trace)
+/// <param name="debug">Debug HTTP.</param>
+public class RestAPI(Credential cred, bool trace, bool debug)
+    : RestAPICore(cred, trace, debug)
 {
     /// <summary>
     /// 3.1.3 Отправка сообщений комплексно по задачам
@@ -62,14 +63,14 @@ public class RestAPI(Credential cred, bool trace)
 
             if (enc.Exists) // Encrypted (ДСП)
             {
-                draft.Files.Add(new DraftMessageFile()
+                draft.Files.Add(new DraftMessageFile
                 {
                     Name = enc.Name,
                     Encrypted = true,
                     Size = enc.Length
                 });
 
-                draft.Files.Add(new DraftMessageFile()
+                draft.Files.Add(new DraftMessageFile
                 {
                     Name = sig.Name,
                     SignedFile = enc.Name,
@@ -78,13 +79,13 @@ public class RestAPI(Credential cred, bool trace)
             }
             else if (src.Exists) // Открытая информация
             {
-                draft.Files.Add(new DraftMessageFile()
+                draft.Files.Add(new DraftMessageFile
                 {
                     Name = src.Name,
                     Size = src.Length
                 });
 
-                draft.Files.Add(new DraftMessageFile()
+                draft.Files.Add(new DraftMessageFile
                 {
                     Name = sig.Name,
                     SignedFile = src.Name,
@@ -166,6 +167,93 @@ public class RestAPI(Credential cred, bool trace)
         }
 
         Logger.Title("Upload directory fail.");
+        Logger.Flush(2);
+        return null;
+    }
+
+    /// <summary>
+    /// 3.1.3 Отправка сообщений комплексно по задачам
+    /// </summary>
+    /// <param name="task"></param>
+    /// <param name="title"></param>
+    /// <param name="path"></param>
+    /// <param name="corrId"></param>
+    /// <returns></returns>
+    /// <exception cref="FileNotFoundException"></exception>
+    public async Task<string?> UploadEncFileAsync(string task, string? title, string path, Guid? corrId = null)
+    {
+        Logger.Title($"Upload file {path.PathQuoted()}");
+
+        var draft = new DraftMessage
+        {
+            Task = task,
+            Title = title,
+        };
+
+        if (corrId is not null)
+            draft.CorrelationId = corrId.ToString();
+
+        var enc = new FileInfo(path);
+
+        draft.Files.Add(new DraftMessageFile
+        {
+            Name = enc.Name,
+            Encrypted = true,
+            Size = enc.Length
+        });
+
+        // Step 1 - post request for new message
+        Logger.Title("1. Post request for new message.");
+
+        var message = await PostMessageRequestAsync(draft);
+
+        if (message is null)
+            return null;
+
+        string msgId = message.Id;
+        var messageFile = message.Files[0];
+
+        // Step 2 - post request for new file
+        Logger.Title($"2. Post request for new file.");
+
+        var uploadSession = await PostUploadRequestAsync(msgId, messageFile.Id);
+
+        if (uploadSession is null)
+            return null;
+
+        var expiration = uploadSession.ExpirationDateTime.ToLocalTime();
+
+        // Step3 - upload new file
+        Logger.Title($"3. Upload new file {messageFile.Name.PathQuoted()}.");
+
+        string file = Path.Combine(path, messageFile.Name);
+
+        if (!await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl))
+            return null;
+
+        if (DateTime.Now > expiration)
+            return null;
+
+        // Step 4 - post ready message
+        Logger.Title("4. Post ready message.");
+
+        if (await PostMessageAsync(msgId))
+        {
+            Logger.Title("Upload file done.");
+            Logger.Flush(2);
+            return msgId;
+        }
+
+        // Try to clean expired uploaded file
+        Logger.Line("Try to clean expired uploaded file.");
+
+        try
+        {
+            await DeleteMessageFileAsync(msgId, messageFile.Id);
+        }
+        catch { }
+
+        Logger.Title("Upload file fail.");
         Logger.Flush(2);
         return null;
     }

@@ -17,6 +17,8 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
 namespace Diev.Portal5.API.Messages;
 
 /// <summary>
@@ -58,5 +60,6 @@ public record ReceiptOutStatus
     /// </summary>
     public static string Success => "success";
 
-    public static string[] Values => ["delivered", "error", "processing", "registered", "rejected", "success"];
+    [JsonIgnore]
+    public static string[] Values => [Delivered, Error, Processing, Registered, Rejected, Success];
 }

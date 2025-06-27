@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024 Dmitrii Evdokimov
+Copyright 2024-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,8 +35,16 @@ public static class ASN1
     /// <param name="sourcePath">Исходный файл.</param>
     /// <param name="destinationPath">Файл с результатом.</param>
     /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="FileNotFoundException"></exception>
     public static async Task<bool> CleanSignAsync(string sourcePath, string destinationPath)
     {
+        if (string.IsNullOrEmpty(sourcePath))
+            throw new ArgumentNullException(nameof(sourcePath));
+
+        if (!File.Exists(sourcePath))
+            throw new FileNotFoundException("Not found", sourcePath);
+
         try
         {
             using var stream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, true);

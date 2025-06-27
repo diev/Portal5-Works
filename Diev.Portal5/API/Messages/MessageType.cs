@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,21 +17,21 @@ limitations under the License.
 */
 #endregion
 
-namespace Diev.Portal5.API.Info;
+using System.Text.Json.Serialization;
+
+namespace Diev.Portal5.API.Messages;
 
 /// <summary>
-/// Поднадзорное подразделение.
+/// Тип сообщения:<br/>
+/// outbox - исходящее<br/>
+/// inbox - входящее
 /// </summary>
-public record SupervisionDevision
-(
-    /// <summary>
-    /// Наименование поднадзорного подразделения Банка России (необязательное поле).
-    /// </summary>
-    string? Name
-);
-
-/*
+public record MessageType
 {
-    "Name": "Руководство"
+    public static string Inbox => "inbox";
+
+    public static string Outbox => "outbox";
+
+    [JsonIgnore]
+    public static string[] Values => [Inbox, Outbox];
 }
-*/

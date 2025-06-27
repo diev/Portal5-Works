@@ -5,9 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>9.2024.1227</Version>
+    <Version>9.2025.627</Version>
     <Description>Diev's common helper extensions for local projects.</Description>
-    <Copyright>Copyright 2022-2024 Dmitrii Evdokimov</Copyright>
+    <Copyright>Copyright 2022-2025 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <Company>diev</Company>
     <PackageProjectUrl>https://github.com/diev/Portal5-Works</PackageProjectUrl>

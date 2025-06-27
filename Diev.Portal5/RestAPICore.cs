@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,6 +43,7 @@ public class RestAPICore : IRestAPICore
 {
     internal string Api { get; set; } = null!;
 
+    public bool Debug { get; set; }
     public bool SkipExceptions { get; set; }
 
     public JsonSerializerOptions JsonOptions { get; } = 
@@ -53,9 +54,11 @@ public class RestAPICore : IRestAPICore
     /// </summary>
     /// <param name="cred">Windows Credential Manager credential.</param>
     /// <param name="trace">Trace HTTP.</param>
-    public RestAPICore(Credential cred, bool trace)
+    /// <param name="debug">Debug HTTP.</param>
+    public RestAPICore(Credential cred, bool trace, bool debug)
     {
-        PollyClient.Login(cred, trace);
+        Debug = debug;
+        PollyClient.Login(cred, trace, debug);
         SetApi(cred.TargetName.Contains(' ')
             ? cred.TargetName.Split(' ')[1] // Windows Credential Manager
             : cred.TargetName); // open text
@@ -71,7 +74,7 @@ public class RestAPICore : IRestAPICore
     /* 3.1.3 Отправка сообщений */
 
     /// <summary>
-    /// 3.1.3.1 Для создания нового сообщения используется метод POST
+    /// 3.1.3.1 Для создания нового сообщения используется метод POST<br/>
     /// POST: */messages
     /// </summary>
     /// <param name="message">Черновик нового сообщения.</param>
@@ -107,7 +110,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.3.2 Для создания сессии отправки HTTP используется метод POST
+    /// 3.1.3.2 Для создания сессии отправки HTTP используется метод POST<br/>
     /// POST: */messages/{msgId}/files/{fileId}/createUploadSession
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4], полученный в качестве ответа при вызове метода из 3.5.1.</param>
@@ -141,7 +144,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.3.3 Для отправки файла по HTTP используется метод PUT
+    /// 3.1.3.3 Для отправки файла по HTTP используется метод PUT<br/>
     /// PUT: */messages/{msgId}/files/{fileId}
     /// </summary>
     /// <param name="path"></param>
@@ -286,7 +289,7 @@ public class RestAPICore : IRestAPICore
     //}
 
     /// <summary>
-    /// 3.1.3.4 Для подтверждения отправки сообщения используется метод POST
+    /// 3.1.3.4 Для подтверждения отправки сообщения используется метод POST<br/>
     /// POST: */messages/{msgId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -315,15 +318,11 @@ public class RestAPICore : IRestAPICore
     /* 3.1.4 Получение УИО сообщений, квитанций, файлов и информации. */
 
     /// <summary>
-    /// 3.1.4.1 Для получения всех сообщений с учетом необязательного фильтра (не более 100 сообщений за один запрос) используется метод GET.
+    /// 3.1.4.1 Для получения всех сообщений с учетом необязательного фильтра
+    /// (не более 100 сообщений за один запрос) используется метод GET.<br/>
     /// GET: */messages
     /// </summary>
-    /// <param name="filter"></param>
-    /// (если не задан, то вернутся первые 100 сообщений).
-    /// Допустимые значения: n > 0 (положительные целые числа, больше 0).
-    /// Если запрос страницы не указан, возвращается первая страница сообщений.
-    /// Если n за границами диапазона страниц, то вернется пустой массив сообщений.
-    /// В случае некорректного номера страницы – ошибка.</param>
+    /// <param name="filter">Фильтр сообщений.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public async Task<MessagesPage?> GetMessagesPageAsync(MessagesFilter filter)
@@ -332,7 +331,8 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.1 Для получения всех сообщений с учетом необязательного фильтра (не более 100 сообщений за один запрос) используется метод GET.
+    /// 3.1.4.1 Для получения всех сообщений с учетом необязательного фильтра
+    /// (не более 100 сообщений за один запрос) используется метод GET.<br/>
     /// GET: */messages
     /// </summary>
     /// <param name="filter"></param>
@@ -394,7 +394,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.2 Для получения данных о конкретном сообщении используется метод GET
+    /// 3.1.4.2 Для получения данных о конкретном сообщении используется метод GET<br/>
     /// GET: */messages/{msgId}
     /// </summary>
     /// <param name="msgId"></param>
@@ -424,7 +424,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.3 Для скачивания конкретного сообщения используется метод GET
+    /// 3.1.4.3 Для скачивания конкретного сообщения используется метод GET<br/>
     /// GET: */ messages/{msgId}/download
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -440,7 +440,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.4 Для получения данных о конкретном файле используется метод GET
+    /// 3.1.4.4 Для получения данных о конкретном файле используется метод GET<br/>
     /// GET: */messages/{msgId}/files/{fileId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -473,7 +473,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.5 Для скачивания конкретного файла из конкретного сообщения используется метод GET
+    /// 3.1.4.5 Для скачивания конкретного файла из конкретного сообщения используется метод GET<br/>
     /// GET: */messages/{msgId}/files/{fileId}/download
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -497,7 +497,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.6 Для получения данных о квитанциях на сообщение используется метод GET
+    /// 3.1.4.6 Для получения данных о квитанциях на сообщение используется метод GET<br/>
     /// GET: */messages/{msgId}/receipts
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -527,7 +527,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.7 Для получения данных о квитанции на сообщение используется метод GET
+    /// 3.1.4.7 Для получения данных о квитанции на сообщение используется метод GET<br/>
     /// GET: */messages/{msgId}/receipts/{rcptId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -558,7 +558,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.8 Для получения данных о файле квитанции на сообщение используется метод GET
+    /// 3.1.4.8 Для получения данных о файле квитанции на сообщение используется метод GET<br/>
     /// GET: */messages/{msgId}/receipts/{rcptId}/files/{fileId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -590,7 +590,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.4.9 Для скачивания файла квитанции на сообщение используется метод GET
+    /// 3.1.4.9 Для скачивания файла квитанции на сообщение используется метод GET<br/>
     /// GET: */messages/{msgId}/receipts/{rcptId}/files/{fileId}/download
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -619,7 +619,7 @@ public class RestAPICore : IRestAPICore
     /* 3.1.5 Удаление сообщений */
 
     /// <summary>
-    /// 3.1.5.1 Для удаления конкретного сообщения используется метод DELETE
+    /// 3.1.5.1 Для удаления конкретного сообщения используется метод DELETE<br/>
     /// DELETE: */messages/{msgId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -640,7 +640,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.5.2 Для удаления конкретного файла или отмены сессии отправки используется метод DELETE
+    /// 3.1.5.2 Для удаления конкретного файла или отмены сессии отправки используется метод DELETE<br/>
     /// DELETE: */messages/{msgId}/files/{fileId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
@@ -667,15 +667,15 @@ public class RestAPICore : IRestAPICore
     /* 3.1.6 Получение справочной информации */
 
     /// <summary>
-    /// 3.1.6.1 Для получения справочника задач используется метод GET
+    /// 3.1.6.1 Для получения справочника задач используется метод GET<br/>
     /// GET: */tasks
     /// </summary>
     /// <param name="direction">Направление обмена.
-    /// Допустимые значения: 0/1/2.
-    /// 0 - входящие (БР -> ЛК);
-    /// 1 - исходящие (ЛК -> БР);
-    /// 2 - двунаправленные (ЛК -> ЛК).
-    /// Если параметр не указан, возвращается все задачи.
+    /// Допустимые значения: 0/1/2.<br/>
+    /// 0 - входящие (БР -> ЛК);<br/>
+    /// 1 - исходящие (ЛК -> БР);<br/>
+    /// 2 - двунаправленные (ЛК -> ЛК).<br/>
+    /// Если параметр не указан, возвращается все задачи.<br/>
     /// В случае некорректного указания параметра – ошибка.</param>
     /// <returns></returns>
     public async Task<Tasks?> GetTasksAsync(int? direction = null)
@@ -709,7 +709,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.6.2 Для получения информации о своём профиле используется метод GET
+    /// 3.1.6.2 Для получения информации о своём профиле используется метод GET<br/>
     /// GET: */profile
     /// </summary>
     /// <returns></returns>
@@ -738,7 +738,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.6.3 Для получения информации о квоте профиля используется метод GET
+    /// 3.1.6.3 Для получения информации о квоте профиля используется метод GET<br/>
     /// GET: */profile/quota
     /// </summary>
     /// <returns></returns>
@@ -769,7 +769,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.6.4 Для получения информации о технических оповещениях используется метод GET
+    /// 3.1.6.4 Для получения информации о технических оповещениях используется метод GET<br/>
     /// GET: */notifications
     /// </summary>
     /// <returns></returns>
@@ -800,14 +800,13 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.6.5 Для получения списка справочников используется метод GET
+    /// 3.1.6.5 Для получения списка справочников используется метод GET<br/>
     /// GET: */dictionaries
     /// </summary>
-    /// <param name="page"></param>
     /// <returns></returns>
-    public async Task<DictItemsPage?> GetLevelsPageAsync(int page = 1)
+    public async Task<DictItems?> GetLevelsPageAsync()
     {
-        string url = Api + $"dictionaries/?page={page}";
+        string url = Api + $"dictionaries";
         using var response = await PollyClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
@@ -815,7 +814,7 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<DictItemsPage>(stream, JsonOptions);
+                return await JsonSerializer.DeserializeAsync<DictItems>(stream, JsonOptions);
             }
             catch (Exception e)
             {
@@ -837,9 +836,9 @@ public class RestAPICore : IRestAPICore
      */
 
     /// <summary>
-    /// 3.1.6.6 Для получения записей конкретного справочника 1
-    /// (Справочник Тематики 1 уровня),
-    /// но не более 100 записей за один запрос, используется метод GET
+    /// 3.1.6.6 Для получения записей конкретного справочника 1<br/>
+    /// (Справочник Тематики 1 уровня),<br/>
+    /// но не более 100 записей за один запрос, используется метод GET<br/>
     /// GET: */dictionaries/{dictId}
     /// </summary>
     /// <param name="page"></param>
@@ -878,9 +877,9 @@ public class RestAPICore : IRestAPICore
      */
 
     /// <summary>
-    /// 3.1.6.6 Для получения записей конкретного справочника 2
-    /// (Справочник адресатов 2 уровня),
-    /// но не более 100 записей за один запрос, используется метод GET
+    /// 3.1.6.6 Для получения записей конкретного справочника 2<br/>
+    /// (Справочник адресатов 2 уровня),<br/>
+    /// но не более 100 записей за один запрос, используется метод GET<br/>
     /// GET: */dictionaries/{dictId}
     /// </summary>
     /// <param name="page"></param>
@@ -919,9 +918,9 @@ public class RestAPICore : IRestAPICore
      */
 
     /// <summary>
-    /// 3.1.6.6 Для получения записей конкретного справочника 3
-    /// (Справочник адресатов 3 уровня),
-    /// но не более 100 записей за один запрос, используется метод GET
+    /// 3.1.6.6 Для получения записей конкретного справочника 3<br/>
+    /// (Справочник адресатов 3 уровня),<br/>
+    /// но не более 100 записей за один запрос, используется метод GET<br/>
     /// GET: */dictionaries/{dictId}
     /// </summary>
     /// <param name="page"></param>
@@ -954,7 +953,7 @@ public class RestAPICore : IRestAPICore
     }
 
     /// <summary>
-    /// 3.1.6.7 Для скачивания конкретного справочника в виде файла используется метод GET
+    /// 3.1.6.7 Для скачивания конкретного справочника в виде файла используется метод GET<br/>
     /// GET: */dictionaries/{dictId}/download  
     /// </summary>
     /// <param name="dictId">Уникальный идентификатор справочника в формате UUID [4].</param>

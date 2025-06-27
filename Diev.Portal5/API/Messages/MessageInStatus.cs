@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,8 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
 namespace Diev.Portal5.API.Messages;
 
 /// <summary>
@@ -25,23 +27,24 @@ namespace Diev.Portal5.API.Messages;
 public record MessageInStatus
 {
     /// <summary>
-    /// Новое:
+    /// Новое:<br/>
     /// Сообщение в данном статусе еще не прочитано участником
     /// информационного обмена.
     /// </summary>
     public static string New => "new";
 
     /// <summary>
-    /// Прочитано:
+    /// Прочитано:<br/>
     /// Сообщение в данном статусе прочтено пользователем.
     /// </summary>
     public static string Read => "read";
 
     /// <summary>
-    /// Отправлен ответ:
+    /// Отправлен ответ:<br/>
     /// На сообщение в данном статусе направлен ответ.
     /// </summary>
     public static string Replied => "replied";
 
-    public static string[] Values => ["new", "read", "replied"];
+    [JsonIgnore]
+    public static string[] Values => [New, Read, Replied];
 }

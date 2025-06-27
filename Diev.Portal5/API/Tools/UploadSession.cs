@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,20 +20,20 @@ limitations under the License.
 namespace Diev.Portal5.API.Tools;
 
 /// <summary>
-/// Создание сессии отправки по http.
-/// POST https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}/createUploadSession
+/// Создание сессии отправки по http.<br/>
+/// POST https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}/createUploadSession<br/>
 /// 200 OK
 /// </summary>
 public record UploadSession
 (
     /// <summary>
-    /// Путь для загрузки файла.
+    /// Путь для загрузки файла.<br/>
     /// Example: "https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}"
     /// </summary>
     string UploadUrl,
 
     /// <summary>
-    /// Дата и время истечения сессии.
+    /// Дата и время истечения сессии.<br/>
     /// Example: "2023-09-25T16:03:31.81615122Z"
     /// </summary>
     DateTime ExpirationDateTime

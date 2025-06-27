@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2023-2024 Dmitrii Evdokimov
+Copyright 2023-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,8 @@ public static class PollyClient
     /// </summary>
     /// <param name="cred">Windows Credential Manager credential.</param>
     /// <param name="trace">Trace HTTP.</param>
-    public static void Login(Credential cred, bool trace)
+    /// <param name="debug">Debug HTTP.</param>
+    public static void Login(Credential cred, bool trace, bool debug)
     {
         //var app = Assembly.GetExecutingAssembly().GetName();
         var app = Assembly.GetEntryAssembly()?.GetName();
@@ -78,7 +79,7 @@ public static class PollyClient
             ? cred.TargetName.Split(' ')[1] // Windows Credential Manager
             : cred.TargetName; // open text
 
-        _httpClient = new(trace ? new LoggingHandler(handler) : handler, true)
+        _httpClient = new(trace ? new LoggingHandler(handler) { Debug = debug } : handler, true)
         {
             BaseAddress = new Uri(host),
             Timeout = TimeSpan.FromMinutes(10)

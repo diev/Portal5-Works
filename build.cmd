@@ -61,11 +61,12 @@ rem linux
 if /%2/==/4/ dotnet publish %3 -o bin\%4.%5 -f %4 -r %5 --self-contained
 
 rem win
-if /%2/==/1/ del bin\%4.%5\appsettings.json
-if /%2/==/2/ del bin\%4.%5\appsettings.json
-if /%2/==/3/ del bin\%4.%5\appsettings.json
+rem if /%2/==/1/ del bin\%4.%5\appsettings.json
+rem if /%2/==/2/ del bin\%4.%5\appsettings.json
+rem if /%2/==/3/ del bin\%4.%5\appsettings.json
 rem linux
-if /%2/==/4/ del bin\%4.%5\*.config.json
+rem if /%2/==/4/ del bin\%4.%5\*.config.json
+if /%2/==/4/ ren bin\%4.%5\*.config.json appsettings.json
 goto :eof
 
 :init

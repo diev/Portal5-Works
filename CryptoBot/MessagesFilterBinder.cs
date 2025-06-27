@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,18 +20,31 @@ limitations under the License.
 using System.CommandLine;
 using System.CommandLine.Binding;
 
+using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 
 namespace CryptoBot;
 
-public class MessagesFilterBinder(
+public class MessagesFilterBinder
+    (
     Option<string?> task,
-    Option<uint?> before, Option<uint?> days, Option<uint?> day,
-    Option<DateTime?> minDateTime, Option<DateTime?> maxDateTime,
-    Option<uint?> minSize, Option<uint?> maxSize,
-    Option<bool> inbox, Option<bool> outbox,
+
+    Option<uint?> before,
+    Option<uint?> days,
+    Option<uint?> day,
+    Option<DateTime?> minDateTime,
+    Option<DateTime?> maxDateTime,
+
+    Option<uint?> minSize,
+    Option<uint?> maxSize,
+    
+    Option<bool> inbox,
+    Option<bool> outbox,
+    
     Option<string?> status,
-    Option<uint?> page)
+    
+    Option<uint?> page
+    )
     : BinderBase<MessagesFilter>
 {
     protected override MessagesFilter GetBoundValue(BindingContext ctx)
@@ -45,9 +58,11 @@ public class MessagesFilterBinder(
         DateTime? day1 = n is null
             ? null
             : today.AddDays((double)-n);
+
         DateTime? from = d is null
             ? ctx.ParseResult.GetValueForOption(minDateTime)
             : today.AddDays((double)-d);
+
         DateTime? to = b is null
             ? ctx.ParseResult.GetValueForOption(maxDateTime)
             : today.AddDays((double)-b);
@@ -58,12 +73,25 @@ public class MessagesFilterBinder(
         return new()
         {
             Task = ctx.ParseResult.GetValueForOption(task),
-            MinDateTime = n is null ? from : day1,
-            MaxDateTime = n is null ? to : day1!.Value.AddDays(1),
+
+            MinDateTime = n is null
+                ? from
+                : day1,
+            MaxDateTime = n is null
+                ? to
+                : day1!.Value.AddDays(1),
+
             MinSize = ctx.ParseResult.GetValueForOption(minSize),
             MaxSize = ctx.ParseResult.GetValueForOption(maxSize),
-            Type = ibx == obx ? null : ibx ? "inbox" : "outbox",
+
+            Type = ibx == obx
+                ? null
+                : ibx
+                    ? MessageType.Inbox
+                    : MessageType.Outbox,
+
             Status = ctx.ParseResult.GetValueForOption(status),
+
             Page = ctx.ParseResult.GetValueForOption(page)
         };
     }

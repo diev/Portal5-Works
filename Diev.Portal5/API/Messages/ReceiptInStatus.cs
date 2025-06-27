@@ -17,6 +17,8 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
 namespace Diev.Portal5.API.Messages;
 
 /// <summary>
@@ -42,5 +44,6 @@ public record ReceiptInStatus
     /// </summary>
     public static string Replied => "replied";
 
-    public static string[] Values => ["new", "read", "replied"];
+    [JsonIgnore]
+    public static string[] Values => [New, Read, Replied];
 }
