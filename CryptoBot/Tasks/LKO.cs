@@ -37,6 +37,7 @@ internal static class LKO
     //config
     public static string ZipPath { get; }
     public static string DocPath { get; }
+    public static string? DocPath2 { get; }
     public static string? Subscribers { get; }
 
     static LKO()
@@ -45,6 +46,9 @@ internal static class LKO
 
         ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
         DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
+        DocPath2 = config[nameof(DocPath2)] is null
+            ? null
+            : Path.GetFullPath(config[nameof(DocPath2)]!);
         Subscribers = config[nameof(Subscribers)];
     }
 
@@ -72,9 +76,7 @@ internal static class LKO
             }
 
             Logger.TimeZZZLine($"В списке сообщений {messages.Count} шт.");
-
-            StringBuilder report = new();
-            int num = 0;
+            Program.RestAPI.SkipExceptions = true;
 
             // Приступаем к загрузке
             foreach (var message in messages)
@@ -87,41 +89,39 @@ internal static class LKO
                         continue; //TODO alert!
                 }
 
-                if (File.Exists(zip))
+                if (File.Exists(zip) || File.Exists(zip + ".err"))
                     continue;
 
                 if (await Messages.SaveMessageZipAsync(message.Id, zip))
                 {
-                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath);
-                    report
-                        .AppendLine($"-{++num}-")
-                        .AppendLine(msgInfo.ToString());
+                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath, DocPath2);
+                    await Program.SendAsync("ЛК ЦБ исх: " + msgInfo.Subject, msgInfo.ToString(), Subscribers);
                 }
                 else
                 {
-                    Logger.TimeZZZLine($"Файл '{message.Id}.zip' не скачать.");
+                    string error = $"Файл сообщения {message.Id}.zip не скачать.";
+                    Logger.TimeZZZLine(error);
 
-                    var msgInfo = new MessageInfo(message);
-                    report
-                        .AppendLine($"-{++num} не скачать-")
-                        .AppendLine(msgInfo.ToString());
+                    var msgInfo = await Messages.DecryptMessageFilesAsync(message, DocPath, DocPath2);
+                    error += Environment.NewLine + msgInfo.Notes;
+                    msgInfo.Notes = error;
+                    await File.WriteAllTextAsync(zip + ".err", error);
+
+                    await Program.SendFailAsync(nameof(LKO), $"Не скачать файлы к {message.Id}");
+
+                    await Program.SendAsync($"ЛК ЦБ исх: {msgInfo.Subject} [ОШИБКИ]",
+                        msgInfo.ToString(), Subscribers);
                 }
             }
 
-            if (num > 0)
-            {
-                string text = $"Зарегистрировано {num} шт.";
-                Logger.TimeZZZLine(text);
-
-                await Program.SendAsync("ЛК ЦБ исх: " + text, report.ToString(), Subscribers);
-            }
+            Program.RestAPI.SkipExceptions = false;
         }
         catch (Portal5Exception ex)
         {
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(LKO), "API: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(nameof(LKO), "API: " + ex.Message);
             Program.ExitCode = 3;
         }
         catch (TaskException ex)
@@ -129,7 +129,7 @@ internal static class LKO
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(LKO), "Task: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(nameof(LKO), "Task: " + ex.Message);
             Program.ExitCode = 2;
         }
         catch (Exception ex)
@@ -137,7 +137,7 @@ internal static class LKO
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(LKO), ex, Subscribers);
+            await Program.SendFailAsync(nameof(LKO), ex);
             Program.ExitCode = 1;
         }
     }

@@ -17,8 +17,11 @@ limitations under the License.
 */
 #endregion
 
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+
+using CryptoBot.Tasks;
 
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Tools;
@@ -73,6 +76,16 @@ internal static class Messages
             msgInfo.Name!);
     }
 
+    public static string GetDocStore2(Message message, MessageInfo msgInfo, string root)
+    {
+        return Path.Combine(
+            Path.GetFullPath(root),
+            message.Outbox ? "Исх.ЦБ" : "Вх.ЦБ",
+            msgInfo.Date[0..4], // 2024-10-04 => 2024
+            msgInfo.Date[0..7], // 2024-10-04 => 2024-10
+            msgInfo.Name!);
+    }
+
     public static async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter)
     {
         return await Program.RestAPI.GetMessagesAsync(filter)
@@ -92,7 +105,7 @@ internal static class Messages
         return await Program.RestAPI.DownloadMessageZipAsync(id, path);
     }
 
-    public static async Task<MessageInfo> DecryptMessageZipAsync(Message message, string zip, string path)
+    public static async Task<MessageInfo> DecryptMessageZipAsync(Message message, string zip, string path, string? path2)
     {
         string temp = Files.CreateTempDir();
         await Files.UnzipToDirectoryAsync(zip, temp);
@@ -134,8 +147,87 @@ internal static class Messages
         string docs = GetDocStore(message, msgInfo, path);
         await ExtractFilesToDirectoryAsync(message, source, docs);
         msgInfo.FullName = docs;
+        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), msgInfo.ToString());
+
+        if (path2 is not null)
+        {
+            string docs2 = GetDocStore2(message, msgInfo, path2);
+            Directory.CreateDirectory(docs2);
+
+            foreach (var file in Directory.GetFiles(docs))
+                File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), true);
+        }
+
+        Directory.Delete(temp, true);
+
+        return msgInfo;
+    }
+
+    public static async Task<MessageInfo> DecryptMessageFilesAsync(Message message, string path, string? path2)
+    {
+        string temp = Files.CreateTempDir();
+        StringBuilder notes = new();
+
+        foreach (var file in message.Files)
+        {
+            string name = Path.Combine(temp, file.Name);
+
+            if (!await Program.RestAPI.DownloadMessageFileAsync(message.Id, file.Id, name, true))
+            {
+                string error = $"Файл вложения {file.Name.PathQuoted()} не скачать.";
+                Logger.TimeZZZLine(error);
+                notes.AppendLine(error);
+            }
+        }
+
+        string xml = Path.Combine(temp, message.Outbox ? "form.xml" : "passport.xml");
+        string enc = xml + ".enc";
+
+        if (!File.Exists(xml) && File.Exists(enc))
+        {
+            await Program.Crypto.DecryptFileAsync(enc, xml);
+        }
+
+        var msgInfo = new MessageInfo(message, xml);
+        var corrId = message.CorrelationId;
+
+        if (!string.IsNullOrEmpty(corrId))
+        {
+            var corr = await GetMessageInfoAsync(corrId);
+
+            if (corr is null)
+            {
+                msgInfo.CorrDate = "?";
+                msgInfo.CorrNumber = "?";
+                msgInfo.CorrSubject = "?";
+                msgInfo.CorrType = "?";
+                msgInfo.CorrName = "?";
+            }
+            else
+            {
+                msgInfo.CorrDate = corr.Date;
+                msgInfo.CorrNumber = corr.Number;
+                msgInfo.CorrSubject = corr.Subject;
+                msgInfo.CorrType = corr.Type;
+                msgInfo.CorrName = corr.Name;
+            }
+        }
+
+        string docs = GetDocStore(message, msgInfo, path);
+        await ExtractFilesToDirectoryAsync(message, temp, docs);
+        msgInfo.FullName = docs;
+        msgInfo.Notes = notes.ToString();
 
         await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), msgInfo.ToString());
+
+        if (path2 is not null)
+        {
+            string docs2 = GetDocStore2(message, msgInfo, path2);
+            Directory.CreateDirectory(docs2);
+
+            foreach (var file in Directory.GetFiles(docs))
+                File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), true);
+        }
 
         Directory.Delete(temp, true);
 
@@ -227,6 +319,12 @@ internal static class Messages
                     Logger.TimeZZZLine($"Его реально не скачать! {ex.Message}"); //TODO
                     continue;
                 }
+            }
+
+            if (!File.Exists(src))
+            {
+                //Logger.TimeZZZLine("Его реально не скачать - пропускаем!"); //TODO
+                continue;
             }
 
             if (file.Encrypted)

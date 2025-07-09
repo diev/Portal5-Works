@@ -2,11 +2,13 @@
   "LKI": {
     "ZipPath": "Download\\Archive",
     "DocPath": "Download\\Docs",
+    "DocPath2": null,
     "Subscribers": null
   },
   "LKO": {
     "ZipPath": "Download\\Archive",
     "DocPath": "Download\\Docs",
+    "DocPath2": null,
     "Subscribers": null
   },
   "Loader": {
@@ -20,6 +22,7 @@
   },
   "Program": {
     "CryptoName": "CryptoPro My",
+    "EncryptTo": "a6f9aa338bf5742ff6d8b8d6c41cb3cba6a4940f",
     "SmtpName": "SMTP *",
     "Subscribers": null,
     "TargetName": "Portal5test *",
@@ -30,14 +33,12 @@
     "Subscribers": null
   },
   "Zadacha_137": {
-    "EncryptTo": "ef496d5c0e5afaab747b1b0557cfd3a9603915e0",
     "Subscribers": null,
     "UploadPath": "Upload\\OUT137",
     "Xsd": "ClientFileXML.xsd",
     "Zip": "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip"
   },
   "Zadacha_221": {
-    "EncryptTo": "ef496d5c0e5afaab747b1b0557cfd3a9603915e0",
     "Subscribers": null,
     "UploadPath": "Upload\\OUT221",
     "Zip": "AFN_4030702_0000000_{0:yyyyMMdd}_{1:D5}.zip"

@@ -40,7 +40,7 @@ internal static class Zadacha221
     private static string UploadPath { get; }
     private static string ArchivePath { get; }
     private static string Zip { get; }
-    private static string? EncryptTo { get; }
+    //private static string? EncryptTo { get; }
     private static string? Subscribers { get; }
 
     static Zadacha221()
@@ -53,7 +53,7 @@ internal static class Zadacha221
             Path.Combine(UploadPath, "BAK", DateTime.Now.ToString("yyyyMMdd"))
             ).FullName;
         Zip = config[nameof(Zip)] ?? _zip;
-        EncryptTo = config[nameof(EncryptTo)];
+        //EncryptTo = config[nameof(EncryptTo)];
         Subscribers = config[nameof(Subscribers)];
     }
 
@@ -61,7 +61,7 @@ internal static class Zadacha221
     {
         try
         {
-            if (string.IsNullOrEmpty(EncryptTo))
+            if (string.IsNullOrEmpty(Program.EncryptTo))
                 throw new TaskException("В конфиге не указано на кого шифровать.");
 
             string id = guid.ToString();
@@ -91,7 +91,7 @@ internal static class Zadacha221
 
                 // AFN_4030702_0000000_20250623_00001.tpt.zip.enc
                 string enc = tpt + ".enc";
-                if (!await Program.Crypto.EncryptFileAsync(tpt, enc, EncryptTo))
+                if (!await Program.Crypto.EncryptFileAsync(tpt, enc, Program.EncryptTo))
                     throw new TaskException(
                         $"Зашифровать файл {tpt.PathQuoted()} не удалось.");
 
@@ -152,7 +152,7 @@ internal static class Zadacha221
 
                 // AFN_4030702_0000000_20250623_00002.tpt.zip.enc
                 string enc = tpt + ".enc";
-                if (!await Program.Crypto.EncryptFileAsync(tpt, enc, EncryptTo))
+                if (!await Program.Crypto.EncryptFileAsync(tpt, enc, Program.EncryptTo))
                     throw new TaskException(
                         $"Зашифровать файл {tpt.PathQuoted()} не удалось.");
 

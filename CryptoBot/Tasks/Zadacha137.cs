@@ -38,7 +38,7 @@ internal static class Zadacha137
     //private static string ArchivePath { get; }
     private static string Zip { get; }
     private static string? Xsd { get; }
-    private static string? EncryptTo { get; }
+    //private static string? EncryptTo { get; }
     private static string? Subscribers { get; }
 
     static Zadacha137()
@@ -49,7 +49,7 @@ internal static class Zadacha137
         //ArchivePath = string.Format(Path.GetFullPath(config[nameof(ArchivePath)] ?? "."), DateTime.Now);
         Zip = config[nameof(Zip)] ?? _zip;
         Xsd = config[nameof(Xsd)]; // ClientFileXML.xsd
-        EncryptTo = config[nameof(EncryptTo)];
+        //EncryptTo = config[nameof(EncryptTo)];
         Subscribers = config[nameof(Subscribers)];
     }
 
@@ -63,7 +63,7 @@ internal static class Zadacha137
             if (!File.Exists(Xsd))
                 throw new TaskException($"Не найден файл схемы {Xsd.PathQuoted}.");
 
-            if (string.IsNullOrEmpty(EncryptTo))
+            if (string.IsNullOrEmpty(Program.EncryptTo))
                 throw new TaskException("В конфиге не указано на кого шифровать.");
 
             string zip = GetZipToUpload(UploadPath, Zip, days ?? 0);
@@ -81,7 +81,7 @@ internal static class Zadacha137
 
             Logger.TimeZZZLine("Подпись и шифрование");
 
-            await Files.SignAndEncryptToDirectoryAsync(zipFullName, EncryptTo, temp);
+            await Files.SignAndEncryptToDirectoryAsync(zipFullName, Program.EncryptTo, temp);
 
             Logger.TimeZZZLine("Отправка файла");
 
@@ -111,7 +111,7 @@ internal static class Zadacha137
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(_task, "Task: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(_task, "Task: " + ex.Message,   Subscribers);
             Program.ExitCode = 2;
         }
         catch (Exception ex)

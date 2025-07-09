@@ -65,6 +65,22 @@ public class MessageInfo
     public string? FullName { get; set; }
 
     /// <summary>
+    /// Дата последнего изменения статуса сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»).
+    /// </summary>
+    public DateTime? UpdatedDate { get; set; }
+
+    /// <summary>
+    /// Статус сообщения (возможные значения и их описание находится в п.2.4).
+    /// </summary>
+    public string Status { get; set; }
+
+    /// <summary>
+    /// Регистрационный номер.
+    /// </summary>
+    public string? RegNumber { get; set; }
+
+
+    /// <summary>
     /// В ответ на сообщение, если есть.
     /// </summary>
     public string? CorrId { get; set; }
@@ -100,6 +116,11 @@ public class MessageInfo
     public string? CorrFullName { get; set; }
 
     /// <summary>
+    /// Примечания, ошибки.
+    /// </summary>
+    public string? Notes { get; set; }
+
+    /// <summary>
     /// Формирует информацию о сообщении.
     /// </summary>
     /// <param name="message">Сообщение.</param>
@@ -111,13 +132,16 @@ public class MessageInfo
         Id = message.Id;
         CorrId = message.CorrelationId;
         Type = message.Type;
+        UpdatedDate = message.UpdatedDate;
+        Status = message.Status;
+        RegNumber = message.RegNumber;
 
         string? date = null;
         string? number = null;
-        string title = $"{message.Title} {message.Text} {message.RegNumber}";
+        string title = $"{message.Title} {message.Text} {RegNumber}";
 
         Date = date ?? message.CreationDate.ToString("yyyy-MM-dd");
-        Number = number ?? message.RegNumber ?? Id[0..8];
+        Number = number ?? RegNumber ?? Id[0..8];
         Subject = string.Join(' ', title.Split(' ', so));
     }
 
@@ -136,10 +160,13 @@ public class MessageInfo
         Id = message.Id;
         CorrId = message.CorrelationId;
         Type = message.Type;
+        UpdatedDate = message.UpdatedDate;
+        Status = message.Status;
+        RegNumber = message.RegNumber;
 
         string? date = null;
         string? number = null;
-        string title = $"{message.Title} {message.Text} {message.RegNumber}";
+        string title = $"{message.Title} {message.Text} {RegNumber}";
 
         try
         {
@@ -169,7 +196,7 @@ public class MessageInfo
         catch { }
 
         Date = date ?? message.CreationDate.ToString("yyyy-MM-dd");
-        Number = number ?? message.RegNumber ?? Id[0..8];
+        Number = number ?? RegNumber ?? Id[0..8];
         Subject = string.Join(' ', title.Split(' ', so));
 
         number = string.Join('-', Number.Split(' ', so));
@@ -186,7 +213,14 @@ public class MessageInfo
     public override string ToString()
     {
         StringBuilder info = new();
-        info.AppendLine($"{TType(Type)} от {TDate(Date)} N {Number}")
+        info.AppendLine($"{TType(Type)} от {TDate(Date)} N {Number}");
+
+        if (Status.Equals(MessageOutStatus.Registered, StringComparison.Ordinal))
+        {
+            info.AppendLine($"Зарегистрирован {TDate(UpdatedDate)} N {RegNumber}");
+        }
+
+        info
             .AppendLine(Subject)
             .AppendLine("--")
             .AppendLine(Id)
@@ -200,6 +234,11 @@ public class MessageInfo
                 .AppendLine("--")
                 .AppendLine(CorrId)
                 .AppendLine(CorrName);
+        }
+
+        if (Notes is not null)
+        {
+            info.Append(Notes);
         }
 
         return info.ToString();
@@ -216,4 +255,9 @@ public class MessageInfo
         date is null
             ? "?"
             : DateTime.Parse(date).ToString("dd.MM.yyyy");
+
+    private static string TDate(DateTime? date) =>
+        date is null
+            ? "?"
+            : $"{date:dd.MM.yyyy}";
 }

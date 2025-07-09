@@ -49,6 +49,7 @@ internal static class Program
     public static string TargetName { get; }
     public static string UtilName { get; }
     public static string CryptoName { get; }
+    public static string? EncryptTo { get; }
     public static string SmtpName { get; }
     public static string? Subscribers { get; }
     public static bool Debug { get; }
@@ -89,6 +90,7 @@ internal static class Program
         TargetName = config[nameof(TargetName)] ?? "Portal5test *";
         UtilName = config[nameof(UtilName)] ?? "CspTest";
         CryptoName = config[nameof(CryptoName)] ?? "CryptoPro My";
+        EncryptTo = config[nameof(EncryptTo)];
         SmtpName = config[nameof(SmtpName)] ?? "SMTP *";
         Subscribers = config[nameof(Subscribers)];
 
@@ -321,7 +323,7 @@ internal static class Program
         return temp;
     }
 
-    public static async Task SendAsync(string subject, string body, string? subscribers, string[]? files = null)
+    public static async Task SendAsync(string subject, string body, string? subscribers = null, string[]? files = null)
     {
         await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
@@ -330,7 +332,7 @@ internal static class Program
             files);
     }
 
-    public static async Task SendDoneAsync(string task, string body, string? subscribers, string[]? files = null)
+    public static async Task SendDoneAsync(string task, string body, string? subscribers = null, string[]? files = null)
     {
         await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
@@ -339,7 +341,7 @@ internal static class Program
             files);
     }
 
-    public static async Task SendFailAsync(string task, string message, string? subscribers, string[]? files = null)
+    public static async Task SendFailAsync(string task, string message, string? subscribers = null, string[]? files = null)
     {
         await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
@@ -348,7 +350,7 @@ internal static class Program
             files);
     }
 
-    public static async Task SendFailAsync(string task, Exception ex, string? subscribers, string[]? files = null)
+    public static async Task SendFailAsync(string task, Exception ex, string? subscribers = null, string[]? files = null)
     {
         await Program.Smtp.SendMessageAsync(
             ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,

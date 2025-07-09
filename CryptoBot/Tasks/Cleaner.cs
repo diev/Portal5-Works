@@ -53,7 +53,7 @@ internal static class Cleaner
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(Cleaner), "API: " + ex.Message, Program.Subscribers);
+            await Program.SendFailAsync(nameof(Cleaner), "API: " + ex.Message);
             Program.ExitCode = 3;
         }
         catch (TaskException ex)
@@ -61,7 +61,7 @@ internal static class Cleaner
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(Cleaner), "Task: " + ex.Message, Program.Subscribers);
+            await Program.SendFailAsync(nameof(Cleaner), "Task: " + ex.Message);
             Program.ExitCode = 2;
         }
         catch (Exception ex)
@@ -69,7 +69,7 @@ internal static class Cleaner
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(Cleaner), ex, Program.Subscribers);
+            await Program.SendFailAsync(nameof(Cleaner), ex);
             Program.ExitCode = 1;
         }
     }

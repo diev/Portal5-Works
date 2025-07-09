@@ -44,6 +44,7 @@ internal static class Loader
     //config
     public static string ZipPath { get; }
     public static string DocPath { get; }
+    public static string? DocPath2 { get; }
     public static string? Exclude { get; }
     public static string? Subscribers { get; }
 
@@ -53,6 +54,9 @@ internal static class Loader
 
         ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
         DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
+        DocPath2 = config[nameof(DocPath2)] is null
+            ? null
+            : Path.GetFullPath(config[nameof(DocPath2)]!);
         Exclude = config[nameof(Exclude)];
         Subscribers = config[nameof(Subscribers)];
     }
@@ -116,7 +120,7 @@ internal static class Loader
 
                 if (await Messages.SaveMessageZipAsync(message.Id, zip))
                 {
-                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath);
+                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath, DocPath2);
                     report
                         .AppendLine($"-{++num}-")
                         .AppendLine(msgInfo.ToString())
@@ -143,7 +147,7 @@ internal static class Loader
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(Loader), "API: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(nameof(Loader), "API: " + ex.Message);
             Program.ExitCode = 3;
         }
         catch (TaskException ex)
@@ -151,7 +155,7 @@ internal static class Loader
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(Loader), "Task: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(nameof(Loader), "Task: " + ex.Message);
             Program.ExitCode = 2;
         }
         catch (Exception ex)
@@ -159,7 +163,7 @@ internal static class Loader
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(Loader), ex, Subscribers);
+            await Program.SendFailAsync(nameof(Loader), ex);
             Program.ExitCode = 1;
         }
     }
@@ -185,7 +189,7 @@ internal static class Loader
         if (!await Messages.SaveMessageZipAsync(id, zip))
             throw new TaskException($"Сообщение '{id}' не скачать.");
 
-        var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath);
+        var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath, DocPath2);
 
         Console.WriteLine(msgInfo.ToString());
     }

@@ -20,7 +20,6 @@ limitations under the License.
 using CryptoBot.Helpers;
 
 using Diev.Extensions.LogFile;
-using Diev.Portal5;
 using Diev.Portal5.API.Tools;
 using Diev.Portal5.Exceptions;
 
@@ -34,6 +33,7 @@ internal static class LKI
     //config
     public static string ZipPath { get; }
     public static string DocPath { get; }
+    public static string? DocPath2 { get; }
     public static string? Subscribers { get; }
 
     static LKI()
@@ -42,6 +42,9 @@ internal static class LKI
 
         ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
         DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
+        DocPath2 = config[nameof(DocPath2)] is null
+            ? null
+            : Path.GetFullPath(config[nameof(DocPath2)]!);
         Subscribers = config[nameof(Subscribers)];
     }
 
@@ -70,6 +73,7 @@ internal static class LKI
 
             string text = $"В списке сообщений {messages.Count} шт.";
             Logger.TimeZZZLine(text);
+            Program.RestAPI.SkipExceptions = true;
 
             // Приступаем к загрузке
             foreach (var message in messages)
@@ -82,12 +86,12 @@ internal static class LKI
                         continue; //TODO alert!
                 }
 
-                if (File.Exists(zip))
+                if (File.Exists(zip) || File.Exists(zip + ".err"))
                     continue;
 
                 if (await Messages.SaveMessageZipAsync(message.Id, zip))
                 {
-                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath);
+                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath, DocPath2);
                     string docs = msgInfo.FullName!;
                     string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");
 
@@ -95,7 +99,8 @@ internal static class LKI
                         ? [pdf]
                         : Directory.GetFiles(docs, "*.pdf");
 
-                    await Program.SendAsync("ЛК ЦБ вх: " + msgInfo.Subject, msgInfo.ToString(), Subscribers, files);
+                    await Program.SendAsync($"ЛК ЦБ вх: {msgInfo.Subject}",
+                        msgInfo.ToString(), Subscribers, files);
 
                     //string temp = Files.CreateTempDir();
                     //var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath);
@@ -112,13 +117,23 @@ internal static class LKI
                 }
                 else
                 {
-                    Logger.TimeZZZLine($"Файл '{message.Id}.zip' не скачать.");
+                    string error = $"Файл сообщения {message.Id}.zip не скачать.";
+                    Logger.TimeZZZLine(error);
 
-                    var msgInfo = new MessageInfo(message);
-                    await Program.SendAsync("ЛК ЦБ error: " + msgInfo.Subject, msgInfo.ToString(), Subscribers);
+                    //var msgInfo = new MessageInfo(message);
+                    var msgInfo = await Messages.DecryptMessageFilesAsync(message, DocPath, DocPath2);
+                    error += Environment.NewLine + msgInfo.Notes;
+                    msgInfo.Notes = error;
+                    await File.WriteAllTextAsync(zip + ".err", error);
+
+                    await Program.SendFailAsync(nameof(LKI), $"Не скачать файлы к {message.Id}");
+
+                    await Program.SendAsync($"ЛК ЦБ вх: {msgInfo.Subject} [ОШИБКИ]",
+                        msgInfo.ToString(), Subscribers);
                 }
             }
 
+            Program.RestAPI.SkipExceptions = false;
             Logger.TimeZZZLine("Список обработан.");
         }
         catch (Portal5Exception ex)
@@ -126,7 +141,7 @@ internal static class LKI
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(LKI), "API: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(nameof(LKI), "API: " + ex.Message);
             Program.ExitCode = 3;
         }
         catch (TaskException ex)
@@ -134,7 +149,7 @@ internal static class LKI
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(LKI), "Task: " + ex.Message, Subscribers);
+            await Program.SendFailAsync(nameof(LKI), "Task: " + ex.Message);
             Program.ExitCode = 2;
         }
         catch (Exception ex)
@@ -142,7 +157,7 @@ internal static class LKI
             Logger.TimeLine(ex.Message);
             Logger.LastError(ex);
 
-            await Program.SendFailAsync(nameof(LKI), ex, Subscribers);
+            await Program.SendFailAsync(nameof(LKI), ex);
             Program.ExitCode = 1;
         }
     }
