@@ -17,7 +17,6 @@ limitations under the License.
 */
 #endregion
 
-using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -27,7 +26,6 @@ using CryptoBot.Helpers;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Tools;
 using Diev.Portal5;
-using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 using Diev.Portal5.Exceptions;
 
@@ -41,24 +39,27 @@ internal static class Loader
         WriteIndented = true
     };
 
+    private const string _task = nameof(Loader);
+
     //config
     public static string ZipPath { get; }
     public static string DocPath { get; }
     public static string? DocPath2 { get; }
-    public static string? Exclude { get; }
-    public static string? Subscribers { get; }
+    public static string[] Exclude { get; }
+    public static string[] Subscribers { get; }
 
     static Loader()
     {
-        var config = Program.Config.GetSection(nameof(Loader));
+        var config = Program.Config.GetSection(_task);
 
         ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
         DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
         DocPath2 = config[nameof(DocPath2)] is null
             ? null
             : Path.GetFullPath(config[nameof(DocPath2)]!);
-        Exclude = config[nameof(Exclude)];
-        Subscribers = config[nameof(Subscribers)];
+
+        Exclude = JsonSection.Values(config, nameof(Exclude));
+        Subscribers = JsonSection.Subscribers(config);
     }
 
     public static async Task RunAsync(Guid? guid, MessagesFilter filter)
@@ -93,7 +94,6 @@ internal static class Loader
                 .AppendLine(text)
                 .AppendLine();
             int num = 0;
-            var skips = Exclude?.Split(',');
 
             // Приступаем к загрузке
             foreach (var message in messages)
@@ -104,7 +104,7 @@ internal static class Loader
 
                 // Пропускаем игнорируемые задачи
                 string task = message.TaskName.Split('_')[1];
-                if (skips != null && skips.Contains(task))
+                if (Exclude.Contains(task))
                     continue;
 
                 (string json, string zip) = Messages.GetZipStore(message, ZipPath);
@@ -138,33 +138,23 @@ internal static class Loader
                 }
             }
 
-            Logger.TimeZZZLine("Список обработан.");
-
-            await Program.SendAsync($"ЛК ЦБ: Загружено {num} шт.", report.ToString(), Subscribers);
+            Program.Done($"ЛК ЦБ: Загружено {num} шт.", report.ToString(), Subscribers);
+        }
+        catch (NoMessagesException ex)
+        {
+            Program.Done(_task, ex.Message, Subscribers);
         }
         catch (Portal5Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(Loader), "API: " + ex.Message);
-            Program.ExitCode = 3;
+            Program.FailAPI(_task, ex, Subscribers);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(Loader), "Task: " + ex.Message);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex, Subscribers);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(Loader), ex);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex, Subscribers);
         }
     }
 

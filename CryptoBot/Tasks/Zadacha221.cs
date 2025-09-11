@@ -40,8 +40,7 @@ internal static class Zadacha221
     private static string UploadPath { get; }
     private static string ArchivePath { get; }
     private static string Zip { get; }
-    //private static string? EncryptTo { get; }
-    private static string? Subscribers { get; }
+    private static string[] Subscribers { get; }
 
     static Zadacha221()
     {
@@ -53,8 +52,8 @@ internal static class Zadacha221
             Path.Combine(UploadPath, "BAK", DateTime.Now.ToString("yyyyMMdd"))
             ).FullName;
         Zip = config[nameof(Zip)] ?? _zip;
-        //EncryptTo = config[nameof(EncryptTo)];
-        Subscribers = config[nameof(Subscribers)];
+
+        Subscribers = JsonSection.Subscribers(config);
     }
 
     public static async Task RunAsync(Guid guid)
@@ -122,9 +121,8 @@ internal static class Zadacha221
                 message = await Messages.CheckStatusAsync(msgId, 20);
 
                 string report = $"Файл {enc.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-                Logger.TimeZZZLine(report);
 
-                await Program.SendDoneAsync(_task, report, Subscribers);
+                Program.Done(_task, report, Subscribers);
                 File.Delete(enc);
             }
 
@@ -184,9 +182,8 @@ internal static class Zadacha221
                 message = await Messages.CheckStatusAsync(msgId, 20);
 
                 string report = $"Файл {enc.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-                Logger.TimeZZZLine(report);
 
-                await Program.SendDoneAsync(_task, report, Subscribers);
+                Program.Done(_task, report, Subscribers);
                 File.Delete(enc);
             }
 
@@ -195,27 +192,15 @@ internal static class Zadacha221
         }
         catch (Portal5Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, "API: " + ex.Message, Subscribers);
-            Program.ExitCode = 3;
+            Program.FailAPI(_task, ex, Subscribers);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, "Task: " + ex.Message, Subscribers);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex, Subscribers);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, ex, Subscribers);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex, Subscribers);
         }
     }
 

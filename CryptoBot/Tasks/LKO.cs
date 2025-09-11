@@ -17,12 +17,9 @@ limitations under the License.
 */
 #endregion
 
-using System.Text;
-
 using CryptoBot.Helpers;
 
 using Diev.Extensions.LogFile;
-using Diev.Portal5;
 using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 using Diev.Portal5.Exceptions;
@@ -34,22 +31,25 @@ namespace CryptoBot.Tasks;
 /// </summary>
 internal static class LKO
 {
+    private const string _task = nameof(LKO);
+
     //config
     public static string ZipPath { get; }
     public static string DocPath { get; }
     public static string? DocPath2 { get; }
-    public static string? Subscribers { get; }
+    public static string[] Subscribers { get; }
 
     static LKO()
     {
-        var config = Program.Config.GetSection(nameof(LKO));
+        var config = Program.Config.GetSection(_task);
 
         ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
         DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
         DocPath2 = config[nameof(DocPath2)] is null
             ? null
             : Path.GetFullPath(config[nameof(DocPath2)]!);
-        Subscribers = config[nameof(Subscribers)];
+
+        Subscribers = JsonSection.Subscribers(config);
     }
 
     public static async Task RunAsync(uint? days)
@@ -95,7 +95,8 @@ internal static class LKO
                 if (await Messages.SaveMessageZipAsync(message.Id, zip))
                 {
                     var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath, DocPath2);
-                    await Program.SendAsync("ЛК ЦБ исх: " + msgInfo.Subject, msgInfo.ToString(), Subscribers);
+
+                    Program.Send("ЛК ЦБ исх: " + msgInfo.Subject, msgInfo.ToString(), Subscribers);
                 }
                 else
                 {
@@ -107,38 +108,27 @@ internal static class LKO
                     msgInfo.Notes = error;
                     await File.WriteAllTextAsync(zip + ".err", error);
 
-                    await Program.SendFailAsync(nameof(LKO), $"Не скачать файлы к {message.Id}");
-
-                    await Program.SendAsync($"ЛК ЦБ исх: {msgInfo.Subject} [ОШИБКИ]",
+                    Program.Send($"ЛК ЦБ исх: {msgInfo.Subject} [ОШИБКИ]",
                         msgInfo.ToString(), Subscribers);
+
+                    Program.Fail(_task, $"Не скачать файлы к {message.Id}");
                 }
             }
 
             Program.RestAPI.SkipExceptions = false;
+            Logger.TimeZZZLine("Список обработан.");
         }
         catch (Portal5Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(LKO), "API: " + ex.Message);
-            Program.ExitCode = 3;
+            Program.FailAPI(_task, ex, Subscribers);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(LKO), "Task: " + ex.Message);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex, Subscribers);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(LKO), ex);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex, Subscribers);
         }
     }
 }

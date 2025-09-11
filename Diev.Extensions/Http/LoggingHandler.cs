@@ -17,7 +17,6 @@ limitations under the License.
 */
 #endregion
 
-using System.Net;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -83,17 +82,20 @@ internal class LoggingHandler : DelegatingHandler
                     Logger.Line($"{request.Content.Headers.ContentLength} bytes sent");
                 }
             }
-
         }
 
         Logger.Flush(1);
 
-        var response = Debug
-            ? new HttpResponseMessage() { StatusCode = HttpStatusCode.ServiceUnavailable } // don't touch the server!
-            : await base.SendAsync(request, cancellationToken); // send to the server
+        //TODO Debug emulation but Debug is used for logging currently!
+        //var response = Debug
+        //    ? new HttpResponseMessage() { StatusCode = HttpStatusCode.ServiceUnavailable } // don't touch the server!
+        //    : await base.SendAsync(request, cancellationToken); // send to the server
+
+        var response = await base.SendAsync(request, cancellationToken);
 
         Logger.TimeLine($"Response {response}");
 
+        //if (!Debug && response.Content is not null)
         if (response.Content is not null)
         {
             var type = response.Content.Headers.ContentType;

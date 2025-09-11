@@ -30,22 +30,25 @@ namespace CryptoBot.Tasks;
 /// </summary>
 internal static class LKI
 {
+    private const string _task = nameof(LKI);
+
     //config
     public static string ZipPath { get; }
     public static string DocPath { get; }
     public static string? DocPath2 { get; }
-    public static string? Subscribers { get; }
+    public static string[] Subscribers { get; }
 
     static LKI()
     {
-        var config = Program.Config.GetSection(nameof(LKI));
+        var config = Program.Config.GetSection(_task);
 
         ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
         DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
         DocPath2 = config[nameof(DocPath2)] is null
             ? null
             : Path.GetFullPath(config[nameof(DocPath2)]!);
-        Subscribers = config[nameof(Subscribers)];
+
+        Subscribers = JsonSection.Subscribers(config);
     }
 
     public static async Task RunAsync(uint? days)
@@ -99,21 +102,8 @@ internal static class LKI
                         ? [pdf]
                         : Directory.GetFiles(docs, "*.pdf");
 
-                    await Program.SendAsync($"ЛК ЦБ вх: {msgInfo.Subject}",
+                    Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
                         msgInfo.ToString(), Subscribers, files);
-
-                    //string temp = Files.CreateTempDir();
-                    //var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath);
-
-                    //string repack = Path.Combine(temp, msgInfo.Name + ".zip");
-                    //await Files.ZipDirectoryAsync(msgInfo.FullName!, repack);
-
-                    //string url = Path.Combine(temp, msgInfo.Name + ".url");
-                    //await File.WriteAllTextAsync(url, Files.MakeUrl(msgInfo.FullName!));
-
-                    //var attach = new string[] { repack, url };
-                    //await Program.SendAsync("ЛК ЦБ: " + msgInfo.Subject, msgInfo.ToString(), Subscribers, attach);
-                    //Directory.Delete(temp, true);
                 }
                 else
                 {
@@ -126,10 +116,10 @@ internal static class LKI
                     msgInfo.Notes = error;
                     await File.WriteAllTextAsync(zip + ".err", error);
 
-                    await Program.SendFailAsync(nameof(LKI), $"Не скачать файлы к {message.Id}");
-
-                    await Program.SendAsync($"ЛК ЦБ вх: {msgInfo.Subject} [ОШИБКИ]",
+                    Program.Send($"ЛК ЦБ вх: {msgInfo.Subject} [ОШИБКИ]",
                         msgInfo.ToString(), Subscribers);
+
+                    Program.Fail(_task, $"Не скачать файлы к {message.Id}");
                 }
             }
 
@@ -138,27 +128,15 @@ internal static class LKI
         }
         catch (Portal5Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(LKI), "API: " + ex.Message);
-            Program.ExitCode = 3;
+            Program.FailAPI(_task, ex, Subscribers);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(LKI), "Task: " + ex.Message);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex, Subscribers);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(LKI), ex);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex, Subscribers);
         }
     }
 }

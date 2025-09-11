@@ -38,8 +38,7 @@ internal static class Zadacha137
     //private static string ArchivePath { get; }
     private static string Zip { get; }
     private static string? Xsd { get; }
-    //private static string? EncryptTo { get; }
-    private static string? Subscribers { get; }
+    private static string[] Subscribers { get; }
 
     static Zadacha137()
     {
@@ -49,12 +48,18 @@ internal static class Zadacha137
         //ArchivePath = string.Format(Path.GetFullPath(config[nameof(ArchivePath)] ?? "."), DateTime.Now);
         Zip = config[nameof(Zip)] ?? _zip;
         Xsd = config[nameof(Xsd)]; // ClientFileXML.xsd
-        //EncryptTo = config[nameof(EncryptTo)];
-        Subscribers = config[nameof(Subscribers)];
+
+        Subscribers = JsonSection.Subscribers(config);
     }
 
     public static async Task RunAsync(uint? days)
     {
+        //if (Program.Debug)
+        //{
+        //    Program.Send(_task, "Test report", Subscribers);
+        //    return;
+        //}
+
         try
         {
             if (string.IsNullOrEmpty(Xsd))
@@ -68,7 +73,7 @@ internal static class Zadacha137
 
             string zip = GetZipToUpload(UploadPath, Zip, days ?? 0);
             string zipFullName = Path.Combine(UploadPath, zip);
-            string temp = Program.GetTempPath(UploadPath);
+            string temp = Paths.GetTempPath(UploadPath);
 
             await Files.UnzipToDirectoryAsync(zipFullName, temp);
 
@@ -77,6 +82,7 @@ internal static class Zadacha137
             foreach (var xml in Directory.EnumerateFiles(temp, "*.xml"))
             {
                 await XsdChecker.CheckAsync(xml, Xsd);
+                File.Delete(xml);
             }
 
             Logger.TimeZZZLine("Подпись и шифрование");
@@ -84,6 +90,12 @@ internal static class Zadacha137
             await Files.SignAndEncryptToDirectoryAsync(zipFullName, Program.EncryptTo, temp);
 
             Logger.TimeZZZLine("Отправка файла");
+
+            //string msgId = Program.Debug
+            //    ? "6a5d688b-8ba2-431f-af92-b35400eadde4" //test
+            //    : await UploadAsync(temp);
+
+            //Thread.Sleep(Program.Debug ? 1000 : 60000);
 
             string msgId = await UploadAsync(temp);
 
@@ -94,33 +106,20 @@ internal static class Zadacha137
             var message = await Messages.CheckStatusAsync(msgId, 20);
 
             string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-            Logger.TimeZZZLine(report);
 
-            await Program.SendDoneAsync(_task, report, Subscribers);
+            Program.Done(_task, report, Subscribers);
         }
         catch (Portal5Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, "API: " + ex.Message, Subscribers);
-            Program.ExitCode = 3;
+            Program.FailAPI(_task, ex, Subscribers);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, "Task: " + ex.Message,   Subscribers);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex, Subscribers);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, ex, Subscribers);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex, Subscribers);
         }
     }
 
@@ -164,12 +163,25 @@ internal static class Zadacha137
 
     /// <summary>
     /// Отправляет папку файлов на сервер.
+    /// Прикладывает МЧД (xml + sig), если указан массив файлов xml.
     /// </summary>
     /// <param name="path">Путь к папке для отправки.</param>
     /// <returns>Идентификатор созданного сообщения.</returns>
     /// <exception cref="TaskException"></exception>
     private static async Task<string> UploadAsync(string path)
     {
+        const string sig = ".sig";
+
+        if (Program.DoverXml.Length > 0)
+        {
+            foreach (var xml in Program.DoverXml)
+            {
+                string name = Path.GetFileName(xml);
+                File.Copy(xml, Path.Combine(path, name), true);
+                File.Copy(xml + sig, Path.Combine(path, name + sig), true);
+            }
+        }
+
         var msgId = await Program.RestAPI.UploadDirectoryAsync(_task, _title, path);
 
         if (msgId is not null)

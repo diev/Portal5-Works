@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2025 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,9 @@ limitations under the License.
 #endregion
 
 using System.Text;
+
 using Diev.Extensions.Tools;
+
 using Path = System.IO.Path;
 
 namespace Diev.Extensions.LogFile;
@@ -31,42 +33,28 @@ public static class Logger
 
     private const int _defaultEncoding = 1251;
 
-    // appsetting.json
+    // appsettings.json
     public static string FileNameFormat { get; set; } = @"logs\{0:yyyy-MM}\{0:yyyyMMdd-HHmm}.log";
     public static int FileEncoding { get; set; } = _defaultEncoding;
     public static string LineFormat { get; set; } = @"{0:HH:mm:ss.fff} {1}";
     public static bool LogToConsole { get; set; } = false;
+    public static bool AutoFlush { get; set; } = false;
 
     // internal use
     public static string FileName { get; set; } = "Trace.log";
-    public static string LastErrorFileName { get; set; } = "LastError.txt";
+    public static string LastErrorFileName => Path.Combine(FilePath, "LastError.txt");
     public static string FilePath => Path.GetDirectoryName(Path.GetFullPath(FileName))!;
     public static Encoding EncodingValue { get; set; } = Encoding.GetEncoding(_defaultEncoding);
 
     public static void Reset()
     {
         _lines.Clear();
+        EncodingValue = Encoding.GetEncoding(FileEncoding);
 
         FileName = Path.GetFullPath(
             string.Format(Environment.ExpandEnvironmentVariables(FileNameFormat), DateTime.Now));
-        string path = Path.GetDirectoryName(FileName)!;
-        Directory.CreateDirectory(path);
-        LastErrorFileName = Path.Combine(path, "LastError.txt");
-
-        EncodingValue = Encoding.GetEncoding(FileEncoding);
+        Directory.CreateDirectory(FilePath); //TODO Exceptions
     }
-
-    //public static void Reset(IConfiguration config)
-    //{
-    //    _lines.Clear();
-    //    config.Bind(nameof(Logger), Settings);
-
-    //    Settings.FileName = Path.GetFullPath(string.Format(Environment.ExpandEnvironmentVariables(
-    //        Settings.FileNameFormat), DateTime.Now));
-    //    Directory.CreateDirectory(Path.GetDirectoryName(Settings.FileName)!);
-
-    //    Settings.EncodingValue = Encoding.GetEncoding(Settings.FileEncoding);
-    //}
 
     /// <summary>
     /// Add "DATE-TIME Text line."
@@ -74,8 +62,7 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void TimeLine(string text)
     {
-        _lines.AppendFormat(LineFormat, DateTime.Now, text)
-            .AppendLine();
+        AppendLine(string.Format(LineFormat, DateTime.Now, text));
     }
 
     /// <summary>
@@ -84,13 +71,7 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void TimeZZZLine(string text)
     {
-        //if (LogToConsole)
-        //{
-            Console.WriteLine(text);
-        //}
-
-        _lines.AppendFormat(LineFormat, DateTime.Now, "### " + text)
-            .AppendLine();
+        AppendLine(string.Format(LineFormat, DateTime.Now, "### " + text));
     }
 
     /// <summary>
@@ -109,7 +90,7 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void Line(string text)
     {
-        _lines.AppendLine(text);
+        AppendLine(text);
     }
 
     /// <summary>
@@ -118,13 +99,8 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void Title(string text)
     {
-        _lines.AppendLine().Append("### ").AppendLine(text).AppendLine();
+        AppendLine(Environment.NewLine + "### " + text + Environment.NewLine);
         Flush();
-
-        if (LogToConsole)
-        {
-            Console.WriteLine(text);
-        }
     }
 
     /// <summary>
@@ -133,15 +109,8 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void Write(string text)
     {
-        string line = string.Format(LineFormat, DateTime.Now, text);
-
+        AppendLine(string.Format(LineFormat, DateTime.Now, text));
         Flush();
-        File.AppendAllText(FileName, line + Environment.NewLine, EncodingValue);
-
-        if (LogToConsole)
-        {
-            Console.WriteLine(line);
-        }
     }
 
     /// <summary>
@@ -171,12 +140,22 @@ public static class Logger
     /// <param name="text">Text line.</param>
     public static void WriteLine(string text)
     {
+        AppendLine(text);
         Flush();
-        File.AppendAllText(FileName, text + Environment.NewLine, EncodingValue);
+    }
 
+    private static void AppendLine(string text)
+    {
         if (LogToConsole)
         {
             Console.WriteLine(text);
+        }
+
+        _lines.AppendLine(text);
+
+        if (AutoFlush)
+        {
+            Flush();
         }
     }
 
@@ -194,12 +173,9 @@ public static class Logger
 
             string lines = _lines.ToString();
 
-            File.AppendAllText(FileName, lines, EncodingValue);
-
-            if (LogToConsole)
-            {
-                Console.WriteLine(lines);
-            }
+            var fi = new FileInfo(FileName);
+            fi.Directory?.Create(); //TODO Exceptions
+            File.AppendAllTextAsync(FileName, lines, EncodingValue).Wait();
 
             _lines.Clear();
         }
@@ -224,7 +200,10 @@ public static class Logger
         LogToConsole = visible;
 
         var error = $"--- {DateTime.Now} ---{Environment.NewLine}{e}{Environment.NewLine}{e.InnerException}{Environment.NewLine}";
-        File.AppendAllText(LastErrorFileName, error);
+
+        var fi = new FileInfo(LastErrorFileName);
+        fi.Directory?.Create(); //TODO Exceptions
+        File.AppendAllTextAsync(LastErrorFileName, error).Wait();
     }
 
     /// <summary>

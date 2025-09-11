@@ -23,7 +23,9 @@ using System.CommandLine.Help;
 using System.CommandLine.Parsing;
 using System.Text;
 
+using CryptoBot.Helpers;
 using CryptoBot.Tasks;
+
 using Diev.Extensions.Credentials;
 using Diev.Extensions.Crypto;
 using Diev.Extensions.Info;
@@ -43,15 +45,14 @@ internal static class Program
     public static IConfiguration Config { get; } = null!;
     public static ICrypto Crypto { get; } = null!;
     public static RestAPI RestAPI { get; } = null!;
-    public static Smtp Smtp { get; }
 
     //config
     public static string TargetName { get; }
     public static string UtilName { get; }
     public static string CryptoName { get; }
     public static string? EncryptTo { get; }
-    public static string SmtpName { get; }
-    public static string? Subscribers { get; }
+    public static string[] DoverXml { get; }
+    public static string[] Subscribers { get; }
     public static bool Debug { get; }
 
     static Program()
@@ -91,8 +92,11 @@ internal static class Program
         UtilName = config[nameof(UtilName)] ?? "CspTest";
         CryptoName = config[nameof(CryptoName)] ?? "CryptoPro My";
         EncryptTo = config[nameof(EncryptTo)];
-        SmtpName = config[nameof(SmtpName)] ?? "SMTP *";
-        Subscribers = config[nameof(Subscribers)];
+
+        //МЧД
+        DoverXml = JsonSection.DoverXml(config);
+
+        Subscribers = JsonSection.Subscribers(config);
 
         Debug = bool.Parse(config[nameof(Debug)] ?? "false");
 
@@ -102,7 +106,12 @@ internal static class Program
             _ => new CspTest(CryptoName),
         };
 
-        Smtp = new(SmtpName);
+        if (Debug)
+        {
+            Logger.AutoFlush = true;
+            Logger.LogToConsole = true;
+        }
+
         Logger.Reset();
 
         var portal5 = CredentialManager.ReadCredential(TargetName);
@@ -111,253 +120,263 @@ internal static class Program
 
     internal static async Task<int> Main(string[] args)
     {
-        Console.WriteLine(App.Title);
-
-        var rootCommand = new RootCommand(App.Description);
-        
-        #region filter
-        var idOption = new Option<Guid?>(
-            "--id", "Идентификатор одного сообщения (guid)");
-
-        var taskOption = new Option<string?>(
-            "--zadacha", "Номер задачи XX[,XX, ...]");
-        taskOption.AddAlias(
-            "-z");
-
-        var beforeOption = new Option<uint?>(
-            "--before", "Ранее скольки дней назад (7 - раньше недели назад)");
-        beforeOption.AddAlias(
-            "-b");
-
-        var daysOption = new Option<uint?>(
-            "--days", "Сколько последних дней (7 - на этой неделе)");
-        daysOption.AddAlias(
-            "-d");
-
-        var dayOption = new Option<uint?>(
-            "--day", "Какой день назад конкретно (1 - вчера)");
-        dayOption.AddAlias(
-            "-n");
-
-        var minDateTimeOption = new Option<DateTime?>(
-            "--min-date", "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])");
-        minDateTimeOption.AddAlias(
-            "-f");
-
-        var maxDateTimeOption = new Option<DateTime?>(
-            "--max-date", "До какой даты (время по умолчанию 00:00!)");
-        maxDateTimeOption.AddAlias(
-            "-t");
-
-        var minSizeOption = new Option<uint?>(
-            "--min-size", "От какого размера (байты)");
-        var maxSizeOption = new Option<uint?>(
-            "--max-size", "До какого размера (байты)");
-
-        var inboxOption = new Option<bool>(
-            "--inbox", "Входящие сообщения только");
-
-        var outboxOption = new Option<bool>(
-            "--outbox", "Исходящие сообщения только");
-
-        var statusOption = new Option<string?>(
-            "--status", "Статус сообщений");
-        var status2 = string.Join(' ', MessageInStatus.Values) + ' ' +
-            string.Join(' ', MessageOutStatus.Values);
-        statusOption.FromAmong(status2.Split(' '));
-
-        var pageOption = new Option<uint?>(
-            "--page", "Номер страницы (по 100 сообщений)");
-        #endregion filter
-
-        #region tasks
-        var lkiCommand = new Command(
-            "lki", "ЛК: Входящие")
+        try
         {
-            daysOption
-        };
-        rootCommand.Add(lkiCommand);
-        lkiCommand.SetHandler(LKI.RunAsync, daysOption);
+            Console.WriteLine(App.Title);
 
-        var lkoCommand = new Command(
-            "lko", "ЛК: Исходящие")
-        {
-            daysOption
-        };
-        rootCommand.Add(lkoCommand);
-        lkoCommand.SetHandler(LKO.RunAsync, daysOption);
+            var rootCommand = new RootCommand(App.Description);
 
-        var z130Command = new Command(
-            "z130", "ЗСК: Получение информации об уровне риска ЮЛ/ИП")
-        {
-            daysOption
-        };
-        rootCommand.Add(z130Command);
-        z130Command.SetHandler(Zadacha130.RunAsync, daysOption);
+            #region filter
+            var idOption = new Option<Guid?>(
+                "--id", "Идентификатор одного сообщения (guid)");
 
-        var z137Command = new Command(
-            "z137", "ЗСК: Ежедневное информирование Банка России о составе и объеме клиентской базы")
-        {
-            daysOption
-        };
-        rootCommand.Add(z137Command);
-        z137Command.SetHandler(Zadacha137.RunAsync, daysOption);
+            var taskOption = new Option<string?>(
+                "--zadacha", "Номер задачи XX[,XX, ...]");
+            taskOption.AddAlias(
+                "-z");
 
-        var z222Command = new Command(
-            "z222", "ZBR: Получение Запроса информации о платежах КО")
-        {
-            daysOption
-        };
-        rootCommand.Add(z222Command);
-        z222Command.SetHandler(Zadacha222.RunAsync, daysOption);
+            var beforeOption = new Option<uint?>(
+                "--before", "Ранее скольки дней назад (7 - раньше недели назад)");
+            beforeOption.AddAlias(
+                "-b");
 
-        var reqOption = new Option<Guid>(
-            "--req", "Идентификатор Запроса (guid)");
+            var daysOption = new Option<uint?>(
+                "--days", "Сколько последних дней (7 - на этой неделе)");
+            daysOption.AddAlias(
+                "-d");
 
-        var z221Command = new Command(
-            "z221", "ZBR: Ответ на Запрос информации о платежах КО")
-        {
-            reqOption
-        };
-        rootCommand.Add(z221Command);
-        z221Command.SetHandler(Zadacha221.RunAsync, reqOption);
-        #endregion tasks
+            var dayOption = new Option<uint?>(
+                "--day", "Какой день назад конкретно (1 - вчера)");
+            dayOption.AddAlias(
+                "-n");
 
-        #region filter commands
-        var loadCommand = new Command(
-            "load", "API: Загрузить сообщения по <id> или по фильтру")
-        {
-            idOption,
-            // or
-            taskOption,
-            beforeOption, daysOption, dayOption,
-            minDateTimeOption, maxDateTimeOption,
-            minSizeOption, maxSizeOption,
-            inboxOption, outboxOption,
-            statusOption,
-            pageOption
-        };
+            var minDateTimeOption = new Option<DateTime?>(
+                "--min-date", "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])");
+            minDateTimeOption.AddAlias(
+                "-f");
 
-        var cleanCommand = new Command(
-            "clean", "API: Удалить сообщения по <id> или по фильтру")
-        {
-            idOption,
-            // or
-            taskOption,
-            beforeOption, daysOption, dayOption,
-            minDateTimeOption, maxDateTimeOption,
-            minSizeOption, maxSizeOption,
-            inboxOption, outboxOption,
-            statusOption,
-            pageOption
-        };
-        #endregion filter commands
+            var maxDateTimeOption = new Option<DateTime?>(
+                "--max-date", "До какой даты (время по умолчанию 00:00!)");
+            maxDateTimeOption.AddAlias(
+                "-t");
 
-        #region messages
-        rootCommand.AddCommand(loadCommand);
-        rootCommand.AddCommand(cleanCommand);
+            var minSizeOption = new Option<uint?>(
+                "--min-size", "От какого размера (байты)");
+            var maxSizeOption = new Option<uint?>(
+                "--max-size", "До какого размера (байты)");
 
-        loadCommand.SetHandler(Loader.RunAsync,
-            idOption,
-            // or
-            new MessagesFilterBinder(
-                taskOption,
-                beforeOption, daysOption, dayOption,
-                minDateTimeOption, maxDateTimeOption,
-                minSizeOption, maxSizeOption,
-                inboxOption, outboxOption,
-                statusOption,
-                pageOption));
+            var inboxOption = new Option<bool>(
+                "--inbox", "Входящие сообщения только");
 
-        cleanCommand.SetHandler(Cleaner.RunAsync,
-            idOption,
-            // or
-            new MessagesFilterBinder(
-                taskOption,
-                beforeOption, daysOption, dayOption,
-                minDateTimeOption, maxDateTimeOption,
-                minSizeOption, maxSizeOption,
-                inboxOption, outboxOption,
-                statusOption,
-                pageOption));
-        #endregion messages
+            var outboxOption = new Option<bool>(
+                "--outbox", "Исходящие сообщения только");
 
-        #region parse
-        var parser = new CommandLineBuilder(rootCommand)
-            .UseDefaults()
-            .UseHelp(ctx =>
+            var statusOption = new Option<string?>(
+                "--status", "Статус сообщений");
+            var status2 = string.Join(' ', MessageInStatus.Values) + ' ' +
+                string.Join(' ', MessageOutStatus.Values);
+            statusOption.FromAmong(status2.Split(' '));
+
+            var pageOption = new Option<uint?>(
+                "--page", "Номер страницы (по 100 сообщений)");
+            #endregion filter
+
+            #region tasks
+            var lkiCommand = new Command(
+                "lki", "ЛК: Входящие")
             {
-                ctx.HelpBuilder.CustomizeSymbol(statusOption,
-                    $"--{statusOption.Name} <{statusOption.Name}>",
-                    statusOption.Description +
-                    Environment.NewLine +
-                    "для inbox: " + string.Join(", ", MessageInStatus.Values) + 
-                    Environment.NewLine +
-                    "для outbox: " + string.Join(", ", MessageOutStatus.Values));
-            })
-            .Build();
+                daysOption
+            };
+            rootCommand.Add(lkiCommand);
+            lkiCommand.SetHandler(LKI.RunAsync, daysOption);
 
-        await parser.InvokeAsync(args);
-        #endregion parse
+            var lkoCommand = new Command(
+                "lko", "ЛК: Исходящие")
+            {
+                daysOption
+            };
+            rootCommand.Add(lkoCommand);
+            lkoCommand.SetHandler(LKO.RunAsync, daysOption);
 
-        Logger.Flush();
+            var z130Command = new Command(
+                "z130", "ЗСК: Получение информации об уровне риска ЮЛ/ИП")
+            {
+                daysOption
+            };
+            rootCommand.Add(z130Command);
+            z130Command.SetHandler(Zadacha130.RunAsync, daysOption);
+
+            var z137Command = new Command(
+                "z137", "ЗСК: Ежедневное информирование Банка России о составе и объеме клиентской базы")
+            {
+                daysOption
+            };
+            rootCommand.Add(z137Command);
+            z137Command.SetHandler(Zadacha137.RunAsync, daysOption);
+
+            var z222Command = new Command(
+                "z222", "ZBR: Получение Запроса информации о платежах КО")
+            {
+                daysOption
+            };
+            rootCommand.Add(z222Command);
+            z222Command.SetHandler(Zadacha222.RunAsync, daysOption);
+
+            var reqOption = new Option<Guid>(
+                "--req", "Идентификатор Запроса (guid)");
+
+            var z221Command = new Command(
+                "z221", "ZBR: Ответ на Запрос информации о платежах КО")
+            {
+                reqOption
+            };
+            rootCommand.Add(z221Command);
+            z221Command.SetHandler(Zadacha221.RunAsync, reqOption);
+            #endregion tasks
+
+            #region filter commands
+            var loadCommand = new Command(
+                "load", "API: Загрузить сообщения по <id> или по фильтру")
+            {
+                idOption,
+                // or
+                taskOption,
+                beforeOption, daysOption, dayOption,
+                minDateTimeOption, maxDateTimeOption,
+                minSizeOption, maxSizeOption,
+                inboxOption, outboxOption,
+                statusOption,
+                pageOption
+            };
+
+            var cleanCommand = new Command(
+                "clean", "API: Удалить сообщения по <id> или по фильтру")
+            {
+                idOption,
+                // or
+                taskOption,
+                beforeOption, daysOption, dayOption,
+                minDateTimeOption, maxDateTimeOption,
+                minSizeOption, maxSizeOption,
+                inboxOption, outboxOption,
+                statusOption,
+                pageOption
+            };
+            #endregion filter commands
+
+            #region messages
+            rootCommand.AddCommand(loadCommand);
+            rootCommand.AddCommand(cleanCommand);
+
+            loadCommand.SetHandler(Loader.RunAsync,
+                idOption,
+                // or
+                new MessagesFilterBinder(
+                    taskOption,
+                    beforeOption, daysOption, dayOption,
+                    minDateTimeOption, maxDateTimeOption,
+                    minSizeOption, maxSizeOption,
+                    inboxOption, outboxOption,
+                    statusOption,
+                    pageOption));
+
+            cleanCommand.SetHandler(Cleaner.RunAsync,
+                idOption,
+                // or
+                new MessagesFilterBinder(
+                    taskOption,
+                    beforeOption, daysOption, dayOption,
+                    minDateTimeOption, maxDateTimeOption,
+                    minSizeOption, maxSizeOption,
+                    inboxOption, outboxOption,
+                    statusOption,
+                    pageOption));
+            #endregion messages
+
+            #region parse
+            var parser = new CommandLineBuilder(rootCommand)
+                .UseDefaults()
+                .UseHelp(ctx =>
+                {
+                    ctx.HelpBuilder.CustomizeSymbol(statusOption,
+                        $"--{statusOption.Name} <{statusOption.Name}>",
+                        statusOption.Description +
+                        Environment.NewLine +
+                        "для inbox: " + string.Join(", ", MessageInStatus.Values) +
+                        Environment.NewLine +
+                        "для outbox: " + string.Join(", ", MessageOutStatus.Values));
+                })
+                .Build();
+
+            await parser.InvokeAsync(args);
+            #endregion parse
+        }
+        finally
+        {
+            Logger.Flush();
+        }
+
         return ExitCode;
     }
 
-    #region Helpers
-    public static string GetTempPath(string path) 
+    public static void Send(string subject, string body, string[]? subscribers = null, string[]? files = null)
     {
-        //TODO Directory.CreateTempSubdirectory(prefix);
-
-        string temp = Path.Combine(path, "TEMP");
-
-        if (Directory.Exists(temp))
-            Directory.Delete(temp, true);
-
-        if (Directory.Exists(temp))
-            throw new Exception($"Не удалось удалить старую директорию {temp.PathQuoted()}.");
-
-        if (!Directory.CreateDirectory(temp).Exists)
-            throw new DirectoryNotFoundException($"Не удалось создать новую директорию {temp.PathQuoted()}.");
-
-        return temp;
-    }
-
-    public static async Task SendAsync(string subject, string body, string? subscribers = null, string[]? files = null)
-    {
-        await Program.Smtp.SendMessageAsync(
-            ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
+        Mailer.SendMessage(subscribers ?? Subscribers,
             subject,
             body,
             files);
     }
 
-    public static async Task SendDoneAsync(string task, string body, string? subscribers = null, string[]? files = null)
+    public static void Done(string task, string message, string[]? subscribers = null, string[]? files = null)
     {
-        await Program.Smtp.SendMessageAsync(
-            ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
-            $"Portal5.{task}: OK",
-            body,
-            files);
+        ExitCode = 0;
+        Logger.TimeLine(message);
+
+        Send($"Portal5.{task}: OK",
+            message,
+            subscribers, files);
     }
 
-    public static async Task SendFailAsync(string task, string message, string? subscribers = null, string[]? files = null)
+    public static void Fail(string task, string message, string[]? subscribers = null, string[]? files = null)
     {
-        await Program.Smtp.SendMessageAsync(
-            ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
-            $"Portal5.{task}: {message}",
+        ExitCode = 1;
+        Logger.TimeLine(message);
+
+        Send($"Portal5.{task}: {message}",
             $"FAIL: {message}",
-            files);
+            subscribers, files);
     }
 
-    public static async Task SendFailAsync(string task, Exception ex, string? subscribers = null, string[]? files = null)
+    public static void Fail(string task, Exception ex, string[]? subscribers = null, string[]? files = null)
     {
-        await Program.Smtp.SendMessageAsync(
-            ((subscribers is null) || (subscribers.Length == 0)) ? Subscribers : subscribers,
-            $"Portal5.{task}: {ex.Message}",
+        ExitCode = 1;
+        Logger.TimeLine(ex.Message);
+        Logger.LastError(ex);
+
+        Send($"Portal5.{task}: {ex.Message}",
             $"ERROR: {ex}",
-            files);
+            subscribers, files);
     }
 
-    #endregion Helpers
+    public static void FailTask(string task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    {
+        ExitCode = 2;
+        Logger.TimeLine(ex.Message);
+        Logger.LastError(ex);
+
+        Send($"Portal5.{task}: {ex.Message}",
+            $"ERROR TASK: {ex}",
+            subscribers, files);
+    }
+
+    public static void FailAPI(string task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    {
+        ExitCode = 3;
+        Logger.TimeLine(ex.Message);
+        Logger.LastError(ex);
+
+        Send($"Portal5.{task}: {ex.Message}",
+            $"ERROR API: {ex}",
+            subscribers, files);
+    }
 }

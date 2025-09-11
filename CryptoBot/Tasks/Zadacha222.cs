@@ -34,14 +34,14 @@ internal static class Zadacha222
 
     //config
     private static string DownloadPath { get; }
-    private static string? Subscribers { get; }
+    private static string[] Subscribers { get; }
 
     static Zadacha222()
     {
         var config = Program.Config.GetSection(_task);
 
         DownloadPath = config[nameof(DownloadPath)] ?? ".";
-        Subscribers = config[nameof(Subscribers)];
+        Subscribers = JsonSection.Subscribers(config);
     }
 
     public static async Task RunAsync(uint? days)
@@ -115,38 +115,24 @@ internal static class Zadacha222
                         sb.AppendLine(" -- Подпись не верна!");
                 }
 
-                await Program.SendDoneAsync(_task, sb.ToString(), Subscribers);
+                Program.Done(_task, sb.ToString(), Subscribers);
             }
-        }
-        catch (Portal5Exception ex)
-        {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, "API: " + ex.Message, Subscribers);
-            Program.ExitCode = 3;
         }
         catch (NoMessagesException ex)
         {
-            Logger.TimeLine(ex.Message);
-
-            await Program.SendDoneAsync(_task, ex.Message, Subscribers);
+            Program.Done(_task, ex.Message, Subscribers);
+        }
+        catch (Portal5Exception ex)
+        {
+            Program.FailAPI(_task, ex, Subscribers);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, "Task: " + ex.Message, Subscribers);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex, Subscribers);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(_task, ex, Subscribers);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex, Subscribers);
         }
     }
 

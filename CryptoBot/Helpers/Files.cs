@@ -75,7 +75,7 @@ internal static class Files
 
         string file = Path.Combine(path, lastName!);
 
-        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
+        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, file))
             return file;
 
         throw new TaskException(

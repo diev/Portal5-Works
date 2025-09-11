@@ -26,7 +26,7 @@
     },
     "z130": {
       "commandName": "Project",
-      "commandLineArgs": "z130\r\n"
+      "commandLineArgs": "z130 -d 1\r\n"
     },
     "load -z 3-1 (in)": {
       "commandName": "Project",

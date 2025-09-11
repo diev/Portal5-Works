@@ -25,6 +25,8 @@ namespace CryptoBot.Tasks;
 
 internal static class Cleaner
 {
+    private const string _task = nameof(Cleaner);
+
     public static async Task RunAsync(Guid? guid, MessagesFilter filter)
     {
         try
@@ -50,27 +52,15 @@ internal static class Cleaner
         }
         catch (Portal5Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(Cleaner), "API: " + ex.Message);
-            Program.ExitCode = 3;
+            Program.FailAPI(_task, ex);
         }
         catch (TaskException ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(Cleaner), "Task: " + ex.Message);
-            Program.ExitCode = 2;
+            Program.FailTask(_task, ex);
         }
         catch (Exception ex)
         {
-            Logger.TimeLine(ex.Message);
-            Logger.LastError(ex);
-
-            await Program.SendFailAsync(nameof(Cleaner), ex);
-            Program.ExitCode = 1;
+            Program.Fail(_task, ex);
         }
     }
 }
