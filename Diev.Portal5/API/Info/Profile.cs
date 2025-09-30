@@ -120,56 +120,58 @@ public record SupervisionDevision
     string? Name
 );
 
-public static class MockProfile
-{
-    /// <summary>
-    /// profile
-    /// </summary>
-    /// <returns></returns>
-    public static string Text() =>
-        """
-        {
-            "ShortName": "АО \"Банк\"",
-            "FullName": "Акционерное общество \"Банк\"",
-            "Activities": [
-                {
-                    "FullName": "Брокеры",
-                    "ShortName": "Брокеры",
-                    "SupervisionDevision": {
-                        "Name": "Руководство"
-                    }
-                },
-                {
-                    "FullName": "Доверительные управляющие",
-                    "ShortName": "Доверительные управляющие",
-                    "SupervisionDevision": {
-                        "Name": "Руководство"
-                    }
-                },
-                {
-                    "FullName": "Депозитарии",
-                    "ShortName": "Депозитарии",
-                    "SupervisionDevision": {
-                        "Name": "Руководство"
-                    }
-                },
-                {
-                    "FullName": "Банки",
-                    "ShortName": "Кредитные организации",
-                    "SupervisionDevision": {
-                        "Name": "Руководство"
-                    }
-                }
-            ],
-            "Inn": "7831000000",
-            "Ogrn": "1027800000000",
-            "InternationalId": null,
-            "Opf": "Акционерные общества",
-            "Email": "lk-cbr@bank.ru",
-            "Address": "191000, г. Санкт-Петербург",
-            "Phone": "+78120000000",
-            "CreationDate": "0001-01-01T00:00:00Z",
-            "Status": "Active"
-        }
-        """;
-}
+#region Mock
+//public static class MockProfile
+//{
+//    /// <summary>
+//    /// profile
+//    /// </summary>
+//    /// <returns></returns>
+//    public static string Text() =>
+//        """
+//        {
+//            "ShortName": "АО \"Банк\"",
+//            "FullName": "Акционерное общество \"Банк\"",
+//            "Activities": [
+//                {
+//                    "FullName": "Брокеры",
+//                    "ShortName": "Брокеры",
+//                    "SupervisionDevision": {
+//                        "Name": "Руководство"
+//                    }
+//                },
+//                {
+//                    "FullName": "Доверительные управляющие",
+//                    "ShortName": "Доверительные управляющие",
+//                    "SupervisionDevision": {
+//                        "Name": "Руководство"
+//                    }
+//                },
+//                {
+//                    "FullName": "Депозитарии",
+//                    "ShortName": "Депозитарии",
+//                    "SupervisionDevision": {
+//                        "Name": "Руководство"
+//                    }
+//                },
+//                {
+//                    "FullName": "Банки",
+//                    "ShortName": "Кредитные организации",
+//                    "SupervisionDevision": {
+//                        "Name": "Руководство"
+//                    }
+//                }
+//            ],
+//            "Inn": "7831000000",
+//            "Ogrn": "1027800000000",
+//            "InternationalId": null,
+//            "Opf": "Акционерные общества",
+//            "Email": "lk-cbr@bank.ru",
+//            "Address": "191000, г. Санкт-Петербург",
+//            "Phone": "+78120000000",
+//            "CreationDate": "0001-01-01T00:00:00Z",
+//            "Status": "Active"
+//        }
+//        """;
+//}
+#endregion

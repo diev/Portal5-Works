@@ -41,8 +41,8 @@ internal static class JsonSection
         return Values(config, nameof(Subscribers));
     }
 
-    public static string[] DoverXml(IConfigurationSection config)
-    {
-        return Values(config, nameof(DoverXml));
-    }
+    //public static string[] DoverXml(IConfigurationSection config)
+    //{
+    //    return Values(config, nameof(DoverXml));
+    //}
 }

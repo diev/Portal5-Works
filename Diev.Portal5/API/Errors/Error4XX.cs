@@ -46,6 +46,8 @@ public record Error4XX
     /// HTTP 413 – Message size too large
     /// </summary>
     //object? MoreInfo
+);
+
 /*
 "MoreInfo": {
   "MissedFiles": [
@@ -68,7 +70,6 @@ public record Error4XX
   "MessageQuota": "integer"
 }
 */
-);
 
 /*
 HTTP STATUS

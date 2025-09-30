@@ -131,6 +131,19 @@ internal static class Loader
                     Logger.TimeZZZLine($"Файл '{message.Id}.zip' не скачать.");
 
                     var msgInfo = new MessageInfo(message);
+                    var corrId = message.CorrelationId;
+
+                    if (!string.IsNullOrEmpty(corrId))
+                    {
+                        var corrMessage = await Program.RestAPI.GetMessageAsync(corrId);
+
+                        if (corrMessage != null)
+                        {
+                            var corrInfo = new MessageInfo(corrMessage);
+                            msgInfo.Notes += corrInfo.ToString();
+                        }
+                    }
+
                     report
                         .AppendLine($"-{++num} не скачать-")
                         .AppendLine(msgInfo.ToString())

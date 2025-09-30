@@ -58,11 +58,15 @@
     },
     "lki": {
       "commandName": "Project",
-      "commandLineArgs": "lki -d 4"
+      "commandLineArgs": "lki -d 7"
     },
     "lko": {
       "commandName": "Project",
       "commandLineArgs": "lko"
+    },
+    "load -d 1": {
+      "commandName": "Project",
+      "commandLineArgs": "load -d 1\r\n"
     }
   }
 }

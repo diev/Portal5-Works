@@ -65,21 +65,23 @@ public record Receiver
     string? Activity
 );
 
-public static class MockReceiver
-{
-    public static string Text() =>
-        """
-        {
-            "Inn": "7710168307",
-            "Ogrn": "1037739236578",
-            "Bik": null,
-            "RegNum": null,
-            "DivisionCode": null
-            "Inn": "7710168307",
-            "Ogrn": "1037739236578",
-            "Bik": null,
-            "RegNum": null,
-            "DivisionCode": null
-        }
-        """;
-}
+#region Mock
+//public static class MockReceiver
+//{
+//    public static string Text() =>
+//        """
+//        {
+//            "Inn": "7710168307",
+//            "Ogrn": "1037739236578",
+//            "Bik": null,
+//            "RegNum": null,
+//            "DivisionCode": null
+//            "Inn": "7710168307",
+//            "Ogrn": "1037739236578",
+//            "Bik": null,
+//            "RegNum": null,
+//            "DivisionCode": null
+//        }
+//        """;
+//}
+#endregion

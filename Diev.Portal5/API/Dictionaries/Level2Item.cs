@@ -65,23 +65,25 @@ public record Level2Item
     string? Id
 );
 
-public static class MockLevel2Item
-{
-    /// <summary>
-    /// dictionaries/25338cfb-5713-4634-bc53-a81129483752[0]
-    /// </summary>
-    /// <returns></returns>
-    public static string Text() =>
-        """
-        {
-            "Code": "127",
-            "Subjects2": "Департамент финансовой стабильности",
-            "TypeIE": "ЦА",
-            "TypeIE2": "",
-            "Addressee": "Департамент финансовой стабильности",
-            "DirSDS": "48_lk",
-            "Organization": "Банк России",
-            "Id": "0000a038-0b54-4b53-a9bb-b2ce00a14930"
-        }
-        """;
-}
+#region Mock
+//public static class MockLevel2Item
+//{
+//    /// <summary>
+//    /// dictionaries/25338cfb-5713-4634-bc53-a81129483752[0]
+//    /// </summary>
+//    /// <returns></returns>
+//    public static string Text() =>
+//        """
+//        {
+//            "Code": "127",
+//            "Subjects2": "Департамент финансовой стабильности",
+//            "TypeIE": "ЦА",
+//            "TypeIE2": "",
+//            "Addressee": "Департамент финансовой стабильности",
+//            "DirSDS": "48_lk",
+//            "Organization": "Банк России",
+//            "Id": "0000a038-0b54-4b53-a9bb-b2ce00a14930"
+//        }
+//        """;
+//}
+#endregion

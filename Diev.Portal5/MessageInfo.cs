@@ -30,29 +30,30 @@ namespace Diev.Portal5;
 public class MessageInfo
 {
     /// <summary>
-    /// Идентификатор сообшения.
+    /// Сообщение.
     /// </summary>
-    public string Id { get; set; }
+    public Message Message { get; }
 
     /// <summary>
     /// Дата сообщения.
+    /// Если получена из CreatedDate, то сконвертирована в местное время.
     /// </summary>
-    public string Date { get; set; }
-    
+    public string Date { get; }
+
     /// <summary>
     /// Номер сообщения.
     /// </summary>
-    public string Number { get; set; }
+    public string Number { get; }
 
     /// <summary>
     /// Тема сообщения.
     /// </summary>
-    public string Subject { get; set; }
+    public string Subject { get; }
 
     /// <summary>
-    /// Направление.
+    /// Направление (inbox или outbox).
     /// </summary>
-    public string Type { get; set; }
+    public string Type => Message.Type;
 
     /// <summary>
     /// Название папки с распакованным сообщением.
@@ -65,85 +66,14 @@ public class MessageInfo
     public string? FullName { get; set; }
 
     /// <summary>
-    /// Дата последнего изменения статуса сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»).
-    /// </summary>
-    public DateTime? UpdatedDate { get; set; }
-
-    /// <summary>
-    /// Статус сообщения (возможные значения и их описание находится в п.2.4).
-    /// </summary>
-    public string Status { get; set; }
-
-    /// <summary>
-    /// Регистрационный номер.
-    /// </summary>
-    public string? RegNumber { get; set; }
-
-
-    /// <summary>
-    /// В ответ на сообщение, если есть.
-    /// </summary>
-    public string? CorrId { get; set; }
-
-    /// <summary>
-    /// Дата сообщения.
-    /// </summary>
-    public string? CorrDate { get; set; }
-
-    /// <summary>
-    /// Номер сообщения.
-    /// </summary>
-    public string? CorrNumber { get; set; }
-
-    /// <summary>
-    /// Тема сообщения.
-    /// </summary>
-    public string? CorrSubject { get; set; }
-
-    /// <summary>
-    /// Направление.
-    /// </summary>
-    public string? CorrType { get; set; }
-
-    /// <summary>
-    /// Название папки с распакованным сообщением.
-    /// </summary>
-    public string? CorrName { get; set; }
-
-    /// <summary>
-    /// Полный путь папки с распакованным сообщением.
-    /// </summary>
-    public string? CorrFullName { get; set; }
-
-    /// <summary>
-    /// Примечания, ошибки.
+    /// Примечания, ошибки, исходный документ.
     /// </summary>
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Формирует информацию о сообщении.
+    /// Сообщение.
     /// </summary>
-    /// <param name="message">Сообщение.</param>
-    /// <returns></returns>
-    public MessageInfo(Message message)
-    {
-        var so = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
-
-        Id = message.Id;
-        CorrId = message.CorrelationId;
-        Type = message.Type;
-        UpdatedDate = message.UpdatedDate;
-        Status = message.Status;
-        RegNumber = message.RegNumber;
-
-        string? date = null;
-        string? number = null;
-        string title = $"{message.Title} {message.Text} {RegNumber}";
-
-        Date = date ?? message.CreationDate.ToString("yyyy-MM-dd");
-        Number = number ?? RegNumber ?? Id[0..8];
-        Subject = string.Join(' ', title.Split(' ', so));
-    }
+    public Message? CorrMessage { get; }
 
     /// <summary>
     /// Формирует информацию о сообщении по файлу описания.
@@ -153,50 +83,48 @@ public class MessageInfo
     /// passport.xml (inbox)<br/>
     /// form.xml (outbox)</param>
     /// <returns></returns>
-    public MessageInfo(Message message, string path)
+    public MessageInfo(Message message, string? path = null)
     {
-        var so = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
-
-        Id = message.Id;
-        CorrId = message.CorrelationId;
-        Type = message.Type;
-        UpdatedDate = message.UpdatedDate;
-        Status = message.Status;
-        RegNumber = message.RegNumber;
+        Message = message;
 
         string? date = null;
         string? number = null;
-        string title = $"{message.Title} {message.Text} {RegNumber}";
+        string title = $"{message.Title} {message.Text} {message.RegNumber}";
 
-        try
+        if (path != null && File.Exists(path))
         {
-            XmlDocument doc = new();
-            doc.Load(path);
-            var root = doc.DocumentElement!.LocalName;
+            try
+            {
+                XmlDocument doc = new();
+                doc.Load(path);
+                var root = doc.DocumentElement!.LocalName;
 
-            if (root.Equals("passport", StringComparison.Ordinal))
-            {
-                // passport.xml // inbox
-                var node = doc.GetElementsByTagName("RegNumer")[0];
-                date = node?.Attributes?["regdate"]?.Value;
-                number = node?.InnerText;
-                title = doc.GetElementsByTagName("document")[0]?
-                    .Attributes?["annotation"]?.Value ?? "Письмо";
+                if (root.Equals("passport", StringComparison.Ordinal))
+                {
+                    // passport.xml // inbox
+                    var node = doc.GetElementsByTagName("RegNumer")[0];
+                    date = node?.Attributes?["regdate"]?.Value;
+                    number = node?.InnerText;
+                    title = doc.GetElementsByTagName("document")[0]?
+                        .Attributes?["annotation"]?.Value ?? "Письмо";
+                }
+                else
+                {
+                    // form.xml // outbox
+                    var node = doc.GetElementsByTagName("mf:doc_out")[0];
+                    date = node?.Attributes?[nameof(Date)]?.Value;
+                    number = node?.Attributes?[nameof(Number)]?.Value;
+                    title = doc.GetElementsByTagName("mf:doc_text")[0]?.InnerText ??
+                        (message.CorrelationId is null ? "Запрос" : "Ответ");
+                }
             }
-            else
-            {
-                // form.xml // outbox
-                var node = doc.GetElementsByTagName("mf:doc_out")[0];
-                date = node?.Attributes?[nameof(Date)]?.Value;
-                number = node?.Attributes?[nameof(Number)]?.Value;
-                title = doc.GetElementsByTagName("mf:doc_text")[0]?.InnerText ??
-                    (CorrId is null ? "Запрос" : "Ответ");
-            }
+            catch { }
         }
-        catch { }
 
-        Date = date ?? message.CreationDate.ToString("yyyy-MM-dd");
-        Number = number ?? RegNumber ?? Id[0..8];
+        Date = date ?? message.CreationDate.ToLocalTime().ToString("yyyy-MM-dd");
+        Number = number ?? message.RegNumber ?? message.Id[0..8];
+
+        var so = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
         Subject = string.Join(' ', title.Split(' ', so));
 
         number = string.Join('-', Number.Split(' ', so));
@@ -204,7 +132,11 @@ public class MessageInfo
         title = string.Join('-', title.Split(Path.GetInvalidFileNameChars(), so));
 
         Name = title.Length > 64 ? title[..64].Trim() : title;
-        FullName = Path.Combine(Path.GetDirectoryName(path)!, Name);
+
+        if (path is not null)
+        {
+            FullName = Path.Combine(Path.GetDirectoryName(path)!, Name);
+        }
     }
 
     /// <summary>
@@ -213,32 +145,76 @@ public class MessageInfo
     public override string ToString()
     {
         StringBuilder info = new();
-        info.AppendLine($"{TType(Type)} от {TDate(Date)} N {Number}");
 
-        if (Status.Equals(MessageOutStatus.Registered, StringComparison.Ordinal))
+        info.Append(TType(Message.Type))
+            .Append($" от {TDate(Date)}");
+
+        if (Message.Registered && Message.UpdatedDate is not null)
         {
-            info.AppendLine($"Зарегистрирован {TDate(UpdatedDate)} N {RegNumber}");
+            if (Message.RegNumber is null || !Message.RegNumber.StartsWith(Number))
+            {
+                info.Append($" N {Number}");
+            }
+
+            info.AppendLine($"  //{Message.Id}");
+            DateTime dt = ((DateTime)Message.UpdatedDate!).ToLocalTime();
+            info.AppendLine($"Зарегистрирован {dt:dd.MM.yyyy HH:mm} N {Message.RegNumber}");
+        }
+        else
+        {
+            if (!Message.Id.StartsWith(Number))
+            {
+                info.Append($" N {Number}");
+            }
+
+            info.AppendLine($"  //{Message.Id}");
         }
 
-        info
-            .AppendLine(Subject)
-            .AppendLine("--")
-            .AppendLine(Id)
-            .AppendLine(Name);
+        // Titles
+        info.AppendLine();
 
-        if (!string.IsNullOrEmpty(CorrId))
+        if (!string.IsNullOrEmpty(Message.Title))
+            info.AppendLine(Message.Title);
+
+        if (!string.IsNullOrEmpty(Message.Text))
+            info.AppendLine(Message.Text);
+
+        // Content
+        info.AppendLine()
+            .AppendLine(@$"Вложения в папке ""{Name}"":");
+
+        List<string> list = [];
+
+        foreach (var file in Message.Files)
         {
-            info.AppendLine()
-                .AppendLine($"на {TType(CorrType)} от {TDate(CorrDate)} N {CorrNumber}")
-                .AppendLine(CorrSubject)
-                .AppendLine("--")
-                .AppendLine(CorrId)
-                .AppendLine(CorrName);
+            if (file.SignedFile is not null)
+                continue;
+
+            if (Message.Inbox && file.Name.StartsWith("passport.xml", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (Message.Outbox && file.Name.StartsWith("form.xml", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (file.Name.Equals("info.txt", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            //info.AppendLine($"- {file.Name}");
+            list.Add(file.Name);
+        }
+
+        list.Sort();
+
+        foreach (var item in list)
+        {
+            info.AppendLine($"- {item}");
         }
 
         if (Notes is not null)
         {
-            info.Append(Notes);
+            info.AppendLine()
+                .AppendLine("--")
+                .Append(Notes);
         }
 
         return info.ToString();
@@ -252,12 +228,12 @@ public class MessageInfo
     };
 
     private static string TDate(string? date) =>
-        date is null
-            ? "?"
-            : DateTime.Parse(date).ToString("dd.MM.yyyy");
+        DateTime.TryParse(date, out DateTime dt)
+            ? dt.ToString("dd.MM.yyyy")
+            : "?";
 
     private static string TDate(DateTime? date) =>
-        date is null
-            ? "?"
-            : $"{date:dd.MM.yyyy}";
+        date is DateTime dt
+            ? dt.ToString("dd.MM.yyyy")
+            : "?";
 }

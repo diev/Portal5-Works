@@ -62,17 +62,19 @@ public record Repository
     string? Path
 );
 
-public static class MockRepository
-{
-    public static string Text() =>
-        """
-        [
-            {
-                "RepositoryType": "http",
-                "Host": "https://portal5.cbr.ru",
-                "Port": 81,
-                "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/3d9f1174-ad1d-485e-8149-109ae7353688/download"
-            }
-        ]
-        """;
-}
+#region Mock
+//public static class MockRepository
+//{
+//    public static string Text() =>
+//        """
+//        [
+//            {
+//                "RepositoryType": "http",
+//                "Host": "https://portal5.cbr.ru",
+//                "Port": 81,
+//                "Path": "back/rapi2/messages/6fbc3cf9-b48c-4a15-ba8c-b0ad002c489c/files/3d9f1174-ad1d-485e-8149-109ae7353688/download"
+//            }
+//        ]
+//        """;
+//}
+#endregion

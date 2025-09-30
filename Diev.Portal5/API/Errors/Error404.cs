@@ -46,6 +46,8 @@ public record Error404
     /// HTTP 413 – Message size too large
     /// </summary>
     MoreInfo404 MoreInfo
+);
+
 /*
 "MoreInfo": {
   "MissedFiles": [
@@ -68,7 +70,6 @@ public record Error404
   "MessageQuota": "integer"
 }
 */
-);
 
 /*
 HTTP 400 – Bad Request

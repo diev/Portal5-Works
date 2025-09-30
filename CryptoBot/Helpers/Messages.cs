@@ -122,23 +122,12 @@ internal static class Messages
 
         if (!string.IsNullOrEmpty(corrId))
         {
-            var corr = await GetMessageInfoAsync(corrId);
+            var corrMessage = await Program.RestAPI.GetMessageAsync(corrId);
 
-            if (corr is null)
+            if (corrMessage != null)
             {
-                msgInfo.CorrDate = "?";
-                msgInfo.CorrNumber = "?";
-                msgInfo.CorrSubject = "?";
-                msgInfo.CorrType = "?";
-                msgInfo.CorrName = "?";
-            }
-            else
-            {
-                msgInfo.CorrDate = corr.Date;
-                msgInfo.CorrNumber = corr.Number;
-                msgInfo.CorrSubject = corr.Subject;
-                msgInfo.CorrType = corr.Type;
-                msgInfo.CorrName = corr.Name;
+                var corrInfo = new MessageInfo(corrMessage);
+                msgInfo.Notes = "На " + corrInfo.ToString();
             }
         }
 
@@ -191,23 +180,12 @@ internal static class Messages
 
         if (!string.IsNullOrEmpty(corrId))
         {
-            var corr = await GetMessageInfoAsync(corrId);
+            var corrMessage = await Program.RestAPI.GetMessageAsync(corrId);
 
-            if (corr is null)
+            if (corrMessage != null)
             {
-                msgInfo.CorrDate = "?";
-                msgInfo.CorrNumber = "?";
-                msgInfo.CorrSubject = "?";
-                msgInfo.CorrType = "?";
-                msgInfo.CorrName = "?";
-            }
-            else
-            {
-                msgInfo.CorrDate = corr.Date;
-                msgInfo.CorrNumber = corr.Number;
-                msgInfo.CorrSubject = corr.Subject;
-                msgInfo.CorrType = corr.Type;
-                msgInfo.CorrName = corr.Name;
+                var corrInfo = new MessageInfo(corrMessage);
+                notes.Append("На " + corrInfo.ToString());
             }
         }
 
@@ -239,56 +217,33 @@ internal static class Messages
         if (message is null)
             return null;
 
-        string? fileId = null;
-
         foreach (var file in message.Files)
         {
-            switch (file.Name)
+            if (file.Name.StartsWith("passport.xml", StringComparison.OrdinalIgnoreCase)
+                || file.Name.StartsWith("form.xml", StringComparison.OrdinalIgnoreCase))
             {
-                case "passport.xml":
-                    fileId = file.Id;
-                    break;
+                string xml = Files.GetTempName();
 
-                case "passport.xml.enc":
-                    fileId = file.Id;
-                    break;
+                if (file.Encrypted)
+                {
+                    string enc = Files.GetTempName();
+                    await Program.RestAPI.DownloadMessageFileAsync(msgId, file.Id, enc);
+                    await Program.Crypto.DecryptFileAsync(enc, xml);
+                    File.Delete(enc);
+                }
+                else
+                {
+                    await Program.RestAPI.DownloadMessageFileAsync(msgId, file.Id, xml);
+                }
 
-                case "form.xml":
-                    fileId = file.Id;
-                    break;
+                var msgInfo = new MessageInfo(message, xml);
+                File.Delete(xml);
 
-                case "form.xml.enc":
-                    fileId = file.Id;
-                    break;
-
-                default:
-                    break;
+                return msgInfo;
             }
-
-            if (fileId is null)
-                continue;
-
-            string xml = Files.GetTempName();
-
-            if (file.Encrypted)
-            {
-                string enc = Files.GetTempName();
-                await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, enc);
-                await Program.Crypto.DecryptFileAsync(enc, xml);
-                File.Delete(enc);
-            }
-            else
-            {
-                await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, xml);
-            }
-
-            var msgInfo = new MessageInfo(message, xml);
-            File.Delete(xml);
-
-            return msgInfo;
         }
 
-        return null;
+        return new MessageInfo(message);
     }
 
     public static async Task ExtractFilesToDirectoryAsync(Message message, string source, string path)

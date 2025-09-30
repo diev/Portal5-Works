@@ -49,20 +49,22 @@ public record Level1Item
     string? Id
 );
 
-public static class MockLevel1Item
-{
-    /// <summary>
-    /// dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a[0]
-    /// </summary>
-    /// <returns></returns>
-    public static string Text() =>
-        """
-        {
+#region Mock
+//public static class MockLevel1Item
+//{
+//    /// <summary>
+//    /// dictionaries/238d0426-6f57-4c0f-8983-1d1addf8c47a[0]
+//    /// </summary>
+//    /// <returns></returns>
+//    public static string Text() =>
+//        """
+//        {
 
-            "Code": "1",
-            "Subjects1": "Центральный аппарат",
-            "TypeIE": "ЦА",
-            "Id": "41941a8b-a18a-406c-b1a1-eb6546a7e033"
-        }
-        """;
-}
+//            "Code": "1",
+//            "Subjects1": "Центральный аппарат",
+//            "TypeIE": "ЦА",
+//            "Id": "41941a8b-a18a-406c-b1a1-eb6546a7e033"
+//        }
+//        """;
+//}
+#endregion

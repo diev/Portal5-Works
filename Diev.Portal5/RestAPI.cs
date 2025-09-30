@@ -60,14 +60,15 @@ public class RestAPI(Credential cred, bool trace, bool debug)
         {
             var enc = new FileInfo(Path.ChangeExtension(sig.FullName, "enc"));
             var src = new FileInfo(Path.ChangeExtension(sig.FullName, null));
-            string type = "Document";
+            
+            //string type = "Document";
 
-            if (src.Extension.Equals(".xml", StringComparison.OrdinalIgnoreCase)
-                && (src.Name.StartsWith("DOVER_CBR_", StringComparison.OrdinalIgnoreCase)
-                    || src.Name.StartsWith("ON_EMCHD_", StringComparison.OrdinalIgnoreCase)))
-            {
-                type = "PowerOfAttorney";
-            }
+            //if (src.Extension.Equals(".xml", StringComparison.OrdinalIgnoreCase)
+            //    && (src.Name.StartsWith("DOVER_CBR_", StringComparison.OrdinalIgnoreCase)
+            //        || src.Name.StartsWith("ON_EMCHD_", StringComparison.OrdinalIgnoreCase)))
+            //{
+            //    type = "PowerOfAttorney"; // МЧД
+            //}
 
             if (enc.Exists) // Encrypted (ДСП)
             {
@@ -75,14 +76,14 @@ public class RestAPI(Credential cred, bool trace, bool debug)
                 {
                     Name = enc.Name,
                     Encrypted = true,
-                    FileType = type,
+                    //FileType = type,
                     Size = enc.Length
                 });
 
                 draft.Files.Add(new DraftMessageFile
                 {
                     Name = sig.Name,
-                    FileType = "Sign",
+                    //FileType = "Sign",
                     SignedFile = enc.Name,
                     Size = sig.Length
                 });
@@ -92,14 +93,14 @@ public class RestAPI(Credential cred, bool trace, bool debug)
                 draft.Files.Add(new DraftMessageFile
                 {
                     Name = src.Name,
-                    FileType = type,
+                    //FileType = type,
                     Size = src.Length
                 });
 
                 draft.Files.Add(new DraftMessageFile
                 {
                     Name = sig.Name,
-                    FileType = "Sign",
+                    //FileType = "Sign",
                     SignedFile = src.Name,
                     Size = sig.Length
                 });

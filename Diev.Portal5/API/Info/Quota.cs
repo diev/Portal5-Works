@@ -45,18 +45,20 @@ public record Quota
     long MessageSize
 );
 
-public static class MockQuota
-{
-    /// <summary>
-    /// profile/quota
-    /// </summary>
-    /// <returns></returns>
-    public static string Text() =>
-        """
-        {
-            "TotalQuota": 16106127360,
-            "UsedQuota": 1506413991,
-            "MessageSize": 2147483648
-        }
-        """;
-}
+#region Mock
+//public static class MockQuota
+//{
+//    /// <summary>
+//    /// profile/quota
+//    /// </summary>
+//    /// <returns></returns>
+//    public static string Text() =>
+//        """
+//        {
+//            "TotalQuota": 16106127360,
+//            "UsedQuota": 1506413991,
+//            "MessageSize": 2147483648
+//        }
+//        """;
+//}
+#endregion

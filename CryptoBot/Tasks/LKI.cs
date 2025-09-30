@@ -113,7 +113,7 @@ internal static class LKI
                     //var msgInfo = new MessageInfo(message);
                     var msgInfo = await Messages.DecryptMessageFilesAsync(message, DocPath, DocPath2);
                     error += Environment.NewLine + msgInfo.Notes;
-                    msgInfo.Notes = error;
+                    msgInfo.Notes += error;
                     await File.WriteAllTextAsync(zip + ".err", error);
 
                     Program.Send($"ЛК ЦБ вх: {msgInfo.Subject} [ОШИБКИ]",

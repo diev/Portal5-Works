@@ -35,12 +35,14 @@ public class MessagesFilter
     /// <summary>
     /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)<br/>
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные позднее указанной даты).
+    /// Можно и по маске «yyyy-MM-dd», но помнить, что время в зоне Z (UTC) и надо переводить из локального!
     /// </summary>
     public DateTime? MinDateTime { get; set; }
 
     /// <summary>
     /// Максимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)<br/>
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
+    /// Можно и по маске «yyyy-MM-dd», но помнить, что время в зоне Z (UTC) и надо переводить из локального!
     /// </summary>
     public DateTime? MaxDateTime { get; set; }
 
@@ -106,10 +108,14 @@ public class MessagesFilter
         }
 
         if (MinDateTime is not null)
-            query.Append("&MinDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MinDateTime);
+            query.Append("&MinDateTime=")
+                .AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}",
+                    ((DateTime)MinDateTime).ToUniversalTime());
 
         if (MaxDateTime is not null)
-            query.Append("&MaxDateTime=").AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}", MaxDateTime);
+            query.Append("&MaxDateTime=")
+                .AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}",
+                    ((DateTime)MaxDateTime).ToUniversalTime());
 
         if (MinSize is not null)
             query.Append("&MinSize=").Append(MinSize);

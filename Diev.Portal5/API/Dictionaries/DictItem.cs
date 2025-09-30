@@ -44,18 +44,20 @@ public record DictItem
     string Date
 );
 
-public static class MockDictItem
-{
-    /// <summary>
-    /// dictionaries[0]
-    /// </summary>
-    /// <returns></returns>
-    public static string Text() =>
-        """
-        {
-            "Id": "238d0426-6f57-4c0f-8983-1d1addf8c47a",
-            "Text": "Справочник Тематики 1 уровня",
-            "Date": "2019-07-06T16:56:53Z"
-        }
-        """;
-}
+#region Mock
+//public static class MockDictItem
+//{
+//    /// <summary>
+//    /// dictionaries[0]
+//    /// </summary>
+//    /// <returns></returns>
+//    public static string Text() =>
+//        """
+//        {
+//            "Id": "238d0426-6f57-4c0f-8983-1d1addf8c47a",
+//            "Text": "Справочник Тематики 1 уровня",
+//            "Date": "2019-07-06T16:56:53Z"
+//        }
+//        """;
+//}
+#endregion

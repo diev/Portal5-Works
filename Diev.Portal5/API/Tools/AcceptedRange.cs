@@ -30,13 +30,15 @@ public record class AcceptedRange
     DateTime ExpirationDateTime
 );
 
-public static class MockAcceptedRange
-{
-    public static string Text() =>
-        """
-        {
-          "NextExpectedRange":["4096-8191","8192-8713"],
-          "ExpirationDateTime":"2023-11-29T09:38:35Z"
-        }
-        """;
-}
+#region Mock
+//public static class MockAcceptedRange
+//{
+//    public static string Text() =>
+//        """
+//        {
+//          "NextExpectedRange":["4096-8191","8192-8713"],
+//          "ExpirationDateTime":"2023-11-29T09:38:35Z"
+//        }
+//        """;
+//}
+#endregion

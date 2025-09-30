@@ -68,23 +68,25 @@ public record Level3Item
     int? Row_Num
 );
 
-public static class MockLevel3Item
-{
-    /// <summary>
-    /// dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314[0]
-    /// </summary>
-    /// <returns></returns>
-    public static string Text() =>
-        """
-        {
-            "Code": "106",
-            "Subject": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
-            "Organization": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
-            "Addressee": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
-            "DirSDS": "40_lk",
-            "TypeIE2": "СЗГУ",
-            "Prefix": "ALL",
-            "Id": "023c71f8-8fc7-4cee-bcfd-b30200e29356"
-        }
-        """;
-}
+#region Mock
+//public static class MockLevel3Item
+//{
+//    /// <summary>
+//    /// dictionaries/64529d5a-b1d9-453c-96f3-f380ea577314[0]
+//    /// </summary>
+//    /// <returns></returns>
+//    public static string Text() =>
+//        """
+//        {
+//            "Code": "106",
+//            "Subject": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+//            "Organization": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+//            "Addressee": "Северо-Западный межрегиональный центр инспектирования ГИ Банка России",
+//            "DirSDS": "40_lk",
+//            "TypeIE2": "СЗГУ",
+//            "Prefix": "ALL",
+//            "Id": "023c71f8-8fc7-4cee-bcfd-b30200e29356"
+//        }
+//        """;
+//}
+#endregion

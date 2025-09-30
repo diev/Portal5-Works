@@ -39,7 +39,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace CryptoBot;
 
-internal static class Program
+internal class Program
 {
     public static int ExitCode { get; set; } = 0;
     public static IConfiguration Config { get; } = null!;
@@ -51,7 +51,7 @@ internal static class Program
     public static string UtilName { get; }
     public static string CryptoName { get; }
     public static string? EncryptTo { get; }
-    public static string[] DoverXml { get; }
+    //public static string[] DoverXml { get; }
     public static string[] Subscribers { get; }
     public static bool Debug { get; }
 
@@ -93,8 +93,8 @@ internal static class Program
         CryptoName = config[nameof(CryptoName)] ?? "CryptoPro My";
         EncryptTo = config[nameof(EncryptTo)];
 
-        //МЧД
-        DoverXml = JsonSection.DoverXml(config);
+        // МЧД
+        //DoverXml = JsonSection.DoverXml(config);
 
         Subscribers = JsonSection.Subscribers(config);
 
