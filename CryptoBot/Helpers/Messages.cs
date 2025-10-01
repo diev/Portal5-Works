@@ -69,7 +69,7 @@ internal static class Messages
 
         return Path.Combine(
             Path.GetFullPath(root),
-            message.Outbox ? "OUT" : "INC",
+            message.Outbox ? "Исх.ЦБ" : "Вх.ЦБ", // "OUT" : "INC",
             msgInfo.Date[0..7], // 2024-10-04 => 2024-10
             msgInfo.Name!);
     }
