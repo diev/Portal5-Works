@@ -133,17 +133,24 @@ internal static class Messages
 
         string docs = GetDocStore(message, msgInfo, path);
         await ExtractFilesToDirectoryAsync(message, source, docs);
-        msgInfo.FullName = docs;
-        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), msgInfo.ToString());
 
         if (path2 is not null)
         {
             string docs2 = GetDocStore2(message, msgInfo, path2);
-            Directory.CreateDirectory(docs2);
 
-            foreach (var file in Directory.GetFiles(docs))
-                File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), true);
+            if (!docs2.Equals(docs))
+            {
+                Directory.CreateDirectory(docs2);
+                msgInfo.FullName = docs2;
+                await File.WriteAllTextAsync(Path.Combine(docs2, "info.txt"), msgInfo.ToString());
+
+                foreach (var file in Directory.GetFiles(docs))
+                    File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), false);
+            }
         }
+
+        msgInfo.FullName = docs;
+        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), msgInfo.ToString());
 
         Directory.Delete(temp, true);
 
