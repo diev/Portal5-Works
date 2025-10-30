@@ -363,6 +363,29 @@ internal static class Messages
                         {
                             if (receipt.Status == ReceiptOutStatus.Error &&
                                 receipt.Message is not null)
+                                // Найден сертификат не содержащий ИНН=XX3100XXXX
+                                // и ОГРН=XX2780000XXXX
+                                // (отсутствует доверенность или доверенность
+                                // не предоставляет полномочия по работе с задачей
+                                // или доверенность не действительна)..
+                                // Ошибки при проверке сертификатов:
+                                // Ошибка проверки правил в сертификате:
+                                // [код статуса = 0, описание статуса = OK,
+                                // время = Wed Oct 15 21:10:54 MSK 2025,
+                                // имя издателя = CN=ООО "Сертум-Про",
+                                // O=ООО "Сертум-Про",
+                                // street=ул. Малопрудная, стр. 5, офис 715,
+                                // L=Екатеринбург,ST=66 Свердловская область,C=RU,
+                                // INNLE=XX7324XXXX,OGRN=XX1667300XXXX,
+                                // Email=XX@XXrtum.ru,
+                                // имя владельца = CN=XXXXXX XXXXXX XXXXXXXXX,
+                                // SN=XXXXXX,GN=XXXXXX XXXXXXXXX,C=RU,
+                                // SNILS=XX35060XXXX,INN=XX162378XXXX,
+                                // Email=XXXXXXXXX@XXbank.ru,
+                                // e-mail = XXXXXXXXX@XXbank.ru,
+                                // серийный номер сертификата = XX9531C50052B36DB94170B954FXXXXXXX,
+                                // отпечаток = XXXXe750adb368e56dd796ff078a603bad812914342720357301f669XXXXXXXX]
+                                // Не найдено доверенностей выданных для ИНН XX162378XXXX
                                 throw new TaskException(
                                     "Получена ошибка: " + receipt.Message);
 

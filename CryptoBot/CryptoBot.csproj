@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Authors>Diev</Authors>
-    <Version>9.2025.1002</Version>
+    <Version>9.2025.1030</Version>
     <Description>Exchange point to upload/download with Portal5.</Description>
     <Copyright>Copyright 2022-2025 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

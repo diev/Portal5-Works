@@ -17,10 +17,14 @@ limitations under the License.
 */
 #endregion
 
+using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Text;
+using System.Threading;
+
 using Diev.Extensions.Credentials;
 using Diev.Extensions.LogFile;
 
@@ -187,6 +191,18 @@ public static class PollyClient
     public static async Task<HttpResponseMessage> ExecuteAsync(HttpMethod method,
         string url, HttpContent? content = null)
     {
+        using var request = new HttpRequestMessage(method, url);
+
+        if (content is not null)
+        {
+            request.Content = content;
+        }
+
+        return await TryExecuteRequestAsync(request); //to save content after each Send done
+    }
+
+    private static async Task<HttpResponseMessage> TryExecuteRequestAsync(HttpRequestMessage request)
+    {
         int retry = 0;
         DateTime end = DateTime.Now.AddMinutes(WaitMinutesTimeout);
 
@@ -197,27 +213,19 @@ public static class PollyClient
                 Thread.Sleep(_ddosAllowedTime - DateTime.Now);
             }
 
-            using (var request = new HttpRequestMessage(method, url))
+            var response = await _httpClient.SendAsync(request);
+            _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
+
+            if (!RetryRequired(response.StatusCode))
             {
-                if (content is not null)
-                {
-                    request.Content = content;
-                }
+                // Ok
+                return response;
+            }
 
-                var response = await _httpClient.SendAsync(request);
-                _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
-
-                if (!RetryRequired(response.StatusCode))
-                {
-                    // Ok
-                    return response;
-                }
-
-                if (DateTime.Now > end)
-                {
-                    Logger.TimeLine($"Повторы прекращены за истечением {WaitMinutesTimeout} мин.");
-                    return response;
-                }
+            if (DateTime.Now > end)
+            {
+                Logger.TimeLine($"Повторы прекращены за истечением {WaitMinutesTimeout} мин.");
+                return response;
             }
 
             int pause = ++retry * RetrySecondsTimeout;

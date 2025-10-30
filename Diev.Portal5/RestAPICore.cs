@@ -378,7 +378,25 @@ public class RestAPICore : IRestAPICore
         }
 
         // HTTP 400 – Bad Request
+        // или
         // HTTP 401 - Unauthorized: ACCOUNT_NOT_FOUND (Аккаунт не найден) - недокументированный ответ
+        // HTTP 502 - Bad Gateway - недокументированный ответ с промежуточного шлюза, который возвращает
+        // текст своей HTML страницы вместо ожидаемого ответа в JSON с сервера:
+        // <!DOCTYPE html>
+        // <html lang=en>
+        // <meta charset=utf-8>
+        // <meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+        // <title>Error 502</title>
+        // <style>...</style>
+        // <p><b>502 - Bad Gateway.</b>
+        // <ins>That’s an error.</ins>
+        // <p>Looks like we have got an invalid response from the upstream server.
+        // <ins>That’s all we know.</ins>
+        if (response.StatusCode == HttpStatusCode.BadGateway) // 502
+        {
+            await DoExceptionAsync(response);
+        }
+
         await DoExceptionAsync(response);
         return null;
 
@@ -1288,6 +1306,20 @@ public class RestAPICore : IRestAPICore
         // HTTP 413 – Message size too large
         // HTTP 416 – Range Not Satisfiable
         // HTTP 422 – Unprocessable Entity
+
+        // или
+        // HTTP 502 - Bad Gateway - недокументированный ответ с промежуточного шлюза, который возвращает
+        // текст своей HTML страницы вместо ожидаемого ответа в JSON с сервера:
+        // <!DOCTYPE html>
+        // <html lang=en>
+        // <meta charset=utf-8>
+        // <meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+        // <title>Error 502</title>
+        // <style>...</style>
+        // <p><b>502 - Bad Gateway.</b>
+        // <ins>That’s an error.</ins>
+        // <p>Looks like we have got an invalid response from the upstream server.
+        // <ins>That’s all we know.</ins>
         int code = (int)response.StatusCode;
         string message = await response.Content.ReadAsStringAsync();
 
@@ -1301,6 +1333,10 @@ public class RestAPICore : IRestAPICore
                     message = json.ErrorMessage;
             }
             catch { }
+        }
+        else if (message.StartsWith('<'))
+        {
+            message = "See HTML reply"; //TODO parse HTML for <title>
         }
 
         DoException($"{code} - {message}");
