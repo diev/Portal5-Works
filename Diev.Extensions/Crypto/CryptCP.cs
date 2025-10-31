@@ -107,7 +107,7 @@ public class CryptCP : ICrypto
     /// </summary>
     public string DecryptCommand { get; set; }
 
-    public CryptCP(string filter = "CryptoPro My")
+    public CryptCP(string[] old, string filter = "CryptoPro My")
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
             throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
@@ -116,6 +116,8 @@ public class CryptCP : ICrypto
         My = cred.UserName
             ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
         PIN = cred.Password;
+
+        MyOld = old;
 
         Exe = @"cryptcp.exe";
         SignCommand = @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -attached -addchain";

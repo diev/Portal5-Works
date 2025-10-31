@@ -51,6 +51,7 @@ internal class Program
     public static string UtilName { get; }
     public static string CryptoName { get; }
     public static string? EncryptTo { get; }
+    public static string[] MyOld { get; }
     //public static string[] DoverXml { get; }
     public static string[] Subscribers { get; }
     public static bool Debug { get; }
@@ -93,6 +94,8 @@ internal class Program
         CryptoName = config[nameof(CryptoName)] ?? "CryptoPro My";
         EncryptTo = config[nameof(EncryptTo)];
 
+        MyOld = JsonSection.MyOld(config);
+
         // МЧД
         //DoverXml = JsonSection.DoverXml(config);
 
@@ -102,8 +105,8 @@ internal class Program
 
         Crypto = UtilName switch
         {
-            nameof(CryptCP) => new CryptCP(CryptoName),
-            _ => new CspTest(CryptoName),
+            nameof(CryptCP) => new CryptCP(MyOld, CryptoName),
+            _ => new CspTest(MyOld,CryptoName),
         };
 
         if (Debug)

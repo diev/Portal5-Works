@@ -107,7 +107,7 @@ public class CspTest : ICrypto
     /// </summary>
     public string DecryptCommand { get; set; }
 
-    public CspTest(string filter = "CryptoPro My")
+    public CspTest(string[] old, string filter = "CryptoPro My")
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) //TODO Linux
             throw new InvalidOperationException("Операции с КриптоПро доступны только в Windows.");
@@ -116,6 +116,8 @@ public class CspTest : ICrypto
         My = cred.UserName
             ?? throw new Exception($"Windows Credential Manager '{filter}' has no UserName.");
         PIN = cred.Password;
+
+        MyOld = old;
 
         Exe = @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
         SignCommand = @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";

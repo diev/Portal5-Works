@@ -24,6 +24,10 @@
     "Debug": true,
     "DoverXml": [],
     "EncryptTo": "a6f9aa338bf5742ff6d8b8d6c41cb3cba6a4940f",
+    "MyOld": [
+      "730f44ee1d198524ecee644f7b4619454e3fe2df",
+      "2af15404616be9c98713bab751a8f8de6102d3a7"
+    ],
     "SmtpName": "SMTP *",
     "Subscribers": [],
     "TargetName": "Portal5test *",

@@ -36,6 +36,11 @@ internal static class JsonSection
         return [.. list];
     }
 
+    public static string[] MyOld(IConfigurationSection config)
+    {
+        return Values(config, nameof(MyOld));
+    }
+
     public static string[] Subscribers(IConfigurationSection config)
     {
         return Values(config, nameof(Subscribers));
