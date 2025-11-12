@@ -22,65 +22,31 @@ using CryptoBot.Helpers;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Tools;
 using Diev.Portal5.API.Tools;
-using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
-internal static class Zadacha130
+internal class Zadacha130(string downloadPath, string[] subscribers)
 {
-    private const string _task = "Zadacha_130";
-
-    //config
-    private static string DownloadPath { get; }
-    private static string[] Subscribers { get; }
-
-    static Zadacha130()
+    public async Task<int> RunAsync(uint? days)
     {
-        var config = Program.Config.GetSection(_task);
-
-        DownloadPath = config[nameof(DownloadPath)] ?? ".";
-        Subscribers = JsonSection.Subscribers(config);
-    }
-
-    public static async Task RunAsync(uint? days)
-    {
-        try
+        var filter = new MessagesFilter()
         {
-            var filter = new MessagesFilter()
-            {
-                Task = _task,
-                MinDateTime = DateTime.Today.AddDays(-days ?? 0)
-            };
+            Task = "Zadacha_130",
+            MinDateTime = DateTime.Today.AddDays(-days ?? 0)
+        };
 
-            Logger.TimeZZZLine("Запрос загрузки последнего файла");
+        Logger.TimeZZZLine("Запрос загрузки последнего файла");
 
-            string enc = await Files.DownloadLastEncryptedAsync(filter, DownloadPath);
+        string enc = await Files.DownloadLastEncryptedAsync(filter, downloadPath);
 
-            Logger.TimeZZZLine("Расшифровка полученного файла");
+        Logger.TimeZZZLine("Расшифровка полученного файла");
 
-            string zip = await Files.DecryptAsync(enc);
-            //await Files.UnzipToDirectoryAsync(zip, DownloadPath);
+        string zip = await Files.DecryptAsync(enc);
+        //await Files.UnzipToDirectoryAsync(zip, DownloadPath);
 
-            string report = $"Получен файл {Path.GetFileName(zip).PathQuoted()}.";
+        string report = $"Получен файл {Path.GetFileName(zip).PathQuoted()}.";
 
-            Program.Done(_task, report, Subscribers);
-        }
-        catch (NoMessagesException ex)
-        {
-            Program.Done(_task, ex.Message, Subscribers);
-        }
-        catch (Portal5Exception ex)
-        {
-            Program.FailAPI(_task, ex, Subscribers);
-        }
-        catch (TaskException ex)
-        {
-            Program.FailTask(_task, ex, Subscribers);
-        }
-        catch (Exception ex)
-        {
-            Program.Fail(_task, ex, Subscribers);
-        }
+        return Program.Done(nameof(Zadacha130), report, subscribers);
     }
 
     #region Mock

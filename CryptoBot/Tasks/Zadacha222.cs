@@ -28,111 +28,78 @@ using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
-internal static class Zadacha222
+internal class Zadacha222(string downloadPath, string[] subscribers)
 {
-    private const string _task = "Zadacha_222";
-
-    //config
-    private static string DownloadPath { get; }
-    private static string[] Subscribers { get; }
-
-    static Zadacha222()
-    {
-        var config = Program.Config.GetSection(_task);
-
-        DownloadPath = config[nameof(DownloadPath)] ?? ".";
-        Subscribers = JsonSection.Subscribers(config);
-    }
-
-    public static async Task RunAsync(uint? days)
+    public async Task<int> RunAsync(uint? days)
     {
         StringBuilder sb = new();
 
-        try
+        var filter = new MessagesFilter()
         {
-            var filter = new MessagesFilter()
+            Task = "Zadacha_222",
+            MinDateTime = DateTime.Today.AddDays(-days ?? 0)
+        };
+
+        var messages = await Program.RestAPI.GetMessagesAsync(filter)
+            ?? throw new TaskException(
+                "Не получено сообщений.");
+
+        int count = messages.Count;
+
+        if (count == 0)
+        {
+            throw new NoMessagesException(
+                "Получено ноль сообщений.");
+        }
+        else
+        {
+            if (!Directory.CreateDirectory(downloadPath).Exists)
+                throw new TaskException(
+                    $"Не удалось создать папку {downloadPath.PathQuoted()}.");
+
+            foreach (var message in messages)
             {
-                Task = _task,
-                MinDateTime = DateTime.Today.AddDays(-days ?? 0)
-            };
+                string msgId = message.Id;
+                string date = message.CreationDate.ToLocalTime().ToString("ddd dd.MM.yyyy");
+                string xml = string.Empty;
+                string sig = string.Empty;
 
-            var messages = await Program.RestAPI.GetMessagesAsync(filter)
-                ?? throw new TaskException(
-                    "Не получено сообщений.");
-
-            int count = messages.Count;
-
-            if (count == 0)
-            {
-                throw new NoMessagesException(
-                    "Получено ноль сообщений.");
-            }
-            else
-            {
-                if (!Directory.CreateDirectory(DownloadPath).Exists)
-                    throw new TaskException(
-                        $"Не удалось создать папку {DownloadPath.PathQuoted()}.");
-
-                foreach (var message in messages)
+                foreach (var msgFile in message.Files)
                 {
-                    string msgId = message.Id;
-                    string date = message.CreationDate.ToLocalTime().ToString("ddd dd.MM.yyyy");
-                    string xml = string.Empty;
-                    string sig = string.Empty;
+                    string fileId = msgFile.Id;
+                    string path = Path.Combine(downloadPath, msgFile.Name);
 
-                    foreach (var msgFile in message.Files)
+                    if (msgFile.Encrypted)
                     {
-                        string fileId = msgFile.Id;
-                        string path = Path.Combine(DownloadPath, msgFile.Name);
-
-                        if (msgFile.Encrypted)
+                        // ZBR_3194_NOCRD_000020250411000000286401.xml.enc
+                        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
                         {
-                            // ZBR_3194_NOCRD_000020250411000000286401.xml.enc
-                            if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
-                            {
-                                Logger.TimeZZZLine("Расшифровка полученного файла");
+                            Logger.TimeZZZLine("Расшифровка полученного файла");
 
-                                // ZBR_3194_NOCRD_000020250411000000286401.xml
-                                xml = await Files.DecryptAsync(path);
+                            // ZBR_3194_NOCRD_000020250411000000286401.xml
+                            xml = await Files.DecryptAsync(path);
 
-                                string report = $"{date}  '{msgId}'  {xml.PathQuoted()}";
-                                sb.AppendLine(report);
+                            string report = $"{date}  '{msgId}'  {xml.PathQuoted()}";
+                            sb.AppendLine(report);
 
-                                Logger.TimeZZZLine(report);
-                            }
-                        }
-                        else
-                        {
-                            // ZBR_3194_NOCRD_000020250411000000286401.xml.sig
-                            if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
-                                sig = path;
+                            Logger.TimeZZZLine(report);
                         }
                     }
-
-                    if (!await Program.Crypto.VerifyDetachedFileAsync(xml, sig))
-                        //throw new TaskException(
-                        //    $"Подпись файла {xml.PathQuoted()} не верна.");
-                        sb.AppendLine(" -- Подпись не верна!");
+                    else
+                    {
+                        // ZBR_3194_NOCRD_000020250411000000286401.xml.sig
+                        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
+                            sig = path;
+                    }
                 }
 
-                Program.Done(_task, sb.ToString(), Subscribers);
+                if (!await Program.Crypto.VerifyDetachedFileAsync(xml, sig))
+                    //throw new TaskException(
+                    //    $"Подпись файла {xml.PathQuoted()} не верна.");
+                    sb.AppendLine(" -- Подпись не верна!");
             }
-        }
-        catch (NoMessagesException ex)
-        {
-            Program.Done(_task, ex.Message, Subscribers);
-        }
-        catch (Portal5Exception ex)
-        {
-            Program.FailAPI(_task, ex, Subscribers);
-        }
-        catch (TaskException ex)
-        {
-            Program.FailTask(_task, ex, Subscribers);
-        }
-        catch (Exception ex)
-        {
-            Program.Fail(_task, ex, Subscribers);
+
+            return Program.Done(nameof(Zadacha222), sb.ToString(), subscribers);
         }
     }
 

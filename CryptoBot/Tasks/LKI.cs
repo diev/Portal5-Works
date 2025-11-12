@@ -21,122 +21,90 @@ using CryptoBot.Helpers;
 
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Tools;
-using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
 /// <summary>
 /// Zadacha_3-1 ЛК ЕИО (inbox)
 /// </summary>
-internal static class LKI
+internal class LKI(string zipPath, string docPath, string? docPath2, string[] subscribers)
 {
-    private const string _task = nameof(LKI);
-
-    //config
-    public static string ZipPath { get; }
-    public static string DocPath { get; }
-    public static string? DocPath2 { get; }
-    public static string[] Subscribers { get; }
-
-    static LKI()
+    public async Task<int> RunAsync(uint? days)
     {
-        var config = Program.Config.GetSection(_task);
+        int errors = 0;
 
-        ZipPath = Path.GetFullPath(config[nameof(ZipPath)] ?? ".");
-        DocPath = Path.GetFullPath(config[nameof(DocPath)] ?? ".");
-        DocPath2 = config[nameof(DocPath2)] is null
-            ? null
-            : Path.GetFullPath(config[nameof(DocPath2)]!);
-
-        Subscribers = JsonSection.Subscribers(config);
-    }
-
-    public static async Task RunAsync(uint? days)
-    {
-        try
+        var filter = new MessagesFilter
         {
-            var filter = new MessagesFilter
+            //Type = MessageType.Inbox,
+            Task = "3-1",
+            //Status = MessageInStatus.New,
+            MinDateTime = DateTime.Today.AddDays(-days ?? 0)
+        };
+
+        //Logger.TimeZZZLine("Получение списка сообщений по фильтру");
+
+        var messages = await Messages.GetMessagesAsync(filter);
+
+        if (messages!.Count == 0)
+        {
+            //throw new TaskException("Получен пустой список сообщений.");
+            Logger.TimeZZZLine("Нет сообщений.");
+            return 0;
+        }
+
+        string text = $"В списке сообщений {messages.Count} шт.";
+        Logger.TimeZZZLine(text);
+        Program.RestAPI.SkipExceptions = true;
+
+        // Приступаем к загрузке
+        foreach (var message in messages)
+        {
+            (string json, string zip) = Messages.GetZipStore(message, zipPath);
+
+            if (!File.Exists(json))
             {
-                //Type = MessageType.Inbox,
-                Task = "3-1",
-                //Status = MessageInStatus.New,
-                MinDateTime = DateTime.Today.AddDays(-days ?? 0)
-            };
-
-            //Logger.TimeZZZLine("Получение списка сообщений по фильтру");
-
-            var messages = await Messages.GetMessagesAsync(filter);
-
-            if (messages!.Count == 0)
-            {
-                //throw new TaskException("Получен пустой список сообщений.");
-                Logger.TimeZZZLine("Нет сообщений.");
-                return;
+                if (!await Messages.SaveMessageJsonAsync(message, json))
+                    continue; //TODO alert!
             }
 
-            string text = $"В списке сообщений {messages.Count} шт.";
-            Logger.TimeZZZLine(text);
-            Program.RestAPI.SkipExceptions = true;
+            if (File.Exists(zip) || File.Exists(zip + ".err"))
+                continue;
 
-            // Приступаем к загрузке
-            foreach (var message in messages)
+            if (await Messages.SaveMessageZipAsync(message.Id, zip))
             {
-                (string json, string zip) = Messages.GetZipStore(message, ZipPath);
+                var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, docPath, docPath2);
+                string docs = msgInfo.FullName!;
+                string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");
 
-                if (!File.Exists(json))
-                {
-                    if (!await Messages.SaveMessageJsonAsync(message, json))
-                        continue; //TODO alert!
-                }
+                var files = File.Exists(pdf)
+                    ? [pdf]
+                    : Directory.GetFiles(docs, "*.pdf");
 
-                if (File.Exists(zip) || File.Exists(zip + ".err"))
-                    continue;
-
-                if (await Messages.SaveMessageZipAsync(message.Id, zip))
-                {
-                    var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, DocPath, DocPath2);
-                    string docs = msgInfo.FullName!;
-                    string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");
-
-                    var files = File.Exists(pdf)
-                        ? [pdf]
-                        : Directory.GetFiles(docs, "*.pdf");
-
-                    Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
-                        msgInfo.ToString(), Subscribers, files);
-                }
-                else
-                {
-                    string error = $"Файл сообщения {message.Id}.zip не скачать.";
-                    Logger.TimeZZZLine(error);
-
-                    //var msgInfo = new MessageInfo(message);
-                    var msgInfo = await Messages.DecryptMessageFilesAsync(message, DocPath, DocPath2);
-                    error += Environment.NewLine + msgInfo.Notes;
-                    msgInfo.Notes += error;
-                    await File.WriteAllTextAsync(zip + ".err", error);
-
-                    Program.Send($"ЛК ЦБ вх: {msgInfo.Subject} [ОШИБКИ]",
-                        msgInfo.ToString(), Subscribers);
-
-                    Program.Fail(_task, $"Не скачать файлы к {message.Id}");
-                }
+                Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
+                    msgInfo.ToString(), subscribers, files);
             }
+            else
+            {
+                string error = $"Файл сообщения {message.Id}.zip не скачать.";
+                Logger.TimeZZZLine(error);
 
-            Program.RestAPI.SkipExceptions = false;
-            Logger.TimeZZZLine("Список обработан.");
+                //var msgInfo = new MessageInfo(message);
+                var msgInfo = await Messages.DecryptMessageFilesAsync(message, docPath, docPath2);
+                error += Environment.NewLine + msgInfo.Notes;
+                msgInfo.Notes += error;
+                await File.WriteAllTextAsync(zip + ".err", error);
+
+                Program.Send($"ЛК ЦБ вх: {msgInfo.Subject} [ОШИБКИ]",
+                    msgInfo.ToString(), subscribers);
+
+                Program.Fail(nameof(LKI), $"Не скачать файлы к {message.Id}");
+                errors++;
+            }
         }
-        catch (Portal5Exception ex)
-        {
-            Program.FailAPI(_task, ex, Subscribers);
-        }
-        catch (TaskException ex)
-        {
-            Program.FailTask(_task, ex, Subscribers);
-        }
-        catch (Exception ex)
-        {
-            Program.Fail(_task, ex, Subscribers);
-        }
+
+        Program.RestAPI.SkipExceptions = false;
+        Logger.TimeZZZLine("Список обработан.");
+
+        return errors == 0 ? 0 : 2;
     }
 }

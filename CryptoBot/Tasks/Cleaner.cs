@@ -19,48 +19,33 @@ limitations under the License.
 
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Tools;
-using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
-internal static class Cleaner
+internal class Cleaner
 {
-    private const string _task = nameof(Cleaner);
-
-    public static async Task RunAsync(Guid? guid, MessagesFilter filter)
+    public async Task<int> RunAsync(Guid? guid, MessagesFilter filter)
     {
-        try
+        if (guid is not null && guid.HasValue)
         {
-            if (guid is not null && guid.HasValue)
-            {
-                string id = guid.ToString()!;
+            string id = guid.ToString()!;
 
-                Logger.TimeZZZLine($"Удаление сообщения '{id}'");
+            Logger.TimeZZZLine($"Удаление сообщения '{id}'");
 
-                if (!await Program.RestAPI.DeleteMessageAsync(id))
-                    throw new TaskException($"Ошибка удаления сообщения '{id}'.");
-                return;
-            }
+            if (!await Program.RestAPI.DeleteMessageAsync(id))
+                throw new TaskException($"Ошибка удаления сообщения '{id}'.");
 
-            if (filter.IsEmpty())
-                throw new TaskException(
-                    "Не задан фильтр сообщений для выполнения операции с ними - это опасно!");
-
-            Logger.TimeZZZLine("Удаление сообщений по фильтру");
-
-            await Program.RestAPI.DeleteMessagesAsync(filter);
+            return 0;
         }
-        catch (Portal5Exception ex)
-        {
-            Program.FailAPI(_task, ex);
-        }
-        catch (TaskException ex)
-        {
-            Program.FailTask(_task, ex);
-        }
-        catch (Exception ex)
-        {
-            Program.Fail(_task, ex);
-        }
+
+        if (filter.IsEmpty())
+            throw new TaskException(
+                "Не задан фильтр сообщений для выполнения операции с ними - это опасно!");
+
+        Logger.TimeZZZLine("Удаление сообщений по фильтру");
+
+        return await Program.RestAPI.DeleteMessagesAsync(filter)
+            ? 0
+            : 2; //FailTask
     }
 }

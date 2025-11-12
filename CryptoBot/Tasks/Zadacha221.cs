@@ -23,225 +23,191 @@ using CryptoBot.Helpers;
 
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Tools;
-using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
-internal static class Zadacha221
+internal class Zadacha221(string uploadPath, string archivePath, string zip, string[] subscribers)
 {
     private const string _task = "Zadacha_221";
     private const string _title =
         "Ответ на Запрос информации о платежах КО";
-    private const string _zip = "AFN_4030702_0000000_{0:yyyyMMdd}_{1:D5}.zip";
 
     private static int _n = 0;
 
-    //config
-    private static string UploadPath { get; }
-    private static string ArchivePath { get; }
-    private static string Zip { get; }
-    private static string[] Subscribers { get; }
-
-    static Zadacha221()
+    public async Task<int> RunAsync(Guid guid)
     {
-        var config = Program.Config.GetSection(_task);
+        if (string.IsNullOrEmpty(Program.EncryptTo))
+            throw new TaskException("В конфиге не указано на кого шифровать.");
 
-        UploadPath = Path.GetFullPath(config[nameof(UploadPath)] ?? ".");
-        //ArchivePath = string.Format(Path.GetFullPath(config[nameof(ArchivePath)] ?? "."), DateTime.Now);
-        ArchivePath = Directory.CreateDirectory(
-            Path.Combine(UploadPath, "BAK", DateTime.Now.ToString("yyyyMMdd"))
-            ).FullName;
-        Zip = config[nameof(Zip)] ?? _zip;
+        string id = guid.ToString();
+        var message = await Program.RestAPI.GetMessageAsync(id)
+            ?? throw new TaskException($"Запрос '{id}' не найден.");
 
-        Subscribers = JsonSection.Subscribers(config);
-    }
+        var upload = new DirectoryInfo(uploadPath);
 
-    public static async Task RunAsync(Guid guid)
-    {
-        try
+        // PB1_ZBR_3194_NOCRD_000020250618000000516701.xml
+        foreach (var xmlFile in upload.GetFiles("PB1_ZBR_*.xml"))
         {
-            if (string.IsNullOrEmpty(Program.EncryptTo))
-                throw new TaskException("В конфиге не указано на кого шифровать.");
+            Logger.TimeZZZLine("Подпись и шифрование");
 
-            string id = guid.ToString();
-            var message = await Program.RestAPI.GetMessageAsync(id)
-                ?? throw new TaskException($"Запрос '{id}' не найден.");
+            // AFN_4030702_0000000_20250623_00001.zip
+            string zipFile = Path.Combine(uploadPath, string.Format(zip, DateTime.Now, ++_n));
+            FileCopyToZip(xmlFile, zipFile);
 
-            var upload = new DirectoryInfo(UploadPath);
+            // AFN_4030702_0000000_20250623_00001.zip.sig
+            string sigFile = zipFile + ".sig";
+            if (!await Program.Crypto.SignDetachedFileAsync(zipFile, sigFile))
+                throw new TaskException(
+                    $"Подписать файл {zipFile.PathQuoted()} не удалось.");
 
-            // PB1_ZBR_3194_NOCRD_000020250618000000516701.xml
-            foreach (var xml in upload.GetFiles("PB1_ZBR_*.xml"))
+            // AFN_4030702_0000000_20250623_00001.tpt.zip
+            string tptFile = Path.ChangeExtension(zipFile, "tpt.zip");
+            File2CopyToZip(zipFile, sigFile, tptFile);
+
+            // AFN_4030702_0000000_20250623_00001.tpt.zip.enc
+            string encFile = tptFile + ".enc";
+            if (!await Program.Crypto.EncryptFileAsync(tptFile, encFile, Program.EncryptTo))
+                throw new TaskException(
+                    $"Зашифровать файл {tptFile.PathQuoted()} не удалось.");
+
+            try
             {
-                Logger.TimeZZZLine("Подпись и шифрование");
+                // Backup
+                File.Move(tptFile, Path.Combine(archivePath, Path.GetFileName(tptFile)), true);
+                File.Copy(encFile, Path.Combine(archivePath, Path.GetFileName(encFile)), true);
 
-                // AFN_4030702_0000000_20250623_00001.zip
-                string zip = Path.Combine(UploadPath, string.Format(Zip, DateTime.Now, ++_n));
-                FileCopyToZip(xml, zip);
-
-                // AFN_4030702_0000000_20250623_00001.zip.sig
-                string sig = zip + ".sig";
-                if (!await Program.Crypto.SignDetachedFileAsync(zip, sig))
-                    throw new TaskException(
-                        $"Подписать файл {zip.PathQuoted()} не удалось.");
-
-                // AFN_4030702_0000000_20250623_00001.tpt.zip
-                string tpt = Path.ChangeExtension(zip, "tpt.zip");
-                File2CopyToZip(zip, sig, tpt);
-
-                // AFN_4030702_0000000_20250623_00001.tpt.zip.enc
-                string enc = tpt + ".enc";
-                if (!await Program.Crypto.EncryptFileAsync(tpt, enc, Program.EncryptTo))
-                    throw new TaskException(
-                        $"Зашифровать файл {tpt.PathQuoted()} не удалось.");
-
-                try
-                {
-                    // Backup
-                    File.Move(tpt, Path.Combine(ArchivePath, Path.GetFileName(tpt)), true);
-                    File.Copy(enc, Path.Combine(ArchivePath, Path.GetFileName(enc)), true);
-
-                    // Clean
-                    xml.Delete();
-                    File.Delete(zip);
-                    File.Delete(sig);
-                }
-                catch
-                {
-                    Logger.TimeLine("Очистить папку отправки не удалось");
-                }
-
-                Logger.TimeZZZLine("Отправка файла");
-
-                string msgId = await UploadAsync(enc, guid);
-
-                Thread.Sleep(60000);
-
-                Logger.TimeZZZLine("Запрос статуса принятия");
-
-                message = await Messages.CheckStatusAsync(msgId, 20);
-
-                string report = $"Файл {enc.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-
-                Program.Done(_task, report, Subscribers);
-                File.Delete(enc);
+                // Clean
+                xmlFile.Delete();
+                File.Delete(zipFile);
+                File.Delete(sigFile);
+            }
+            catch
+            {
+                Logger.TimeLine("Очистить папку отправки не удалось");
             }
 
-            // BVD1_ZBR_3194_NOCRD_000020250618000000516701_20250623_0000_000001_000001_000001.xml
-            // BVS1_ZBR_3194_NOCRD_000020250618000000516701_20250623_0000_000001.xml
-            var files = upload.GetFiles("BV?1_ZBR_*.xml");
+            Logger.TimeZZZLine("Отправка файла");
 
-            if (files.Length > 0)
+            string msgId = await UploadAsync(encFile, guid);
+
+            Thread.Sleep(60000);
+
+            Logger.TimeZZZLine("Запрос статуса принятия");
+
+            message = await Messages.CheckStatusAsync(msgId, 20);
+
+            string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
+
+            Program.Done(nameof(Zadacha221), report, subscribers);
+            File.Delete(encFile);
+        }
+
+        // BVD1_ZBR_3194_NOCRD_000020250618000000516701_20250623_0000_000001_000001_000001.xml
+        // BVS1_ZBR_3194_NOCRD_000020250618000000516701_20250623_0000_000001.xml
+        var files = upload.GetFiles("BV?1_ZBR_*.xml");
+
+        if (files.Length > 0)
+        {
+            Logger.TimeZZZLine("Подпись и шифрование");
+
+            // AFN_4030702_0000000_20250623_00002.zip
+            string zipFile = Path.Combine(uploadPath, string.Format(zip, DateTime.Now, ++_n));
+            FilesCopyToZip(files, zipFile);
+
+            // AFN_4030702_0000000_20250623_00002.zip.sig
+            string sigFile = zipFile + ".sig";
+            if (!await Program.Crypto.SignDetachedFileAsync(zipFile, sigFile))
+                throw new TaskException(
+                    $"Подписать файл {zipFile.PathQuoted()} не удалось.");
+
+            // AFN_4030702_0000000_20250623_00002.tpt.zip
+            string tptFile = Path.ChangeExtension(zip, "tpt.zip");
+            File2CopyToZip(zipFile, sigFile, tptFile);
+
+            // AFN_4030702_0000000_20250623_00002.tpt.zip.enc
+            string encFile = tptFile + ".enc";
+            if (!await Program.Crypto.EncryptFileAsync(tptFile, encFile, Program.EncryptTo))
+                throw new TaskException(
+                    $"Зашифровать файл {tptFile.PathQuoted()} не удалось.");
+
+            try
             {
-                Logger.TimeZZZLine("Подпись и шифрование");
+                // Backup
+                File.Move(tptFile, Path.Combine(archivePath, Path.GetFileName(tptFile)), true);
+                File.Copy(encFile, Path.Combine(archivePath, Path.GetFileName(encFile)), true);
 
-                // AFN_4030702_0000000_20250623_00002.zip
-                string zip = Path.Combine(UploadPath, string.Format(Zip, DateTime.Now, ++_n));
-                FilesCopyToZip(files, zip);
+                // Clean
+                foreach (var file in files)
+                    file.Delete();
 
-                // AFN_4030702_0000000_20250623_00002.zip.sig
-                string sig = zip + ".sig";
-                if (!await Program.Crypto.SignDetachedFileAsync(zip, sig))
-                    throw new TaskException(
-                        $"Подписать файл {zip.PathQuoted()} не удалось.");
-
-                // AFN_4030702_0000000_20250623_00002.tpt.zip
-                string tpt = Path.ChangeExtension(zip, "tpt.zip");
-                File2CopyToZip(zip, sig, tpt);
-
-                // AFN_4030702_0000000_20250623_00002.tpt.zip.enc
-                string enc = tpt + ".enc";
-                if (!await Program.Crypto.EncryptFileAsync(tpt, enc, Program.EncryptTo))
-                    throw new TaskException(
-                        $"Зашифровать файл {tpt.PathQuoted()} не удалось.");
-
-                try
-                {
-                    // Backup
-                    File.Move(tpt, Path.Combine(ArchivePath, Path.GetFileName(tpt)), true);
-                    File.Copy(enc, Path.Combine(ArchivePath, Path.GetFileName(enc)), true);
-
-                    // Clean
-                    foreach (var file in files)
-                        file.Delete();
-                    File.Delete(zip);
-                    File.Delete(sig);
-                }
-                catch
-                {
-                    Logger.TimeLine("Очистить папку отправки не удалось");
-                }
-
-                Logger.TimeZZZLine("Отправка файла");
-
-                string msgId = await UploadAsync(enc, guid);
-
-                Thread.Sleep(60000);
-
-                Logger.TimeZZZLine("Запрос статуса принятия");
-
-                message = await Messages.CheckStatusAsync(msgId, 20);
-
-                string report = $"Файл {enc.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-
-                Program.Done(_task, report, Subscribers);
-                File.Delete(enc);
+                File.Delete(zipFile);
+                File.Delete(sigFile);
+            }
+            catch
+            {
+                Logger.TimeLine("Очистить папку отправки не удалось");
             }
 
-            if (_n == 0)
-                throw new TaskException("Нет файлов для отправки.");
+            Logger.TimeZZZLine("Отправка файла");
+
+            string msgId = await UploadAsync(encFile, guid);
+
+            Thread.Sleep(60000);
+
+            Logger.TimeZZZLine("Запрос статуса принятия");
+
+            message = await Messages.CheckStatusAsync(msgId, 20);
+
+            string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
+
+            Program.Done(_task, report, subscribers);
+            File.Delete(encFile);
         }
-        catch (Portal5Exception ex)
-        {
-            Program.FailAPI(_task, ex, Subscribers);
-        }
-        catch (TaskException ex)
-        {
-            Program.FailTask(_task, ex, Subscribers);
-        }
-        catch (Exception ex)
-        {
-            Program.Fail(_task, ex, Subscribers);
-        }
+
+        if (_n == 0)
+            throw new TaskException("Нет файлов для отправки.");
+
+        return 0;
     }
 
-    private static void FileCopyToZip(FileInfo file, string zip)
+    private static void FileCopyToZip(FileInfo file, string zipFile)
     {
-        if (File.Exists(zip))
+        if (File.Exists(zipFile))
             throw new TaskException(
                 "В папке отправки не должно быть прежних архивов.");
 
         //var mode = File.Exists(zip) ? ZipArchiveMode.Update : ZipArchiveMode.Create;
         var mode = ZipArchiveMode.Create;
-        using var archive = ZipFile.Open(zip, mode);
+        using var archive = ZipFile.Open(zipFile, mode);
         archive.CreateEntryFromFile(file.FullName, file.Name);
     }
 
-    private static void FilesCopyToZip(FileInfo[] files, string zip)
+    private static void FilesCopyToZip(FileInfo[] files, string zipFile)
     {
-        if (File.Exists(zip))
+        if (File.Exists(zipFile))
             throw new TaskException(
                 "В папке отправки не должно быть прежних архивов.");
 
         //var mode = File.Exists(zip) ? ZipArchiveMode.Update : ZipArchiveMode.Create;
         var mode = ZipArchiveMode.Create;
-        using var archive = ZipFile.Open(zip, mode);
+        using var archive = ZipFile.Open(zipFile, mode);
         foreach (var file in files)
         {
             archive.CreateEntryFromFile(file.FullName, file.Name);
         }
     }
 
-    private static void File2CopyToZip(string file, string sig, string zip)
+    private static void File2CopyToZip(string file, string sigFile, string zipFile)
     {
-        if (File.Exists(zip))
+        if (File.Exists(zipFile))
             throw new TaskException(
                 "В папке отправки не должно быть прежних архивов.");
 
         //var mode = File.Exists(zip) ? ZipArchiveMode.Update : ZipArchiveMode.Create;
         var mode = ZipArchiveMode.Create;
-        using var archive = ZipFile.Open(zip, mode);
+        using var archive = ZipFile.Open(zipFile, mode);
         archive.CreateEntryFromFile(file, Path.GetFileName(file));
-        archive.CreateEntryFromFile(sig, Path.GetFileName(sig));
+        archive.CreateEntryFromFile(sigFile, Path.GetFileName(sigFile));
     }
 
     /// <summary>

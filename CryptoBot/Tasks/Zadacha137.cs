@@ -22,105 +22,57 @@ using CryptoBot.Helpers;
 using Diev.Extensions.LogFile;
 using Diev.Extensions.Tools;
 using Diev.Extensions.Xml;
-using Diev.Portal5.Exceptions;
 
 namespace CryptoBot.Tasks;
 
-internal static class Zadacha137
+internal class Zadacha137(string uploadPath, string zip, string? xsd, string[] subscribers)
 {
     private const string _task = "Zadacha_137";
     private const string _title =
         "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)";
-    private const string _zip = "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip";
 
-    //config
-    private static string UploadPath { get; }
-    //private static string ArchivePath { get; }
-    private static string Zip { get; }
-    private static string? Xsd { get; }
-    private static string[] Subscribers { get; }
-
-    static Zadacha137()
+    public async Task<int> RunAsync(uint? days)
     {
-        var config = Program.Config.GetSection(_task);
+        if (string.IsNullOrEmpty(xsd))
+            throw new TaskException("В конфиге не указан файл схемы XSD.");
 
-        UploadPath = Path.GetFullPath(config[nameof(UploadPath)] ?? ".");
-        //ArchivePath = string.Format(Path.GetFullPath(config[nameof(ArchivePath)] ?? "."), DateTime.Now);
-        Zip = config[nameof(Zip)] ?? _zip;
-        Xsd = config[nameof(Xsd)]; // ClientFileXML.xsd
+        if (!File.Exists(xsd))
+            throw new TaskException($"Не найден файл схемы {xsd.PathQuoted}.");
 
-        Subscribers = JsonSection.Subscribers(config);
-    }
+        if (string.IsNullOrEmpty(Program.EncryptTo))
+            throw new TaskException("В конфиге не указано на кого шифровать.");
 
-    public static async Task RunAsync(uint? days)
-    {
-        //if (Program.Debug)
-        //{
-        //    Program.Send(_task, "Test report", Subscribers);
-        //    return;
-        //}
+        string zipFile = GetZipToUpload(uploadPath, zip, days ?? 0);
+        string zipFullName = Path.Combine(uploadPath, zipFile);
+        string temp = Paths.GetTempPath(uploadPath);
 
-        try
+        await Files.UnzipToDirectoryAsync(zipFullName, temp);
+
+        Logger.TimeZZZLine("Проверка XML по схеме XSD");
+
+        foreach (var xml in Directory.EnumerateFiles(temp, "*.xml"))
         {
-            if (string.IsNullOrEmpty(Xsd))
-                throw new TaskException("В конфиге не указан файл схемы XSD.");
-
-            if (!File.Exists(Xsd))
-                throw new TaskException($"Не найден файл схемы {Xsd.PathQuoted}.");
-
-            if (string.IsNullOrEmpty(Program.EncryptTo))
-                throw new TaskException("В конфиге не указано на кого шифровать.");
-
-            string zip = GetZipToUpload(UploadPath, Zip, days ?? 0);
-            string zipFullName = Path.Combine(UploadPath, zip);
-            string temp = Paths.GetTempPath(UploadPath);
-
-            await Files.UnzipToDirectoryAsync(zipFullName, temp);
-
-            Logger.TimeZZZLine("Проверка XML по схеме XSD");
-
-            foreach (var xml in Directory.EnumerateFiles(temp, "*.xml"))
-            {
-                await XsdChecker.CheckAsync(xml, Xsd);
-                File.Delete(xml);
-            }
-
-            Logger.TimeZZZLine("Подпись и шифрование");
-
-            await Files.SignAndEncryptToDirectoryAsync(zipFullName, Program.EncryptTo, temp);
-
-            Logger.TimeZZZLine("Отправка файла");
-
-            //string msgId = Program.Debug
-            //    ? "6a5d688b-8ba2-431f-af92-b35400eadde4" //test
-            //    : await UploadAsync(temp);
-
-            //Thread.Sleep(Program.Debug ? 1000 : 60000);
-
-            string msgId = await UploadAsync(temp);
-
-            Thread.Sleep(60000);
-
-            Logger.TimeZZZLine("Запрос статуса принятия");
-
-            var message = await Messages.CheckStatusAsync(msgId, 20);
-
-            string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
-
-            Program.Done(_task, report, Subscribers);
+            await XsdChecker.CheckAsync(xml, xsd);
+            File.Delete(xml);
         }
-        catch (Portal5Exception ex)
-        {
-            Program.FailAPI(_task, ex, Subscribers);
-        }
-        catch (TaskException ex)
-        {
-            Program.FailTask(_task, ex, Subscribers);
-        }
-        catch (Exception ex)
-        {
-            Program.Fail(_task, ex, Subscribers);
-        }
+
+        Logger.TimeZZZLine("Подпись и шифрование");
+
+        await Files.SignAndEncryptToDirectoryAsync(zipFullName, Program.EncryptTo, temp);
+
+        Logger.TimeZZZLine("Отправка файла");
+
+        string msgId = await UploadAsync(temp);
+
+        Thread.Sleep(60000);
+
+        Logger.TimeZZZLine("Запрос статуса принятия");
+
+        var message = await Messages.CheckStatusAsync(msgId, 20);
+
+        string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
+
+        return Program.Done(nameof(Zadacha137), report, subscribers);
     }
 
     /// <summary>

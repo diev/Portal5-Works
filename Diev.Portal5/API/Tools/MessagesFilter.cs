@@ -19,6 +19,8 @@ limitations under the License.
 
 using System.Text;
 
+using Diev.Portal5.API.Messages;
+
 namespace Diev.Portal5.API.Tools;
 
 /// <summary>
@@ -90,6 +92,52 @@ public class MessagesFilter
     /// В случае некорректного номера страницы – ошибка. 
     /// </summary>
     public uint? Page { get; set; }
+
+    public MessagesFilter()
+    { }
+
+    public MessagesFilter(string? task,
+        uint? before, uint? days, uint? day, DateTime? minDateTime, DateTime? maxDateTime,
+        uint? minSize, uint? maxSize,
+        bool inbox, bool outbox,
+        string? status, uint? page)
+    {
+        Task = task;
+
+        var today = DateTime.Today; // next 00:00
+
+        DateTime? day1 = day is null
+            ? null
+            : today.AddDays((double)-day);
+
+        DateTime? from = days is null
+            ? minDateTime
+            : today.AddDays((double)-days);
+
+        DateTime? to = before is null
+            ? maxDateTime
+            : today.AddDays((double)-before);
+
+        MinDateTime = day is null
+            ? from
+            : day1;
+        MaxDateTime = day is null
+            ? to
+            : day1!.Value.AddDays(1);
+
+        MinSize = minSize;
+        MaxSize = maxSize;
+
+        Type = inbox == outbox
+            ? null
+            : inbox
+                ? MessageType.Inbox
+                : MessageType.Outbox;
+
+        Status = status;
+
+        Page = page;
+    }
 
     public string GetQuery()
     {
