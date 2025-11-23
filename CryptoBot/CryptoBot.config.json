@@ -1,23 +1,15 @@
 {
-  "LKI": {
-    "ZipPath": "Download\\Archive",
-    "DocPath": "Download\\Docs",
-    "DocPath2": null,
-    "Subscribers": []
-  },
-  "LKO": {
-    "ZipPath": "Download\\Archive",
-    "DocPath": "Download\\Docs",
-    "DocPath2": null,
-    "Subscribers": []
-  },
   "Loader": {
     "Decrypt": false,
     "Delete": false,
-    "DownloadPath": "Download\\Archive",
+    "ZipPath": "Download\\Archive",
+    "DocPath": "Download\\Docs",
+    "DocPath2": null,
     "Exclude": [ 97, 107, 114, 123, 133, 140, 155, 156, 169 ],
     "Overwrite": false,
-    "Subscribers": []
+    "Subscribers": [],
+    "iSubscribers": [],
+    "oSubscribers": []
   },
   "Program": {
     "CryptoName": "CryptoPro My",

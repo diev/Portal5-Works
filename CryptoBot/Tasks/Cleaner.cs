@@ -32,7 +32,9 @@ internal class Cleaner
 
             Logger.TimeZZZLine($"Удаление сообщения '{id}'");
 
-            if (!await Program.RestAPI.DeleteMessageAsync(id))
+            var messageResult = await Program.RestAPI.DeleteMessageAsync(id);
+
+            if (!messageResult.OK)
                 throw new TaskException($"Ошибка удаления сообщения '{id}'.");
 
             return 0;
@@ -44,7 +46,9 @@ internal class Cleaner
 
         Logger.TimeZZZLine("Удаление сообщений по фильтру");
 
-        return await Program.RestAPI.DeleteMessagesAsync(filter)
+        var messagesResult = await Program.RestAPI.DeleteMessagesAsync(filter);
+
+        return messagesResult.OK
             ? 0
             : 2; //FailTask
     }

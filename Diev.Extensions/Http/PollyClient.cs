@@ -17,13 +17,10 @@ limitations under the License.
 */
 #endregion
 
-using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Text;
-using System.Threading;
 
 using Diev.Extensions.Credentials;
 using Diev.Extensions.LogFile;
@@ -167,7 +164,6 @@ public static class PollyClient
             {
                 request.Headers.Range = new RangeHeaderValue(from, to);
                 var response = await _httpClient.SendAsync(request);
-                _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
 
                 if (!RetryRequired(response.StatusCode))
                 {
@@ -191,20 +187,9 @@ public static class PollyClient
     public static async Task<HttpResponseMessage> ExecuteAsync(HttpMethod method,
         string url, HttpContent? content = null)
     {
-        using var request = new HttpRequestMessage(method, url);
-
-        if (content is not null)
-        {
-            request.Content = content;
-        }
-
-        return await TryExecuteRequestAsync(request); //to save content after each Send done
-    }
-
-    private static async Task<HttpResponseMessage> TryExecuteRequestAsync(HttpRequestMessage request)
-    {
         int retry = 0;
         DateTime end = DateTime.Now.AddMinutes(WaitMinutesTimeout);
+        HttpResponseMessage? response = null;
 
         while (true)
         {
@@ -213,25 +198,66 @@ public static class PollyClient
                 Thread.Sleep(_ddosAllowedTime - DateTime.Now);
             }
 
-            var response = await _httpClient.SendAsync(request);
-            _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
-
-            if (!RetryRequired(response.StatusCode))
+            try
             {
-                // Ok
-                return response;
+                using var request = new HttpRequestMessage(method, url);
+
+                if (content is not null)
+                {
+                    var clone = await CopyContentAsync(content);
+                    request.Content = clone;
+                }
+
+                response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+
+                if (!RetryRequired(response.StatusCode))
+                {
+                    // Ok
+                    return response;
+                }
             }
-
-            if (DateTime.Now > end)
+            catch (Exception)
             {
-                Logger.TimeLine($"Повторы прекращены за истечением {WaitMinutesTimeout} мин.");
-                return response;
+            }
+            finally
+            {
+                _ddosAllowedTime = DateTime.Now.AddSeconds(DdosSecondsTimeout);
             }
 
             int pause = ++retry * RetrySecondsTimeout;
             Logger.TimeLine($"Повтор через {pause} сек.");
             Thread.Sleep(pause * 1000);
+
+            if (DateTime.Now > end)
+            {
+                Logger.TimeLine($"Повторы прекращены за истечением {WaitMinutesTimeout} мин.");
+
+                if (response is null)
+                {
+                    throw new InvalidOperationException("Ни одного ответа без ошибок от сервера не получено.");
+                }
+
+                return response;
+            }
         }
+        
+        throw new InvalidOperationException("Логика повторных запросов должна была предотвратить это.");
+    }
+
+    private static async Task<HttpContent> CopyContentAsync(HttpContent content)
+    {
+        using var memoryStream = new MemoryStream();
+        await content.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+
+        var copiedContent = new StreamContent(memoryStream);
+
+        foreach (var header in content.Headers)
+        {
+            copiedContent.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        return copiedContent;
     }
 
     private static bool RetryRequired(HttpStatusCode code)

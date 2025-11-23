@@ -46,7 +46,7 @@ public class RestAPI(Credential cred, bool trace, bool debug)
     /// <param name="path"></param>
     /// <returns></returns>
     /// <exception cref="FileNotFoundException"></exception>
-    public async Task<string?> UploadDirectoryAsync(string task, string? title, string path)
+    public async Task<ApiResult<string>> UploadDirectoryAsync(string task, string? title, string path)
     {
         Logger.Title($"Upload directory {path.PathQuoted()}");
 
@@ -107,18 +107,22 @@ public class RestAPI(Credential cred, bool trace, bool debug)
             }
             else
             {
-                throw new FileNotFoundException("Файл не найден", src.Name);
+                //throw new FileNotFoundException("Файл не найден", src.Name);
+                return ApiResult<string>.CreateError($"Файл не найден {src.Name.PathQuoted()}");
             }
         }
 
         // Step 1 - post request for new message
         Logger.Title("1. Post request for new message.");
 
-        var message = await PostMessageRequestAsync(draft);
+        var messageResult = await PostMessageRequestAsync(draft);
 
-        if (message is null)
-            return null;
+        if (!messageResult.OK)
+        {
+            return ApiResult<string>.CreateError(messageResult.Error);
+        }
 
+        var message = messageResult.Data!;
         string msgId = message.Id;
         int sent = 0;
 
@@ -128,19 +132,21 @@ public class RestAPI(Credential cred, bool trace, bool debug)
             // Step 2 - post request for new file
             Logger.Title($"2.{sent + 1}. Post request for new file.");
 
-            var uploadSession = await PostUploadRequestAsync(msgId, messageFile.Id);
+            var uploadSessionResult = await PostUploadRequestAsync(msgId, messageFile.Id);
 
-            if (uploadSession is null)
+            if (!uploadSessionResult.OK)
                 break;
 
+            var uploadSession = uploadSessionResult.Data!;
             var expiration = uploadSession.ExpirationDateTime.ToLocalTime();
 
             // Step3 - upload new file
             Logger.Title($"3.{sent + 1}. Upload new file {messageFile.Name.PathQuoted()}.");
 
             string file = Path.Combine(path, messageFile.Name);
+            var uploadFileResult = await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl);
 
-            if (!await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl))
+            if (!uploadFileResult.OK)
                 break;
 
             sent++;
@@ -154,11 +160,11 @@ public class RestAPI(Credential cred, bool trace, bool debug)
 
         if (sent == message.Files.Count)
         {
-            if (await PostMessageAsync(msgId))
+            var postMessageResult = await PostMessageAsync(msgId);
+
+            if (postMessageResult.OK)
             {
-                Logger.Title("Upload directory done.");
-                Logger.Flush(2);
-                return msgId;
+                return ApiResult<string>.CreateOK(msgId);
             }
         }
 
@@ -179,9 +185,7 @@ public class RestAPI(Credential cred, bool trace, bool debug)
                 break;
         }
 
-        Logger.Title("Upload directory fail.");
-        Logger.Flush(2);
-        return null;
+        return ApiResult<string>.CreateError("Upload directory fail.");
     }
 
     /// <summary>
@@ -193,7 +197,7 @@ public class RestAPI(Credential cred, bool trace, bool debug)
     /// <param name="corrId"></param>
     /// <returns></returns>
     /// <exception cref="FileNotFoundException"></exception>
-    public async Task<string?> UploadEncFileAsync(string task, string? title, string path, Guid? corrId = null)
+    public async Task<ApiResult<string>> UploadEncFileAsync(string task, string? title, string path, Guid? corrId = null)
     {
         Logger.Title($"Upload file {path.PathQuoted()}");
 
@@ -218,43 +222,54 @@ public class RestAPI(Credential cred, bool trace, bool debug)
         // Step 1 - post request for new message
         Logger.Title("1. Post request for new message.");
 
-        var message = await PostMessageRequestAsync(draft);
+        var newMessageResult = await PostMessageRequestAsync(draft);
 
-        if (message is null)
-            return null;
+        if (!newMessageResult.OK)
+        {
+            return ApiResult<string>.CreateError(newMessageResult.Error);
+        }
 
+        var message = newMessageResult.Data!;
         string msgId = message.Id;
         var messageFile = message.Files[0];
 
         // Step 2 - post request for new file
         Logger.Title($"2. Post request for new file.");
 
-        var uploadSession = await PostUploadRequestAsync(msgId, messageFile.Id);
+        var uploadSessionResult = await PostUploadRequestAsync(msgId, messageFile.Id);
 
-        if (uploadSession is null)
-            return null;
+        if (!uploadSessionResult.OK)
+        {
+            return ApiResult<string>.CreateError(uploadSessionResult.Error);
+        }
 
+        var uploadSession = uploadSessionResult.Data!;
         var expiration = uploadSession.ExpirationDateTime.ToLocalTime();
 
         // Step3 - upload new file
         Logger.Title($"3. Upload new file {messageFile.Name.PathQuoted()}.");
 
         string file = Path.Combine(path, messageFile.Name);
+        var uploadFileResult = await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl);
 
-        if (!await UploadFileAsync(file, messageFile.Size, uploadSession.UploadUrl))
-            return null;
+        if (!uploadFileResult.OK)
+        {
+            return ApiResult<string>.CreateError(uploadFileResult.Error);
+        }
 
         if (DateTime.Now > expiration)
-            return null;
+        {
+            return ApiResult<string>.CreateError("Time to upload expired.");
+        }
 
         // Step 4 - post ready message
         Logger.Title("4. Post ready message.");
 
-        if (await PostMessageAsync(msgId))
+        var postMessageResult = await PostMessageAsync(msgId);
+
+        if (postMessageResult.OK)
         {
-            Logger.Title("Upload file done.");
-            Logger.Flush(2);
-            return msgId;
+            return ApiResult<string>.CreateOK(msgId);
         }
 
         // Try to clean expired uploaded file
@@ -266,9 +281,7 @@ public class RestAPI(Credential cred, bool trace, bool debug)
         }
         catch { }
 
-        Logger.Title("Upload file fail.");
-        Logger.Flush(2);
-        return null;
+        return ApiResult<string>.CreateError("Upload file fail.");
     }
 
     /// <summary>
@@ -279,46 +292,57 @@ public class RestAPI(Credential cred, bool trace, bool debug)
     /// Бонус: в фильтре можно указать несколько задач через запятую.
     /// </summary>
     /// <param name="filter"></param>
-    /// <returns>Все сообщения с учетом фильтра или NULL.</returns>
+    /// <returns>Все сообщения с учетом фильтра.</returns>
     /// <exception cref="Exception"></exception>
-    public async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter)
+    public async Task<ApiResult<IReadOnlyList<Message>>> GetMessagesAsync(MessagesFilter filter)
     {
         Logger.Line("### Get messages.");
 
         if (filter.Task is null || !filter.Task.Contains(','))
         {
-            return await GetMessagesCoreAsync(filter);
+            var messages = await GetMessagesCoreAsync(filter);
+            return ApiResult<IReadOnlyList<Message>>.CreateOK(messages.Data);
         }
 
-        List<Message> messages = [];
-        var tasks = filter.Task.Split(',');
+        List<Message> rangeMessages = [];
+        var tasks = filter.Task!.Split(',');
 
         foreach (var task in tasks)
         {
             filter.Task = task;
             filter.Page = null;
 
-            var range = await GetMessagesCoreAsync(filter);
+            var rangeResult = await GetMessagesCoreAsync(filter);
 
-            if (range is null)
-                return null;
+            if (!rangeResult.OK)
+            {
+                return ApiResult<IReadOnlyList<Message>>.CreateError("Range is null.");
+            }
+
+            var range = rangeResult.Data!;
 
             if (range.Count > 0)
-                messages.AddRange(range);
+            {
+                rangeMessages.AddRange(range);
+            }
         }
 
-        return messages;
+        return ApiResult<IReadOnlyList<Message>>.CreateOK(rangeMessages);
     }
 
-    private async Task<List<Message>?> GetMessagesCoreAsync(MessagesFilter filter)
+    private async Task<ApiResult<IReadOnlyList<Message>>> GetMessagesCoreAsync(MessagesFilter filter)
     {
         List<Message> messages = [];
 
         // Get first page of 100
-        var messagesPage = await GetMessagesPageAsync(filter.GetQuery());
+        var messagesPageResult = await GetMessagesPageAsync(filter.GetQuery());
 
-        if (messagesPage is null)
-            return null;
+        if (!messagesPageResult.OK)
+        {
+            ApiResult<IReadOnlyList<Message>>.CreateError(messagesPageResult.Error);
+        }
+
+        var messagesPage = messagesPageResult.Data!;
 
         while (messagesPage.Messages.Count > 0)
         {
@@ -331,14 +355,17 @@ public class RestAPI(Credential cred, bool trace, bool debug)
 
             // Get next page of 100
             filter.Page = (uint)messagesPage.Pages.CurrentPage + 1;
-            messagesPage = await GetMessagesPageAsync(filter.GetQuery());
+            messagesPageResult = await GetMessagesPageAsync(filter.GetQuery());
 
-            if (messagesPage is null)
-                return null;
+            if (!messagesPageResult.OK)
+            {
+                ApiResult<IReadOnlyList<Message>>.CreateError(messagesPageResult.Error);
+            }
+
+            messagesPage = messagesPageResult.Data!;
         }
 
-        Logger.Flush(2);
-        return messages;
+        return ApiResult<IReadOnlyList<Message>>.CreateOK(messages);
     }
 
     /// <summary>
@@ -347,12 +374,12 @@ public class RestAPI(Credential cred, bool trace, bool debug)
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <param name="path"></param>
     /// <returns></returns>
-    public async Task<bool> DownloadMessageJsonAsync(string msgId, string path, bool overwrite = false)
+    public async Task<ApiResult<bool>> DownloadMessageJsonAsync(string msgId, string path, bool overwrite = false)
     {
         Logger.Line($"Download {path.PathQuoted()}.");
 
         if (SkipExisting(path, overwrite))
-            return true;
+            return ApiResult<bool>.CreateOK(true);
 
         string url = Api + $"messages/{msgId}";
         using var response = await PollyClient.GetAsync(url);
@@ -362,9 +389,10 @@ public class RestAPI(Credential cred, bool trace, bool debug)
             using var stream = await response.Content.ReadAsStreamAsync();
             using var file = File.OpenWrite(path);
             await stream.CopyToAsync(file);
+            await stream.FlushAsync();
         }
 
-        return File.Exists(path);
+        return ApiResult<bool>.CreateOK(File.Exists(path));
     }
 
     /// <summary>
@@ -373,7 +401,7 @@ public class RestAPI(Credential cred, bool trace, bool debug)
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <param name="file"></param>
     /// <returns></returns>
-    public async Task<bool> AppendMessageJsonAsync(string msgId, FileStream file)
+    public async Task<ApiResult<bool>> AppendMessageJsonAsync(string msgId, FileStream file)
     {
         string url = Api + $"messages/{msgId}";
         using var response = await PollyClient.GetAsync(url);
@@ -382,11 +410,12 @@ public class RestAPI(Credential cred, bool trace, bool debug)
         {
             using var stream = await response.Content.ReadAsStreamAsync();
             await stream.CopyToAsync(file);
+            await stream.FlushAsync();
 
-            return true;
+            return ApiResult<bool>.CreateOK(true);
         }
 
-        return false;
+        return ApiResult<bool>.CreateError(response);
     }
 
     /// <summary>
@@ -394,20 +423,28 @@ public class RestAPI(Credential cred, bool trace, bool debug)
     /// </summary>
     /// <param name="filter"></param>
     /// <returns>True если все удалены или false если какие-то (или все) могли остаться.</returns>
-    public async Task<bool> DeleteMessagesAsync(MessagesFilter filter)
+    public async Task<ApiResult<bool>> DeleteMessagesAsync(MessagesFilter filter)
     {
-        var messages = await GetMessagesAsync(filter);
-        bool ok = true;
+        var messagesResult = await GetMessagesAsync(filter);
 
-        if (messages is null)
-            return false;
+        if (!messagesResult.OK)
+        {
+            return ApiResult<bool>.CreateError(messagesResult.Error);
+        }
+
+        var messages = messagesResult.Data!;
+        var ok = true;
 
         foreach (var message in messages)
         {
             try
             {
-                if (!await DeleteMessageAsync(message.Id))
+                var deleteResult = await DeleteMessageAsync(message.Id);
+
+                if (!deleteResult.OK)
+                {
                     ok = false;
+                }
             }
             catch
             {
@@ -415,6 +452,8 @@ public class RestAPI(Credential cred, bool trace, bool debug)
             }
         }
 
-        return ok;
+        return ok
+            ? ApiResult<bool>.CreateOK(ok)
+            : ApiResult<bool>.CreateError("Deleted files not all.");
     }
 }

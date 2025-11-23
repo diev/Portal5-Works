@@ -125,294 +125,7 @@ internal class Program
     {
         try
         {
-            Console.WriteLine(App.Title);
-
-            RootCommand rootCommand = new(App.Description);
-
-            #region filter
-            Option<Guid?> idOption = new("--id")
-            {
-                Description = "Идентификатор одного сообщения (guid)" 
-            };
-
-            Option<string?> taskOption = new("--zadacha", "-z")
-            {
-                Description = "Номер задачи XX[, XX, ...]"
-            };
-
-            Option<uint?> beforeOption = new("--before", "-b")
-            {
-                Description = "Ранее скольки дней назад (7 - раньше недели назад)"
-            };
-
-            Option<uint?> daysOption = new("--days", "-d")
-            {
-                Description = "Сколько последних дней (7 - на этой неделе)"
-            };
-
-            Option<uint?> dayOption = new("--day", "-n")
-            {
-                Description = "Какой день назад конкретно (1 - вчера)"
-            };
-
-            Option<DateTime?> minDateTimeOption = new("--min-date", "-f")
-            {
-                Description = "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])"
-            };
-
-            Option<DateTime?> maxDateTimeOption = new("--max-date", "-t")
-            {
-                Description = "До какой даты (время по умолчанию 00:00!)"
-            };
-
-            Option<uint?> minSizeOption = new("--min-size")
-            {
-                Description = "От какого размера (байты)"
-            };
-
-            Option<uint?> maxSizeOption = new("--max-size")
-            {
-                Description = "До какого размера (байты)"
-            };
-
-            Option<bool> inboxOption = new("--inbox")
-            {
-                Description = "Входящие сообщения только"
-            };
-
-            Option<bool> outboxOption = new("--outbox")
-            {
-                Description = "Исходящие сообщения только"
-            };
-
-            Option<string?> statusOption = new("--status")
-            {
-                Description = "Статус сообщений"
-            };
-            List<string> status = [.. MessageInStatus.Values];
-            status.AddRange(MessageOutStatus.Values);
-            statusOption.AcceptOnlyFromAmong([.. status]);
-
-            Option<uint?> pageOption = new("--page")
-            {
-                Description = "Номер страницы (по 100 сообщений)"
-            };
-            #endregion filter
-
-            #region tasks
-            Command lkiCommand = new("lki", "ЛК: Входящие")
-            {
-                daysOption
-            };
-            rootCommand.Add(lkiCommand);
-            lkiCommand.SetAction(async p =>
-            {
-                _task = nameof(LKI);
-                var config = Config.GetSection(_task);
-
-                LKI lk = new(
-                    zipPath: Path.GetFullPath(config["ZipPath"] ?? "."),
-                    docPath: Path.GetFullPath(config["DocPath"] ?? "."),
-                    docPath2: config["DocPath2"] is null
-                        ? null
-                        : Path.GetFullPath(config["DocPath2"]!),
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(p.GetValue(daysOption));
-            });
-
-            Command lkoCommand = new("lko", "ЛК: Исходящие")
-            {
-                daysOption
-            };
-            rootCommand.Add(lkoCommand);
-            lkoCommand.SetAction(async p =>
-            {
-                _task = nameof(LKO);
-                var config = Config.GetSection(_task);
-
-                LKO lk = new(
-                    zipPath: Path.GetFullPath(config["ZipPath"] ?? "."),
-                    docPath: Path.GetFullPath(config["DocPath"] ?? "."),
-                    docPath2: config["DocPath2"] is null
-                        ? null
-                        : Path.GetFullPath(config["DocPath2"]!),
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(p.GetValue(daysOption));
-            });
-
-            Command z130Command = new("z130",
-                "ЗСК: Получение информации об уровне риска ЮЛ/ИП")
-            {
-                daysOption
-            };
-            rootCommand.Add(z130Command);
-            z130Command.SetAction(async p =>
-            {
-                _task = nameof(Zadacha130);
-                var config = Config.GetSection(_task);
-
-                Zadacha130 lk = new(
-                    downloadPath: config["DownloadPath"] ?? ".",
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(p.GetValue(daysOption));
-            });
-
-            Command z137Command = new("z137",
-                "ЗСК: Ежедневное информирование Банка России о составе и объеме клиентской базы")
-            {
-                daysOption
-            };
-            rootCommand.Add(z137Command);
-            z137Command.SetAction(async p =>
-            {
-                _task = nameof(Zadacha137);
-                var config = Config.GetSection(_task);
-
-                Zadacha137 lk = new(
-                    uploadPath: Path.GetFullPath(config["UploadPath"] ?? "."),
-                    zip: config["Zip"]
-                        ?? "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip",
-                    xsd: config["Xsd"], // "ClientFileXML.xsd"
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(p.GetValue(daysOption));
-            });
-
-            Command z222Command = new("z222",
-                "ZBR: Получение Запроса информации о платежах КО")
-            {
-                daysOption
-            };
-            rootCommand.Add(z222Command);
-            z222Command.SetAction(async p =>
-            {
-                _task = nameof(Zadacha222);
-                var config = Config.GetSection(_task);
-
-                Zadacha222 lk = new(
-                    downloadPath: config["DownloadPath"] ?? ".",
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(p.GetValue(daysOption));
-            });
-
-            Option<Guid> reqOption = new("--req")
-            {
-                Description = "Идентификатор Запроса (guid)"
-            };
-
-            Command z221Command = new("z221",
-                "ZBR: Ответ на Запрос информации о платежах КО")
-            {
-                reqOption
-            };
-            rootCommand.Add(z221Command);
-            z221Command.SetAction(async p =>
-            {
-                _task = nameof(Zadacha221);
-                var config = Config.GetSection(_task);
-
-                string uploadPath = Path.GetFullPath(config["UploadPath"] ?? ".");
-                string archivePath = Directory.CreateDirectory(
-                    Path.Combine(uploadPath, "BAK", DateTime.Now.ToString("yyyyMMdd"))
-                    ).FullName;
-                string zip = config["Zip"]
-                    ?? "AFN_4030702_0000000_{0:yyyyMMdd}_{1:D5}.zip";
-
-                Zadacha221 lk = new(uploadPath, archivePath, zip,
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(p.GetValue(reqOption));
-            });
-            #endregion tasks
-
-            #region filter commands
-            Command loadCommand = new("load",
-                "API: Загрузить сообщения по <id> или по фильтру")
-            {
-                idOption,
-                // or
-                taskOption,
-                beforeOption, daysOption, dayOption,
-                minDateTimeOption, maxDateTimeOption,
-                minSizeOption, maxSizeOption,
-                inboxOption, outboxOption,
-                statusOption,
-                pageOption
-            };
-
-            Command cleanCommand = new("clean",
-                "API: Удалить сообщения по <id> или по фильтру")
-            {
-                idOption,
-                // or
-                taskOption,
-                beforeOption, daysOption, dayOption,
-                minDateTimeOption, maxDateTimeOption,
-                minSizeOption, maxSizeOption,
-                inboxOption, outboxOption,
-                statusOption,
-                pageOption
-            };
-            #endregion filter commands
-
-            #region messages
-            rootCommand.Add(loadCommand);
-            rootCommand.Add(cleanCommand);
-
-            loadCommand.SetAction(async p =>
-            {
-                _task = nameof(Loader);
-                var config = Config.GetSection(_task);
-
-                Loader lk = new(
-                    zipPath: Path.GetFullPath(config["ZipPath"] ?? "."),
-                    docPath: Path.GetFullPath(config["DocPath"] ?? "."),
-                    docPath2: config["DocPath2"] is null
-                        ? null
-                        : Path.GetFullPath(config["DocPath2"]!),
-                    exclude: JsonSection.Values(config, "Exclude"),
-                    subscribers: JsonSection.Subscribers(config));
-
-                return await lk.RunAsync(
-                    p.GetValue(idOption),
-                // or
-                new MessagesFilter(
-                    p.GetValue(taskOption),
-                    p.GetValue(beforeOption), p.GetValue(daysOption), p.GetValue(dayOption),
-                    p.GetValue(minDateTimeOption), p.GetValue(maxDateTimeOption),
-                    p.GetValue(minSizeOption), p.GetValue(maxSizeOption),
-                    p.GetValue(inboxOption), p.GetValue(outboxOption),
-                    p.GetValue(statusOption),
-                    p.GetValue(pageOption)));
-            });
-
-            cleanCommand.SetAction(async p =>
-            {
-                _task = nameof(Cleaner);
-                Cleaner lk = new();
-
-                return await lk.RunAsync(
-                    p.GetValue(idOption),
-                // or
-                new MessagesFilter(
-                    p.GetValue(taskOption),
-                    p.GetValue(beforeOption), p.GetValue(daysOption), p.GetValue(dayOption),
-                    p.GetValue(minDateTimeOption), p.GetValue(maxDateTimeOption),
-                    p.GetValue(minSizeOption), p.GetValue(maxSizeOption),
-                    p.GetValue(inboxOption), p.GetValue(outboxOption),
-                    p.GetValue(statusOption),
-                    p.GetValue(pageOption)));
-            });
-            #endregion messages
-
-            #region parse
-            var parser = rootCommand.Parse(args);
-            return await parser.InvokeAsync();
-            #endregion parse
+            return await RunApplicationAsync(args);
         }
         catch (NoMessagesException ex)
         {
@@ -434,6 +147,267 @@ internal class Program
         {
             Logger.Flush();
         }
+    }
+
+    private static async Task<int> RunApplicationAsync(string[] args)
+    {
+        Console.WriteLine(App.Title);
+
+        RootCommand rootCommand = new(App.Description);
+
+        #region filter
+        Option<Guid?> idOption = new("--id")
+        {
+            Description = "Идентификатор одного сообщения (guid)"
+        };
+
+        Option<string?> taskOption = new("--zadacha", "-z")
+        {
+            Description = "Номер задачи XX[, XX, ...]"
+        };
+
+        Option<uint?> beforeOption = new("--before", "-b")
+        {
+            Description = "Ранее скольки дней назад (7 - раньше недели назад)"
+        };
+
+        Option<uint?> daysOption = new("--days", "-d")
+        {
+            Description = "Сколько последних дней (7 - на этой неделе)"
+        };
+
+        Option<uint?> dayOption = new("--day", "-n")
+        {
+            Description = "Какой день назад конкретно (1 - вчера)"
+        };
+
+        Option<DateTime?> minDateTimeOption = new("--min-date", "-f")
+        {
+            Description = "С какой даты (yyyy-mm-dd[Thh:mm:ssZ])"
+        };
+
+        Option<DateTime?> maxDateTimeOption = new("--max-date", "-t")
+        {
+            Description = "До какой даты (время по умолчанию 00:00!)"
+        };
+
+        Option<uint?> minSizeOption = new("--min-size")
+        {
+            Description = "От какого размера (байты)"
+        };
+
+        Option<uint?> maxSizeOption = new("--max-size")
+        {
+            Description = "До какого размера (байты)"
+        };
+
+        Option<bool> inboxOption = new("--inbox")
+        {
+            Description = "Входящие сообщения только"
+        };
+
+        Option<bool> outboxOption = new("--outbox")
+        {
+            Description = "Исходящие сообщения только"
+        };
+
+        Option<string?> statusOption = new("--status")
+        {
+            Description = "Статус сообщений"
+        };
+        List<string> status = [.. MessageInStatus.Values];
+        status.AddRange(MessageOutStatus.Values);
+        statusOption.AcceptOnlyFromAmong([.. status]);
+
+        Option<uint?> pageOption = new("--page")
+        {
+            Description = "Номер страницы (по 100 сообщений)"
+        };
+        #endregion filter
+
+        #region tasks
+        Command z130Command = new("z130",
+            "ЗСК: Получение информации об уровне риска ЮЛ/ИП")
+            {
+                daysOption
+            };
+        rootCommand.Add(z130Command);
+        z130Command.SetAction(async p =>
+        {
+            _task = nameof(Zadacha130);
+            var config = Config.GetSection(_task);
+
+            Zadacha130 lk = new(
+                downloadPath: config["DownloadPath"] ?? ".",
+                subscribers: JsonSection.Subscribers(config));
+
+            return await lk.RunAsync(p.GetValue(daysOption));
+        });
+
+        Command z137Command = new("z137",
+            "ЗСК: Ежедневное информирование Банка России о составе и объеме клиентской базы")
+            {
+                daysOption
+            };
+        rootCommand.Add(z137Command);
+        z137Command.SetAction(async p =>
+        {
+            _task = nameof(Zadacha137);
+            var config = Config.GetSection(_task);
+
+            Zadacha137 lk = new(
+                uploadPath: Path.GetFullPath(config["UploadPath"] ?? "."),
+                zip: config["Zip"]
+                    ?? "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip",
+                xsd: config["Xsd"], // "ClientFileXML.xsd"
+                subscribers: JsonSection.Subscribers(config));
+
+            return await lk.RunAsync(p.GetValue(daysOption));
+        });
+
+        Command z222Command = new("z222",
+            "ZBR: Получение Запроса информации о платежах КО")
+            {
+                daysOption
+            };
+        rootCommand.Add(z222Command);
+        z222Command.SetAction(async p =>
+        {
+            _task = nameof(Zadacha222);
+            var config = Config.GetSection(_task);
+
+            Zadacha222 lk = new(
+                downloadPath: config["DownloadPath"] ?? ".",
+                subscribers: JsonSection.Subscribers(config));
+
+            return await lk.RunAsync(p.GetValue(daysOption));
+        });
+
+        Option<Guid> reqOption = new("--req")
+        {
+            Description = "Идентификатор Запроса (guid)"
+        };
+
+        Command z221Command = new("z221",
+            "ZBR: Ответ на Запрос информации о платежах КО")
+            {
+                reqOption
+            };
+        rootCommand.Add(z221Command);
+        z221Command.SetAction(async p =>
+        {
+            _task = nameof(Zadacha221);
+            var config = Config.GetSection(_task);
+
+            string uploadPath = Path.GetFullPath(config["UploadPath"] ?? ".");
+            string archivePath = Directory.CreateDirectory(
+                Path.Combine(uploadPath, "BAK", DateTime.Now.ToString("yyyyMMdd"))
+                ).FullName;
+            string zip = config["Zip"]
+                ?? "AFN_4030702_0000000_{0:yyyyMMdd}_{1:D5}.zip";
+
+            Zadacha221 lk = new(uploadPath, archivePath, zip,
+                subscribers: JsonSection.Subscribers(config));
+
+            return await lk.RunAsync(p.GetValue(reqOption));
+        });
+        #endregion tasks
+
+        #region filter commands
+        Option<bool> lkOption = new("--lk")
+        {
+            Description = "Разослать уведомления о Вх. и Исх."
+        };
+
+        Command loadCommand = new("load",
+            "API: Загрузить сообщения по <id> или по фильтру")
+            {
+                idOption,
+                // or
+                taskOption,
+                beforeOption, daysOption, dayOption,
+                minDateTimeOption, maxDateTimeOption,
+                minSizeOption, maxSizeOption,
+                inboxOption, outboxOption,
+                statusOption,
+                pageOption,
+
+                lkOption
+            };
+
+        Command cleanCommand = new("clean",
+            "API: Удалить сообщения по <id> или по фильтру")
+            {
+                idOption,
+                // or
+                taskOption,
+                beforeOption, daysOption, dayOption,
+                minDateTimeOption, maxDateTimeOption,
+                minSizeOption, maxSizeOption,
+                inboxOption, outboxOption,
+                statusOption,
+                pageOption
+            };
+        #endregion filter commands
+
+        #region messages
+        rootCommand.Add(loadCommand);
+        rootCommand.Add(cleanCommand);
+
+        loadCommand.SetAction(async p =>
+        {
+            _task = nameof(Loader);
+            var config = Config.GetSection(_task);
+
+            Loader lk = new(
+                zipPath: Path.GetFullPath(config["ZipPath"] ?? "."),
+                docPath: Path.GetFullPath(config["DocPath"] ?? "."),
+                docPath2: config["DocPath2"] is null
+                    ? null
+                    : Path.GetFullPath(config["DocPath2"]!),
+                exclude: JsonSection.Values(config, "Exclude"),
+                subscribers: JsonSection.Subscribers(config),
+                iSubscribers: JsonSection.Values(config, "iSubscribers"),
+                oSubscribers: JsonSection.Values(config, "oSubscribers"));
+
+            return await lk.RunAsync(
+                p.GetValue(idOption),
+            // or
+            new MessagesFilter(
+                p.GetValue(taskOption),
+                p.GetValue(beforeOption), p.GetValue(daysOption), p.GetValue(dayOption),
+                p.GetValue(minDateTimeOption), p.GetValue(maxDateTimeOption),
+                p.GetValue(minSizeOption), p.GetValue(maxSizeOption),
+                p.GetValue(inboxOption), p.GetValue(outboxOption),
+                p.GetValue(statusOption),
+                p.GetValue(pageOption)),
+
+            p.GetValue(lkOption));
+        });
+
+        cleanCommand.SetAction(async p =>
+        {
+            _task = nameof(Cleaner);
+            Cleaner lk = new();
+
+            return await lk.RunAsync(
+                p.GetValue(idOption),
+            // or
+            new MessagesFilter(
+                p.GetValue(taskOption),
+                p.GetValue(beforeOption), p.GetValue(daysOption), p.GetValue(dayOption),
+                p.GetValue(minDateTimeOption), p.GetValue(maxDateTimeOption),
+                p.GetValue(minSizeOption), p.GetValue(maxSizeOption),
+                p.GetValue(inboxOption), p.GetValue(outboxOption),
+                p.GetValue(statusOption),
+                p.GetValue(pageOption)));
+        });
+        #endregion messages
+
+        #region parse
+        var parser = rootCommand.Parse(args);
+        return await parser.InvokeAsync();
+        #endregion parse
     }
 
     public static void Send(string subject, string body, string[]? subscribers = null, string[]? files = null)

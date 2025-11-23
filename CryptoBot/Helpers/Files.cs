@@ -33,10 +33,14 @@ internal static class Files
         // url = "back/rapi2/messages/8a3306a7-2025-4726-8d7c-ae3200aacaf0/files/948b6d20-c122-417c-9b92-2c3a14ec8de3/download";
         // path = "KGR_20220204_132116_request_128779.zip";
 
-        var messages = await Program.RestAPI.GetMessagesAsync(filter)
-            ?? throw new TaskException(
-                $"Не получено никаких сообщений.");
+        var messagesResult = await Program.RestAPI.GetMessagesAsync(filter);
 
+        if (!messagesResult.OK)
+        {
+            throw new TaskException($"Не получено никаких сообщений.");
+        }
+
+        var messages = messagesResult.Data!;
         int count = messages.Count;
 
         if (count == 0)
@@ -74,8 +78,9 @@ internal static class Files
                 $"Не удалось создать папку {path.PathQuoted()}.");
 
         string file = Path.Combine(path, lastName!);
+        var result = await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, file);
 
-        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, file))
+        if (result.OK)
             return file;
 
         throw new TaskException(

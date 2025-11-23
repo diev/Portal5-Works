@@ -134,10 +134,10 @@ internal class Zadacha137(string uploadPath, string zip, string? xsd, string[] s
         //    }
         //}
 
-        var msgId = await Program.RestAPI.UploadDirectoryAsync(_task, _title, path);
+        var msgIdResult = await Program.RestAPI.UploadDirectoryAsync(_task, _title, path);
 
-        if (msgId is not null)
-            return msgId;
+        if (msgIdResult.OK)
+            return msgIdResult.Data!;
 
         throw new TaskException(
             "Отправить файл не удалось.");

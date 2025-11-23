@@ -80,7 +80,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="message">Черновик нового сообщения.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<Message?> PostMessageRequestAsync(DraftMessage message) // draft
+    public async Task<ApiResult<Message>> PostMessageRequestAsync(DraftMessage message) // draft
     {
         string url = Api + "messages";
         using var json = JsonContent.Create(message);
@@ -91,12 +91,12 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var content = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Message>(content, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Message>(content, JsonOptions);
+                return ApiResult<Message>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Новое сообщение на сервере не создано. " + e.Message);
-                return null;
+                return ApiResult<Message>.CreateExceptionError(e, "Новое сообщение на сервере не создано.");
             }
         }
 
@@ -105,8 +105,7 @@ public class RestAPICore : IRestAPICore
         // HTTP 406 – Not Acceptable
         // HTTP 413 – Message size too large
         // HTTP 422 – Unprocessable Entity
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Message>.CreateError(response);
     }
 
     /// <summary>
@@ -117,7 +116,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="fileId">Уникальный идентификатор файла в формате UUID [4], полученный в качестве ответа при вызове метода из 3.5.1.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<UploadSession?> PostUploadRequestAsync(string msgId, string fileId)
+    public async Task<ApiResult<UploadSession>> PostUploadRequestAsync(string msgId, string fileId)
     {
         string url = Api + $"messages/{msgId}/files/{fileId}/createUploadSession";
         using var response = await PollyClient.PostAsync(url);
@@ -127,20 +126,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<UploadSession>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<UploadSession>(stream, JsonOptions);
+                return ApiResult<UploadSession>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Сессия загрузки не создана. " + e.Message);
-                return null;
+                return ApiResult<UploadSession>.CreateExceptionError(e, "Сессия загрузки не создана.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 404 – Not found
         // HTTP 405 – Invalid input
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<UploadSession>.CreateError(response);
     }
 
     /// <summary>
@@ -152,7 +150,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="url"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<bool> UploadFileAsync(string path, long size, string url)
+    public async Task<ApiResult<bool>> UploadFileAsync(string path, long size, string url)
     {
         int chunkSize = PollyClient.ChunkSize;
 
@@ -175,15 +173,14 @@ public class RestAPICore : IRestAPICore
                 //using var reply = response.Content.ReadAsStream();
                 //var messageFile = await JsonSerializer.DeserializeAsync<MessageFile>(reply, JsonOptions);
 
-                return true;
+                return ApiResult<bool>.CreateOK(true);
             }
 
             // HTTP 400 – Bad Request
             // HTTP 404 – Not found
             // HTTP 405 – Invalid input
             // HTTP 411 – Length Required
-            await DoExceptionAsync(response);
-            return false;
+            return ApiResult<bool>.CreateError(response);
         }
         else
         {
@@ -225,8 +222,7 @@ public class RestAPICore : IRestAPICore
                 // HTTP 404 – Not found
                 // HTTP 405 – Invalid input
                 // HTTP 411 – Length Required
-                await DoExceptionAsync(response);
-                return false;
+                return ApiResult<bool>.CreateError(response);
             }
 
             // remaining
@@ -248,15 +244,14 @@ public class RestAPICore : IRestAPICore
                     //using var reply = response.Content.ReadAsStream();
                     //var file = await JsonSerializer.DeserializeAsync<MessageFile>(reply, JsonOptions);
 
-                    return true;
+                    return ApiResult<bool>.CreateOK(true);
                 }
 
                 // HTTP 400 – Bad Request
                 // HTTP 404 – Not found
                 // HTTP 405 – Invalid input
                 // HTTP 411 – Length Required
-                await DoExceptionAsync(response);
-                return false;
+                return ApiResult<bool>.CreateError(response);
             }
         }
     }
@@ -295,21 +290,20 @@ public class RestAPICore : IRestAPICore
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<bool> PostMessageAsync(string msgId)
+    public async Task<ApiResult<bool>> PostMessageAsync(string msgId)
     {
         string url = Api + $"messages/{msgId}";
         using var response = await PollyClient.PostAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
-            return true; // no response stream here to check more
+            return ApiResult<bool>.CreateOK(true); // no response stream here to check more
         }
 
         // HTTP 404 – Not found
         // HTTP 406 – Not Acceptable
         // HTTP 422 – Unprocessable Entity
-        await DoExceptionAsync(response);
-        return false;
+        return ApiResult<bool>.CreateError(response);
     }
 
     #endregion 3.1.3
@@ -325,9 +319,9 @@ public class RestAPICore : IRestAPICore
     /// <param name="filter">Фильтр сообщений.</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public async Task<MessagesPage?> GetMessagesPageAsync(MessagesFilter filter)
+    public async Task<ApiResult<MessagesPage>> GetMessagesPageAsync(MessagesFilter? filter)
     {
-        return await GetMessagesPageAsync(filter.GetQuery());
+        return await GetMessagesPageAsync(filter?.GetQuery());
     }
 
     /// <summary>
@@ -338,7 +332,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="filter"></param>
     /// <returns>Все сообщения с учетом необязательного фильтра (не более 100 сообщений за один запрос).</returns>
     /// <exception cref="Exception"></exception>
-    public async Task<MessagesPage?> GetMessagesPageAsync(string filter)
+    public async Task<ApiResult<MessagesPage>> GetMessagesPageAsync(string? filter)
     {
         string url = Api + "messages" + filter;
         //using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -355,13 +349,14 @@ public class RestAPICore : IRestAPICore
             if (messages is null)
             {
                 //TODO throw new NoMessagesException();
-                return new([], new(
+                return ApiResult<MessagesPage>.CreateOK(
+                    new([], new(
                     0,
                     0,
                     0,
                     0,
                     0,
-                    100));
+                    100)));
             }
 
             var pages = new Pagination //TODO extract by return
@@ -374,7 +369,7 @@ public class RestAPICore : IRestAPICore
                 100 // hardcoded const
             );
 
-            return new(messages, pages);
+            return ApiResult<MessagesPage>.CreateOK(new(messages, pages));
         }
 
         // HTTP 400 – Bad Request
@@ -394,11 +389,11 @@ public class RestAPICore : IRestAPICore
         // <ins>That’s all we know.</ins>
         if (response.StatusCode == HttpStatusCode.BadGateway) // 502
         {
-            await DoExceptionAsync(response);
+            var error = new ApiError((int)response.StatusCode, "BadGateway", "Ошибка прокси.");
+            return ApiResult<MessagesPage>.CreateError(error);
         }
 
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<MessagesPage>.CreateError(response);
 
         int GetValue(string key)
         {
@@ -417,7 +412,7 @@ public class RestAPICore : IRestAPICore
     /// </summary>
     /// <param name="msgId"></param>
     /// <returns></returns>
-    public async Task<Message?> GetMessageAsync(string msgId)
+    public async Task<ApiResult<Message>> GetMessageAsync(string msgId)
     {
         string url = Api + $"messages/{msgId}";
         using var response = await PollyClient.GetAsync(url);
@@ -427,18 +422,17 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Message>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Message>(stream, JsonOptions);
+                return ApiResult<Message>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException($"Сообщение '{msgId}' не получено. " + e.Message);
-                return null;
+                return ApiResult<Message>.CreateExceptionError(e, $"Сообщение '{msgId}' не получено.");
             }
         }
 
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Message>.CreateError(response);
     }
 
     /// <summary>
@@ -449,12 +443,10 @@ public class RestAPICore : IRestAPICore
     /// <param name="path"></param>
     /// <param name="overwrite"></param>
     /// <returns></returns>
-    public async Task<bool> DownloadMessageZipAsync(string msgId, string path, bool overwrite = false)
+    public async Task<ApiResult<bool>> DownloadMessageZipAsync(string msgId, string path, bool overwrite = false)
     {
         string url = Api + $"messages/{msgId}/download";
-        await DownloadFileAsync(url, path, overwrite);
-
-        return File.Exists(path);
+        return await DownloadFileAsync(url, path, overwrite);
     }
 
     /// <summary>
@@ -464,7 +456,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <param name="fileId">Уникальный идентификатор файла в формате UUID [4].</param>
     /// <returns></returns>
-    public async Task<MessageFile?> GetMessageFileAsync(string msgId, string fileId)
+    public async Task<ApiResult<MessageFile>> GetMessageFileAsync(string msgId, string fileId)
     {
         string url = Api + $"messages/{msgId}/files/{fileId}";
         using var response = await PollyClient.GetAsync(url);
@@ -474,20 +466,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions);
+                return ApiResult<MessageFile>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException($"Информация о файле '{fileId}' для сообщения '{msgId}' не получена. " + e.Message);
-                return null;
+                ApiResult<MessageFile>.CreateExceptionError(e, $"Информация о файле '{fileId}' для сообщения '{msgId}' не получена.");
             }
         }
 
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<MessageFile>.CreateError(response);
     }
 
     /// <summary>
@@ -499,19 +490,18 @@ public class RestAPICore : IRestAPICore
     /// <param name="path"></param>
     /// <param name="overwrite"></param>
     /// <returns></returns>
-    public async Task<bool> DownloadMessageFileAsync(string msgId, string fileId, string path, bool overwrite = false)
+    public async Task<ApiResult<bool>> DownloadMessageFileAsync(string msgId, string fileId, string path, bool overwrite = false)
     {
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
         string url = Api + $"messages/{msgId}/files/{fileId}/download";
-        await DownloadFileAsync(url, path, overwrite);
+        return await DownloadFileAsync(url, path, overwrite);
 
         //TODO
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
         // throw new Exception(await response.Content.ReadAsStringAsync());
-        return File.Exists(path);
     }
 
     /// <summary>
@@ -520,7 +510,7 @@ public class RestAPICore : IRestAPICore
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <returns></returns>
-    public async Task<IReadOnlyList<MessageReceipt>?> GetMessageReceiptsAsync(string msgId)
+    public async Task<ApiResult<IReadOnlyList<MessageReceipt>>> GetMessageReceiptsAsync(string msgId)
     {
         string url = Api + $"messages/{msgId}/receipts";
         using var response = await PollyClient.GetAsync(url);
@@ -530,18 +520,17 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<IReadOnlyList<MessageReceipt>>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<IReadOnlyList<MessageReceipt>>(stream, JsonOptions);
+                return ApiResult<IReadOnlyList<MessageReceipt>>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException($"Квитанции для сообщения '{msgId}' не получены." + e.Message);
-                return null;
+                ApiResult<IReadOnlyList<MessageReceipt>>.CreateExceptionError(e, $"Квитанции для сообщения '{msgId}' не получены.");
             }
         }
 
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<IReadOnlyList<MessageReceipt>>.CreateError(response);
     }
 
     /// <summary>
@@ -551,7 +540,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <param name="rcptId">Уникальный идентификатор квитанции в формате UUID [4].</param>
     /// <returns></returns>
-    public async Task<MessageReceipt?> GetMessageReceiptAsync(string msgId, string rcptId)
+    public async Task<ApiResult<MessageReceipt>> GetMessageReceiptAsync(string msgId, string rcptId)
     {
         string url = Api + $"messages/{msgId}/receipts/{rcptId}";
         using var response = await PollyClient.GetAsync(url);
@@ -561,18 +550,17 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<MessageReceipt>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<MessageReceipt>(stream, JsonOptions);
+                return ApiResult<MessageReceipt>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException($"Информация о квитанции '{rcptId}' для сообщения '{msgId}' не получена. " + e.Message);
-                return null;
+                ApiResult<MessageReceipt>.CreateExceptionError(e, $"Информация о квитанции '{rcptId}' для сообщения '{msgId}' не получена.");
             }
         }
 
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<MessageReceipt>.CreateError(response);
     }
 
     /// <summary>
@@ -583,7 +571,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="rcptId">Уникальный идентификатор квитанции в формате UUID [4].</param>
     /// <param name="fileId">Уникальный идентификатор файла в формате UUID [4].</param>
     /// <returns></returns>
-    public async Task<MessageFile?> GetMessageReceiptFileAsync(string msgId, string rcptId, string fileId)
+    public async Task<ApiResult<MessageFile>> GetMessageReceiptFileAsync(string msgId, string rcptId, string fileId)
     {
         string url = Api + $"messages/{msgId}/receipts/{rcptId}/files/{fileId}";
         using var response = await PollyClient.GetAsync(url);
@@ -593,18 +581,17 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<MessageFile>(stream, JsonOptions);
+                return ApiResult<MessageFile>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException($"Информация о файле '{fileId}' квитанции '{rcptId}' для сообщения '{msgId}' не получена. " + e.Message);
-                return null;
+                return ApiResult<MessageFile>.CreateExceptionError(e, $"Информация о файле '{fileId}' квитанции '{rcptId}' для сообщения '{msgId}' не получена.");
             }
         }
 
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<MessageFile>.CreateError(response);
     }
 
     /// <summary>
@@ -617,18 +604,17 @@ public class RestAPICore : IRestAPICore
     /// <param name="path"></param>
     /// <param name="overwrite"></param>
     /// <returns></returns>
-    public async Task<bool> DownloadMessageReceiptFileAsync(string msgId, string rcptId, string fileId, string path, bool overwrite = false)
+    public async Task<ApiResult<bool>> DownloadMessageReceiptFileAsync(string msgId, string rcptId, string fileId, string path, bool overwrite = false)
     {
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
         string url = Api + $"messages/{msgId}/receipts/{rcptId}/files/{fileId}/download";
-        await DownloadFileAsync(url, path, overwrite);
+        return await DownloadFileAsync(url, path, overwrite);
 
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
         // throw new Exception(await response.Content.ReadAsStringAsync());
-        return File.Exists(path);
     }
 
     #endregion 3.1.4
@@ -641,20 +627,19 @@ public class RestAPICore : IRestAPICore
     /// DELETE: */messages/{msgId}
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
-    public async Task<bool> DeleteMessageAsync(string msgId)
+    public async Task<ApiResult<bool>> DeleteMessageAsync(string msgId)
     {
         string url = Api + $"messages/{msgId}";
         using var response = await PollyClient.DeleteAsync(url); // 200 Ok или 404 – Сообщение не найдено
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            return true;
+            return ApiResult<bool>.CreateOK(true);
         }
 
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return false;
+        return ApiResult<bool>.CreateError(response);
     }
 
     /// <summary>
@@ -663,20 +648,19 @@ public class RestAPICore : IRestAPICore
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <param name="fileId">Уникальный идентификатор файла в формате UUID [4].</param>
-    public async Task<bool> DeleteMessageFileAsync(string msgId, string fileId)
+    public async Task<ApiResult<bool>> DeleteMessageFileAsync(string msgId, string fileId)
     {
         string url = Api + $"messages/{msgId}/files/{fileId}";
         using var response = await PollyClient.DeleteAsync(url); // 200 Ok или 404 – Сообщение не найдено
 
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            return true;
+            return ApiResult<bool>.CreateOK(true);
         }
 
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return false;
+        return ApiResult<bool>.CreateError(response);
     }
 
     #endregion 3.1.5
@@ -696,7 +680,7 @@ public class RestAPICore : IRestAPICore
     /// Если параметр не указан, возвращается все задачи.<br/>
     /// В случае некорректного указания параметра – ошибка.</param>
     /// <returns></returns>
-    public async Task<Tasks?> GetTasksAsync(int? direction = null)
+    public async Task<ApiResult<Tasks>> GetTasksAsync(int? direction = null)
     {
         string url = Api + "tasks";
 
@@ -712,18 +696,17 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Tasks>(stream, JsonOptions);
+                return ApiResult<Tasks>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Справочник задач не получен. " + e.Message);
-                return null;
+                ApiResult<Tasks>.CreateExceptionError(e, "Справочник задач не получен.");
             }
         }
 
         // HTTP 400 – Bad Request
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Tasks>.CreateError(response);
     }
 
     /// <summary>
@@ -731,7 +714,7 @@ public class RestAPICore : IRestAPICore
     /// GET: */profile
     /// </summary>
     /// <returns></returns>
-    public async Task<Profile?> GetProfileAsync()
+    public async Task<ApiResult<Profile>> GetProfileAsync()
     {
         string url = Api + "profile";
         using var response = await PollyClient.GetAsync(url);
@@ -741,18 +724,17 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Profile>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Profile>(stream, JsonOptions);
+                return ApiResult<Profile>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Информация о профиле не получена. " + e.Message);
-                return null;
+                ApiResult<Profile>.CreateExceptionError(e, "Информация о профиле не получена.");
             }
         }
 
         // ?
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Profile>.CreateError(response);
     }
 
     /// <summary>
@@ -760,7 +742,7 @@ public class RestAPICore : IRestAPICore
     /// GET: */profile/quota
     /// </summary>
     /// <returns></returns>
-    public async Task<Quota?> GetQuotaAsync()
+    public async Task<ApiResult<Quota>> GetQuotaAsync()
     {
         string url = Api + "profile/quota";
         using var response = await PollyClient.GetAsync(url);
@@ -770,20 +752,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Quota>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Quota>(stream, JsonOptions);
+                return ApiResult<Quota>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Информация о квоте профиля не получена. " + e.Message);
-                return null;
+                return ApiResult<Quota>.CreateExceptionError(e, "Информация о квоте профиля не получена.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Quota>.CreateError(response);
     }
 
     /// <summary>
@@ -791,7 +772,7 @@ public class RestAPICore : IRestAPICore
     /// GET: */notifications
     /// </summary>
     /// <returns></returns>
-    public async Task<IReadOnlyList<Notification>?> GetNotificationsAsync()
+    public async Task<ApiResult<IReadOnlyList<Notification>>> GetNotificationsAsync()
     {
         string url = Api + "notifications";
         using var response = await PollyClient.GetAsync(url);
@@ -801,20 +782,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<IReadOnlyList<Notification>>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<IReadOnlyList<Notification>>(stream, JsonOptions);
+                return ApiResult<IReadOnlyList<Notification>>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Информация о технических оповещениях не получена. " + e.Message);
-                return null;
+                return ApiResult<IReadOnlyList<Notification>>.CreateExceptionError(e, "Информация о технических оповещениях не получена.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<IReadOnlyList<Notification>>.CreateError(response);
     }
 
     /// <summary>
@@ -822,7 +802,7 @@ public class RestAPICore : IRestAPICore
     /// GET: */dictionaries
     /// </summary>
     /// <returns></returns>
-    public async Task<DictItems?> GetLevelsPageAsync()
+    public async Task<ApiResult<DictItems>> GetLevelsPageAsync()
     {
         string url = Api + $"dictionaries";
         using var response = await PollyClient.GetAsync(url);
@@ -832,19 +812,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<DictItems>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<DictItems>(stream, JsonOptions);
+                return ApiResult<DictItems>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Список справочнков не получен." + e.Message);
+                return ApiResult<DictItems>.CreateExceptionError(e, "Список справочников не получен.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<DictItems>.CreateError(response);
     }
 
     /*
@@ -862,7 +842,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="page"></param>
     /// <param name="dictId">Справочник Тематики 1 уровня</param>
     /// <returns></returns>
-    public async Task<Level1ItemsPage?> GetLevels1PageAsync(int page = 1, string dictId = "238d0426-6f57-4c0f-8983-1d1addf8c47a")
+    public async Task<ApiResult<Level1ItemsPage>> GetLevels1PageAsync(int page = 1, string dictId = "238d0426-6f57-4c0f-8983-1d1addf8c47a")
     {
         string url = Api + $"dictionaries/{dictId}?page={page}";
         using var response = await PollyClient.GetAsync(url);
@@ -872,20 +852,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Level1ItemsPage>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Level1ItemsPage>(stream, JsonOptions);
+                return ApiResult<Level1ItemsPage>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Список записей уровня 1 не получен." + e.Message);
-                return null;
+                return ApiResult<Level1ItemsPage>.CreateExceptionError(e, "Список записей уровня 1 не получен.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Level1ItemsPage>.CreateError(response);
     }
 
     /*
@@ -903,7 +882,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="page"></param>
     /// <param name="dictId">Справочник адресатов 2 уровня</param>
     /// <returns></returns>
-    public async Task<Level2ItemsPage?> GetLevels2PageAsync(int page = 1, string dictId = "25338cfb-5713-4634-bc53-a81129483752")
+    public async Task<ApiResult<Level2ItemsPage>> GetLevels2PageAsync(int page = 1, string dictId = "25338cfb-5713-4634-bc53-a81129483752")
     {
         string url = Api + $"dictionaries/{dictId}?page={page}";
         using var response = await PollyClient.GetAsync(url);
@@ -913,20 +892,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Level2ItemsPage>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Level2ItemsPage>(stream, JsonOptions);
+                return ApiResult<Level2ItemsPage>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Список записей уровня 2 не получен. " + e.Message);
-                return null;
+                return ApiResult<Level2ItemsPage>.CreateExceptionError(e, "Список записей уровня 2 не получен.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Level2ItemsPage>.CreateError(response);
     }
 
     /*
@@ -944,7 +922,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="page"></param>
     /// <param name="dictId">Справочник адресатов 3 уровня</param>
     /// <returns></returns>
-    public async Task<Level3ItemsPage?> GetLevels3PageAsync(int page = 1, string dictId = "64529d5a-b1d9-453c-96f3-f380ea577314")
+    public async Task<ApiResult<Level3ItemsPage>> GetLevels3PageAsync(int page = 1, string dictId = "64529d5a-b1d9-453c-96f3-f380ea577314")
     {
         string url = Api + $"dictionaries/{dictId}?page={page}";
         using var response = await PollyClient.GetAsync(url);
@@ -954,20 +932,19 @@ public class RestAPICore : IRestAPICore
             try
             {
                 using var stream = await response.Content.ReadAsStreamAsync();
-                return await JsonSerializer.DeserializeAsync<Level3ItemsPage>(stream, JsonOptions);
+                var data = await JsonSerializer.DeserializeAsync<Level3ItemsPage>(stream, JsonOptions);
+                return ApiResult<Level3ItemsPage>.CreateOK(data);
             }
             catch (Exception e)
             {
-                DoException("Список записей уровня 3 не получен. " + e.Message);
-                return null;
+                return ApiResult<Level3ItemsPage>.CreateExceptionError(e, "Список записей уровня 3 не получен.");
             }
         }
 
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        await DoExceptionAsync(response);
-        return null;
+        return ApiResult<Level3ItemsPage>.CreateError(response);
     }
 
     /// <summary>
@@ -978,7 +955,7 @@ public class RestAPICore : IRestAPICore
     /// <param name="path"></param>
     /// <param name="overwrite"></param>
     /// <returns></returns>
-    public async Task<bool> DownloadLevelsFileAsync(string dictId, string path, bool overwrite = false)
+    public async Task<ApiResult<bool>> DownloadLevelsFileAsync(string dictId, string path, bool overwrite = false)
     {
         //TODO В случае успешного ответа возвращается двоичный поток вида application/octet-stream,
         //содержащий zip-архив с двумя файлами в формате xml. Один файл содержит описание структуры
@@ -989,12 +966,11 @@ public class RestAPICore : IRestAPICore
         string url = Api + $"dictionaries/{dictId}/download";
         //path = Path.Combine(path, $"{id}.zip");
 
-        await DownloadFileAsync(url, path, overwrite);
+        return await DownloadFileAsync(url, path, overwrite);
 
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
         // throw new Exception(await response.Content.ReadAsStringAsync());
-        return File.Exists(path);
     }
 
     #endregion 3.1.6
@@ -1042,10 +1018,10 @@ public class RestAPICore : IRestAPICore
     /// <param name="filename"></param>
     /// <param name="overwrite"></param>
     /// <returns></returns>
-    public async Task<bool> DownloadFileAsync(string url, string path, bool overwrite = false)
+    public async Task<ApiResult<bool>> DownloadFileAsync(string url, string path, bool overwrite = false)
     {
         if (SkipExisting(path, overwrite))
-            return true;
+            return ApiResult<bool>.CreateOK(true);
 
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
@@ -1106,10 +1082,14 @@ public class RestAPICore : IRestAPICore
             await response.Content.CopyToAsync(file);
             await file.FlushAsync();
 
-            //using var file = File.OpenWrite(path);
-            //await response.Content.CopyToAsync(file);
+            if (File.Exists(path))
+            {
+                return ApiResult<bool>.CreateOK(true);
+            }
 
-            return true;
+            var fileError = new ApiError((int)response.StatusCode,
+                "Error 404", $"Файл '{path}' из '{url}' не получен.");
+            return ApiResult<bool>.CreateError(fileError); //TODO exception?
         }
 
         // 206 Partial content (для получения определённого диапазона)
@@ -1120,8 +1100,8 @@ public class RestAPICore : IRestAPICore
 
             if (range is null || range.Length is null)
             {
-                DoException("В ответе нет Range или Range.Length");
-                return false;
+                var rangeError = new ApiError((int)response.StatusCode, "Range", "В ответе нет Range или Range.Length");
+                return ApiResult<bool>.CreateError(rangeError); //TODO exception?
             }
 
             long remaining = (long)range.Length;
@@ -1151,8 +1131,7 @@ public class RestAPICore : IRestAPICore
                     // HTTP 404 – Not found
                     // HTTP 410 – Gone
                     // HTTP 416 – Range Not Satisfiable
-                    await DoExceptionAsync(response);
-                    return false;
+                    return ApiResult<bool>.CreateError(response);
                 }
 
                 await partResponse.Content.CopyToAsync(file);
@@ -1201,15 +1180,21 @@ public class RestAPICore : IRestAPICore
             //    remaining -= length;
             //}
 
-            return true;
+            if (File.Exists(path))
+            {
+                return ApiResult<bool>.CreateOK(true);
+            }
+
+            var fileError = new ApiError((int)response.StatusCode,
+                "Error 404", $"Файл '{path}' из '{url}' не получен.");
+            return ApiResult<bool>.CreateError(fileError); //TODO exception?
         }
 
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
         // HTTP 410 – Gone
         // HTTP 416 – Range Not Satisfiable
-        await DoExceptionAsync(response);
-        return false;
+        return ApiResult<bool>.CreateError(response);
 
         /*
         HTTP 404 – Not found
@@ -1327,7 +1312,7 @@ public class RestAPICore : IRestAPICore
         {
             try
             {
-                var json = JsonSerializer.Deserialize<Error4XX>(message);
+                var json = JsonSerializer.Deserialize<ApiError>(message);
 
                 if (json is not null)
                     message = json.ErrorMessage;

@@ -42,7 +42,7 @@
     },
     "load -f": {
       "commandName": "Project",
-      "commandLineArgs": "load -f 2024-11-01\r\n"
+      "commandLineArgs": "load -f 2018-01-01 -t 2019-01-01\r\n"
     },
     "clean delta": {
       "commandName": "Project",

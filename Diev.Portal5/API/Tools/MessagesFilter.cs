@@ -139,7 +139,7 @@ public class MessagesFilter
         Page = page;
     }
 
-    public string GetQuery()
+    public string? GetQuery()
     {
         var query = new StringBuilder();
 
@@ -182,14 +182,17 @@ public class MessagesFilter
             query.Append("&Page=").Append(Page);
         }
 
-        if (query.Length == 0)
+        if (query.Length > 0)
         {
-            return string.Empty;
+            return '?' + query.ToString()[1..];
         }
 
-        return '?' + query.ToString()[1..];
+        return null; // string.Empty;
     }
 
-    public bool IsEmpty() =>
-        !GetQuery().Contains('=');
+    public bool IsEmpty()
+    {
+        var filter = GetQuery();
+        return filter is null || !filter.Contains('=');
+    }
 }

@@ -28,7 +28,8 @@ using Diev.Portal5.API.Tools;
 
 namespace CryptoBot.Tasks;
 
-internal class Loader(string zipPath, string docPath, string? docPath2, string[] exclude, string[] subscribers)
+internal class Loader(string zipPath, string docPath, string? docPath2, string[] exclude,
+    string[] subscribers, string[] iSubscribers, string[] oSubscribers)
 {
     //private static readonly JsonSerializerOptions _jsonOptions = new()
     //{
@@ -36,30 +37,34 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
     //    WriteIndented = true
     //};
 
-    public async Task<int> RunAsync(Guid? guid, MessagesFilter filter)
+    public async Task<int> RunAsync(Guid? guid, MessagesFilter filter, bool lk = false)
     {
+        int errors = 0;
+
         if (guid is not null && guid.HasValue)
         {
             await SaveMessageDocsAsync(guid.ToString()!);
             return 0;
         }
 
-        if (filter.IsEmpty())
-            throw new TaskException(
-                "Не задан фильтр сообщений для выполнения операции с ними - это опасно!");
+        //if (filter.IsEmpty())
+        //    throw new TaskException(
+        //        "Не задан фильтр сообщений для выполнения операции с ними - это опасно!");
 
         Logger.TimeZZZLine("Получение списка сообщений по фильтру");
 
-        var messages = await Messages.GetMessagesAsync(filter);
+        //var messages = await Messages.GetMessagesAsync(filter);
+        var messagesPage = await Messages.GetMessagesPageAsync(filter); // up to 100 messages
 
-        if (messages!.Count == 0)
+        //if (messages!.Count == 0)
+        if (messagesPage.Messages.Count == 0)
         {
             //throw new TaskException("Получен пустой список сообщений.");
             Logger.TimeZZZLine("Нет сообщений.");
             return 0;
         }
 
-        string text = $"В списке сообщений {messages.Count} шт.";
+        string text = $"В списке сообщений {messagesPage.Messages.Count} шт., {messagesPage.Pages.TotalPages} стр.";
         Logger.TimeZZZLine(text);
         StringBuilder report = new();
         report
@@ -68,71 +73,122 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
         int num = 0;
 
         // Приступаем к загрузке
-        foreach (var message in messages)
+        while (messagesPage.Messages.Count > 0)
         {
-            // Пропускаем исходящие без регистрации или успеха
-            if (message.Outbox && !message.Registered && !message.Success)
-                continue;
-
-            // Пропускаем игнорируемые задачи
-            string task = message.TaskName.Split('_')[1];
-            if (exclude.Contains(task))
-                continue;
-
-            (string json, string zip) = Messages.GetZipStore(message, zipPath);
-
-            if (!File.Exists(json))
+            foreach (var message in messagesPage.Messages)
             {
-                if (!await Messages.SaveMessageJsonAsync(message, json))
-                    continue; //TODO alert!
-            }
+                // Пропускаем исходящие без регистрации или успеха
+                if (message.Outbox && !message.Registered && !message.Success)
+                    continue;
 
-            if (File.Exists(zip))
-                continue;
+                // Пропускаем игнорируемые задачи
+                string task = message.TaskName.Split('_')[1];
+                if (exclude.Contains(task))
+                    continue;
 
-            if (await Messages.SaveMessageZipAsync(message.Id, zip))
-            {
-                var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, docPath, docPath2);
-                report
-                    .AppendLine($"-{++num}-")
-                    .AppendLine(msgInfo.ToString())
-                    .AppendLine();
-            }
-            else
-            {
-                Logger.TimeZZZLine($"Файл '{message.Id}.zip' не скачать.");
+                (string json, string zip) = Messages.GetZipStore(message, zipPath);
 
-                var msgInfo = new MessageInfo(message);
-                var corrId = message.CorrelationId;
-
-                if (!string.IsNullOrEmpty(corrId))
+                if (!File.Exists(json))
                 {
-                    var corrMessage = await Program.RestAPI.GetMessageAsync(corrId);
-
-                    if (corrMessage != null)
-                    {
-                        var corrInfo = new MessageInfo(corrMessage);
-                        msgInfo.Notes += corrInfo.ToString();
-                    }
+                    if (!await Messages.SaveMessageJsonAsync(message, json))
+                        continue; //TODO alert!
                 }
 
-                report
-                    .AppendLine($"-{++num} не скачать-")
-                    .AppendLine(msgInfo.ToString())
-                    .AppendLine();
+                if (File.Exists(zip) || File.Exists(zip + ".err"))
+                    continue;
+
+                MessageInfo msgInfo;
+
+                if (await Messages.SaveMessageZipAsync(message.Id, zip))
+                {
+                    msgInfo = await Messages.DecryptMessageZipAsync(message, zip, docPath);
+
+                    if (lk)
+                    {
+                        if (message.Inbox)
+                        {
+                            string docs = msgInfo.FullName!;
+                            string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");
+
+                            var files = File.Exists(pdf)
+                                ? [pdf]
+                                : Directory.GetFiles(docs, "*.pdf");
+
+                            Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
+                                msgInfo.ToString(), iSubscribers, files);
+                        }
+                        else
+                        {
+                            Program.Send("ЛК ЦБ исх: " + msgInfo.Subject,
+                                msgInfo.ToString(), oSubscribers);
+                        }
+                    }
+                    else
+                    {
+                        report
+                            .AppendLine($"-{++num}-")
+                            .AppendLine(msgInfo.ToString())
+                            .AppendLine();
+                    }
+                }
+                else
+                {
+                    string error = $"Файл сообщения '{message.Id}.zip' не скачать.";
+                    Logger.TimeZZZLine(error);
+
+                    msgInfo = await Messages.DecryptMessageFilesAsync(message, docPath);
+                    error += Environment.NewLine + msgInfo.Notes;
+                    msgInfo.Notes += error;
+                    await File.WriteAllTextAsync(zip + ".err", error);
+                    errors++;
+
+                    report
+                        .AppendLine($"-{++num} не скачать-")
+                        .AppendLine(msgInfo.ToString())
+                        .AppendLine();
+                }
+
+                if (docPath2 is not null)
+                {
+                    string docs2 = Messages.GetDocStore2(message, msgInfo, docPath2);
+                    Directory.CreateDirectory(docs2);
+
+                    foreach (var file in Directory.GetFiles(docPath))
+                        File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), true);
+                }
             }
+
+            // Exit if last page
+            if (messagesPage.Pages.CurrentPage == messagesPage.Pages.TotalPages)
+                break;
+
+            // Get next page of 100
+            filter.Page = (uint)messagesPage.Pages.CurrentPage + 1;
+            messagesPage = await Messages.GetMessagesPageAsync(filter);
         }
 
-        return Program.Done($"ЛК ЦБ: Загружено {num} шт.", report.ToString(), subscribers);
+        if (lk)
+        {
+            return errors == 0
+                ? 0
+                : Program.Fail(nameof(Loader), report.ToString());
+        }
+        else
+        {
+            return Program.Done($"ЛК ЦБ: Загружено {num} шт.", report.ToString(), subscribers);
+        }
     }
 
     private async Task SaveMessageDocsAsync(string id)
     {
         Logger.TimeZZZLine($"Получение '{id}'");
 
-        var message = await Program.RestAPI.GetMessageAsync(id)
-            ?? throw new TaskException($"Сообщение '{id}' не найдено.");
+        var messageResult = await Program.RestAPI.GetMessageAsync(id);
 
+        if (!messageResult.OK)
+            throw new TaskException($"Сообщение '{id}' не найдено.");
+
+        var message = messageResult.Data!;
         (string json, string zip) = Messages.GetZipStore(message, zipPath);
 
         if (!File.Exists(json))
@@ -147,7 +203,16 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
         if (!await Messages.SaveMessageZipAsync(id, zip))
             throw new TaskException($"Сообщение '{id}' не скачать.");
 
-        var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, docPath, docPath2);
+        var msgInfo = await Messages.DecryptMessageZipAsync(message, zip, docPath);
+
+        if (docPath2 is not null)
+        {
+            string docs2 = Messages.GetDocStore2(message, msgInfo, docPath2);
+            Directory.CreateDirectory(docs2);
+
+            foreach (var file in Directory.GetFiles(docPath))
+                File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), true);
+        }
 
         Console.WriteLine(msgInfo.ToString());
     }

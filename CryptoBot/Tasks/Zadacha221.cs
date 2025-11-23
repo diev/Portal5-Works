@@ -40,8 +40,10 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
             throw new TaskException("В конфиге не указано на кого шифровать.");
 
         string id = guid.ToString();
-        var message = await Program.RestAPI.GetMessageAsync(id)
-            ?? throw new TaskException($"Запрос '{id}' не найден.");
+        var messageResult = await Program.RestAPI.GetMessageAsync(id);
+
+        if (!messageResult.OK)
+            throw new TaskException($"Запрос '{id}' не найден.");
 
         var upload = new DirectoryInfo(uploadPath);
 
@@ -94,7 +96,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             Logger.TimeZZZLine("Запрос статуса принятия");
 
-            message = await Messages.CheckStatusAsync(msgId, 20);
+            var message = await Messages.CheckStatusAsync(msgId, 20);
 
             string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
@@ -156,7 +158,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             Logger.TimeZZZLine("Запрос статуса принятия");
 
-            message = await Messages.CheckStatusAsync(msgId, 20);
+            var message = await Messages.CheckStatusAsync(msgId, 20);
 
             string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
@@ -219,10 +221,10 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
     /// <exception cref="TaskException"></exception>
     private static async Task<string> UploadAsync(string path, Guid guid)
     {
-        var msgId = await Program.RestAPI.UploadEncFileAsync(_task, _title, path, guid);
+        var msgIdResult = await Program.RestAPI.UploadEncFileAsync(_task, _title, path, guid);
 
-        if (msgId is not null)
-            return msgId;
+        if (msgIdResult.OK)
+            return msgIdResult.Data!;
 
         throw new TaskException("Отправить файл не удалось.");
     }

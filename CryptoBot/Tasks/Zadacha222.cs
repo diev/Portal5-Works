@@ -40,10 +40,12 @@ internal class Zadacha222(string downloadPath, string[] subscribers)
             MinDateTime = DateTime.Today.AddDays(-days ?? 0)
         };
 
-        var messages = await Program.RestAPI.GetMessagesAsync(filter)
-            ?? throw new TaskException(
-                "Не получено сообщений.");
+        var messagesResult = await Program.RestAPI.GetMessagesAsync(filter);
 
+        if (!messagesResult.OK)
+            throw new TaskException("Не получено сообщений.");
+
+        var messages = messagesResult.Data!;
         int count = messages.Count;
 
         if (count == 0)
@@ -72,7 +74,9 @@ internal class Zadacha222(string downloadPath, string[] subscribers)
                     if (msgFile.Encrypted)
                     {
                         // ZBR_3194_NOCRD_000020250411000000286401.xml.enc
-                        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
+                        var result = await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path);
+
+                        if (result.OK)
                         {
                             Logger.TimeZZZLine("Расшифровка полученного файла");
 
@@ -88,7 +92,9 @@ internal class Zadacha222(string downloadPath, string[] subscribers)
                     else
                     {
                         // ZBR_3194_NOCRD_000020250411000000286401.xml.sig
-                        if (await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path))
+                        var result = await Program.RestAPI.DownloadMessageFileAsync(msgId, fileId, path);
+
+                        if (result.OK)
                             sig = path;
                     }
                 }

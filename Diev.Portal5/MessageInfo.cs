@@ -146,6 +146,8 @@ public class MessageInfo
     {
         StringBuilder info = new();
 
+        // Исходящий от 20.11.2025 N 218-2  //1e561dfa-3354-4211-adc5-b39b00ec830a
+
         info.Append(TType(Message.Type))
             .Append($" от {TDate(Date)}");
 
@@ -156,7 +158,10 @@ public class MessageInfo
                 info.Append($" N {Number}");
             }
 
-            info.AppendLine($"  //{Message.Id}");
+            info.AppendLine($"  //{Message.Id}  //{Message.TaskName}");
+
+            // Зарегистрирован 20.11.2025 17:55 N 662460
+
             DateTime dt = ((DateTime)Message.UpdatedDate!).ToLocalTime();
             info.AppendLine($"Зарегистрирован {dt:dd.MM.yyyy HH:mm} N {Message.RegNumber}");
         }
@@ -167,20 +172,27 @@ public class MessageInfo
                 info.Append($" N {Number}");
             }
 
-            info.AppendLine($"  //{Message.Id}");
+            info.AppendLine($"  //{Message.Id}  //{Message.TaskName}");
         }
 
         // Titles
         info.AppendLine();
 
+        // Ответ на запрос/предписание (требование)/перенаправленное обращение заявителя
+
         if (!string.IsNullOrEmpty(Message.Title))
             info.AppendLine(Message.Title);
+
+        // О неиспользованном лимите кредитования
 
         if (!string.IsNullOrEmpty(Message.Text))
             info.AppendLine(Message.Text);
 
         // Content
         info.AppendLine()
+
+            // Вложения в папке "2025-11-20-218-2 О неиспользованном лимите кредитования":
+
             .AppendLine(@$"Вложения в папке ""{Name}"":");
 
         List<string> list = [];
@@ -199,7 +211,8 @@ public class MessageInfo
             if (file.Name.Equals("info.txt", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            //info.AppendLine($"- {file.Name}");
+            // - ВизуализацияЭД.PDF.enc
+
             list.Add(file.Name);
         }
 

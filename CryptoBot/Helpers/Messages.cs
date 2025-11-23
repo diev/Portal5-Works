@@ -84,10 +84,20 @@ internal static class Messages
             msgInfo.Name!);
     }
 
-    public static async Task<List<Message>?> GetMessagesAsync(MessagesFilter filter)
+    public static async Task<IReadOnlyList<Message>> GetMessagesAsync(MessagesFilter filter)
     {
-        return await Program.RestAPI.GetMessagesAsync(filter)
-            ?? throw new TaskException("Не получено сообщений.");
+        var result = await Program.RestAPI.GetMessagesAsync(filter);
+        return result.OK
+            ? result.Data!
+            : throw new TaskException("Не получено сообщений.");
+    }
+
+    public static async Task<MessagesPage> GetMessagesPageAsync(MessagesFilter filter)
+    {
+        var result = await Program.RestAPI.GetMessagesPageAsync(filter);
+        return result.OK
+            ? result.Data!
+            : throw new TaskException("Не получено сообщений.");
     }
 
     public static async Task<bool> SaveMessageJsonAsync(Message message, string path)
@@ -100,10 +110,11 @@ internal static class Messages
 
     public static async Task<bool> SaveMessageZipAsync(string id, string path)
     {
-        return await Program.RestAPI.DownloadMessageZipAsync(id, path);
+        var result = await Program.RestAPI.DownloadMessageZipAsync(id, path);
+        return result.OK;
     }
 
-    public static async Task<MessageInfo> DecryptMessageZipAsync(Message message, string zip, string path, string? path2)
+    public static async Task<MessageInfo> DecryptMessageZipAsync(Message message, string zip, string path)
     {
         string temp = Files.CreateTempDir();
         await Files.UnzipToDirectoryAsync(zip, temp);
@@ -124,40 +135,25 @@ internal static class Messages
         {
             var corrMessage = await Program.RestAPI.GetMessageAsync(corrId);
 
-            if (corrMessage != null)
+            if (corrMessage.OK)
             {
-                var corrInfo = new MessageInfo(corrMessage);
+                var corrInfo = new MessageInfo(corrMessage.Data!);
                 msgInfo.Notes = "На " + corrInfo.ToString();
             }
         }
 
         string docs = GetDocStore(message, msgInfo, path);
         await ExtractFilesToDirectoryAsync(message, source, docs);
-
-        if (path2 is not null)
-        {
-            string docs2 = GetDocStore2(message, msgInfo, path2);
-
-            if (!docs2.Equals(docs))
-            {
-                Directory.CreateDirectory(docs2);
-                msgInfo.FullName = docs2;
-                await File.WriteAllTextAsync(Path.Combine(docs2, "info.txt"), msgInfo.ToString());
-
-                foreach (var file in Directory.GetFiles(docs))
-                    File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), false);
-            }
-        }
-
         msgInfo.FullName = docs;
-        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), msgInfo.ToString());
+        string infoText = msgInfo.ToString();
+        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), infoText);
 
         Directory.Delete(temp, true);
 
         return msgInfo;
     }
 
-    public static async Task<MessageInfo> DecryptMessageFilesAsync(Message message, string path, string? path2)
+    public static async Task<MessageInfo> DecryptMessageFilesAsync(Message message, string path)
     {
         string temp = Files.CreateTempDir();
         StringBuilder notes = new();
@@ -165,12 +161,13 @@ internal static class Messages
         foreach (var file in message.Files)
         {
             string name = Path.Combine(temp, file.Name);
+            var result = await Program.RestAPI.DownloadMessageFileAsync(message.Id, file.Id, name, true);
 
-            if (!await Program.RestAPI.DownloadMessageFileAsync(message.Id, file.Id, name, true))
+            if (!result.OK)
             {
                 string error = $"Файл вложения {file.Name.PathQuoted()} не скачать.";
                 Logger.TimeZZZLine(error);
-                notes.AppendLine(error);
+                notes.AppendLine("- " + error);
             }
         }
 
@@ -189,9 +186,9 @@ internal static class Messages
         {
             var corrMessage = await Program.RestAPI.GetMessageAsync(corrId);
 
-            if (corrMessage != null)
+            if (corrMessage.OK)
             {
-                var corrInfo = new MessageInfo(corrMessage);
+                var corrInfo = new MessageInfo(corrMessage.Data!);
                 notes.Append("На " + corrInfo.ToString());
             }
         }
@@ -200,17 +197,8 @@ internal static class Messages
         await ExtractFilesToDirectoryAsync(message, temp, docs);
         msgInfo.FullName = docs;
         msgInfo.Notes = notes.ToString();
-
-        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), msgInfo.ToString());
-
-        if (path2 is not null)
-        {
-            string docs2 = GetDocStore2(message, msgInfo, path2);
-            Directory.CreateDirectory(docs2);
-
-            foreach (var file in Directory.GetFiles(docs))
-                File.Copy(file, Path.Combine(docs2, Path.GetFileName(file)), true);
-        }
+        string infoText = msgInfo.ToString();
+        await File.WriteAllTextAsync(Path.Combine(docs, "info.txt"), infoText);
 
         Directory.Delete(temp, true);
 
@@ -219,10 +207,12 @@ internal static class Messages
 
     public static async Task<MessageInfo?> GetMessageInfoAsync(string msgId)
     {
-        var message = await Program.RestAPI.GetMessageAsync(msgId);
+        var messageResult = await Program.RestAPI.GetMessageAsync(msgId);
 
-        if (message is null)
+        if (!messageResult.OK)
             return null;
+
+        var message = messageResult.Data!;
 
         foreach (var file in message.Files)
         {
@@ -347,10 +337,12 @@ internal static class Messages
 
         while (DateTime.Now < end)
         {
-            message = await Program.RestAPI.GetMessageAsync(msgId);
+            var messageResult = await Program.RestAPI.GetMessageAsync(msgId);
 
-            if (message is not null)
+            if (messageResult.OK)
             {
+                message = messageResult.Data!;
+
                 if (message.Status == MessageOutStatus.Registered)
                     return message; // OK
 

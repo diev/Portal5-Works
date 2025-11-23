@@ -82,7 +82,7 @@ public static class Exec
         }
         catch (Exception ex)
         {
-            throw new Exception($"Fail to start [\"{exe}\" {cmdline}]", ex);
+            throw new Exception($@"Fail to start [""{exe}"" {cmdline}]", ex);
         }
     }
 

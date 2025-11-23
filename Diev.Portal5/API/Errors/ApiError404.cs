@@ -22,31 +22,24 @@ namespace Diev.Portal5.API.Errors;
 /// <summary>
 /// В случае ошибок REST методов из класса HTTP 4XX, в теле ответа передается JSON-объект с описанием ошибки вида.
 /// </summary>
-public record Error404
+/// <param name="HTTPStatus">HTTP статус класса 4xx согласно Hypertext Transfer Protocol (HTTP) Status Code Registry.</param>
+/// <param name="ErrorCode">Внутренний код ошибки Портала. Служит клиенту для автоматизированной обработки ошибок.</param>
+/// <param name="ErrorMessage">Расшифровка ошибки. Служит для человеко-читаемой обработки ошибок.</param>
+/// <param name="MoreInfo">Объект с дополнительно информацией к ошибке, по-умолчанию пустой.
+/// <list type=">">
+/// <item>HTTP 404 – Not found;</item>
+/// <item>HTTP 410 – Gone;</item>
+/// <item>HTTP 413 – Message size too large.</item>
+/// </list>
+///</param>
+public record ApiError404
 (
-    /// <summary>
-    /// HTTP статус класса 4xx согласно Hypertext Transfer Protocol (HTTP) Status Code Registry.
-    /// </summary>
     int HTTPStatus,
-
-    /// <summary>
-    /// Внутренний код ошибки Портала. Служит клиенту для автоматизированной обработки ошибок. 
-    /// </summary>
     string ErrorCode,
-
-    /// <summary>
-    /// Расшифровка ошибки. Служит для человеко-читаемой обработки ошибок.
-    /// </summary>
     string ErrorMessage,
-
-    /// <summary>
-    /// Объект с дополнительно информацией к ошибке, по-умолчанию пустой.
-    /// HTTP 404 – Not found
-    /// HTTP 410 – Gone
-    /// HTTP 413 – Message size too large
-    /// </summary>
     MoreInfo404 MoreInfo
-);
+)
+    : ApiError(HTTPStatus, ErrorCode, ErrorMessage);
 
 /*
 "MoreInfo": {
