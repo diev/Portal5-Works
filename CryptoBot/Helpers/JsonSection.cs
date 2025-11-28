@@ -21,7 +21,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace CryptoBot.Helpers;
 
-internal static class JsonSection
+public static class JsonSection
 {
     public static string[] Values(IConfigurationSection config, string key)
     {

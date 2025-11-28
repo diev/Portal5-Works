@@ -366,9 +366,11 @@ internal class Program
                     ? null
                     : Path.GetFullPath(config["DocPath2"]!),
                 exclude: JsonSection.Values(config, "Exclude"),
-                subscribers: JsonSection.Subscribers(config),
-                iSubscribers: JsonSection.Values(config, "iSubscribers"),
-                oSubscribers: JsonSection.Values(config, "oSubscribers"));
+
+                //subscribers: JsonSection.Subscribers(config),
+                //iSubscribers: JsonSection.Values(config, "iSubscribers"),
+                //oSubscribers: JsonSection.Values(config, "oSubscribers"));
+                subscribers: config.GetSection("Subscribers"));
 
             return await lk.RunAsync(
                 p.GetValue(idOption),
@@ -410,9 +412,11 @@ internal class Program
         #endregion parse
     }
 
+    #region notifications
     public static void Send(string subject, string body, string[]? subscribers = null, string[]? files = null)
     {
-        Mailer.SendMessage(subscribers ?? Subscribers,
+        Mailer.SendMessage(
+            subscribers ?? Subscribers,
             subject,
             body,
             files);
@@ -424,7 +428,8 @@ internal class Program
 
         Send($"Portal5.{task}: OK",
             message,
-            subscribers, files);
+            subscribers ?? Subscribers,
+            files);
 
         return 0;
     }
@@ -435,7 +440,8 @@ internal class Program
 
         Send($"Portal5.{task}: {message}",
             $"FAIL: {message}",
-            subscribers, files);
+            subscribers ?? Subscribers,
+            files);
 
         return 1;
     }
@@ -447,7 +453,8 @@ internal class Program
 
         Send($"Portal5.{task}: {ex.Message}",
             $"ERROR: {ex}",
-            subscribers, files);
+            subscribers ?? Subscribers,
+            files);
 
         return 1;
     }
@@ -459,7 +466,8 @@ internal class Program
 
         Send($"Portal5.{task}: {ex.Message}",
             $"ERROR TASK: {ex}",
-            subscribers, files);
+            subscribers ?? Subscribers,
+            files);
 
         return 2;
     }
@@ -471,8 +479,10 @@ internal class Program
 
         Send($"Portal5.{task}: {ex.Message}",
             $"ERROR API: {ex}",
-            subscribers, files);
+            subscribers ?? Subscribers,
+            files);
 
         return 3;
     }
+    #endregion notifications
 }

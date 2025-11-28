@@ -5,11 +5,10 @@
     "ZipPath": "Download\\Archive",
     "DocPath": "Download\\Docs",
     "DocPath2": null,
-    "Exclude": [ 97, 107, 114, 123, 133, 140, 155, 156, 169 ],
+    "Exclude": [ 97, 104, 107, 113, 114, 123, 133, 140, 155, 156, 159, 169 ],
     "Overwrite": false,
-    "Subscribers": [],
-    "iSubscribers": [],
-    "oSubscribers": []
+    "Subscribers:Zadacha_2-1": [],
+    "Subscribers:Zadacha_3-1": []
   },
   "Program": {
     "CryptoName": "CryptoPro My",

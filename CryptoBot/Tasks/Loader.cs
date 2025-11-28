@@ -26,10 +26,13 @@ using Diev.Extensions.Tools;
 using Diev.Portal5;
 using Diev.Portal5.API.Tools;
 
+using Microsoft.Extensions.Configuration;
+
 namespace CryptoBot.Tasks;
 
 internal class Loader(string zipPath, string docPath, string? docPath2, string[] exclude,
-    string[] subscribers, string[] iSubscribers, string[] oSubscribers)
+    //string[] subscribers, string[] iSubscribers, string[] oSubscribers)
+    IConfigurationSection subscribers)
 {
     //private static readonly JsonSerializerOptions _jsonOptions = new()
     //{
@@ -102,32 +105,46 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
                 if (await Messages.SaveMessageZipAsync(message.Id, zip))
                 {
                     msgInfo = await Messages.DecryptMessageZipAsync(message, zip, docPath);
+                    string msgInfoText = msgInfo.ToString();
 
                     if (lk)
                     {
-                        if (message.Inbox)
+                        if (subscribers.GetSection(message.TaskName) is null)
                         {
-                            string docs = msgInfo.FullName!;
-                            string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");
-
-                            var files = File.Exists(pdf)
-                                ? [pdf]
-                                : Directory.GetFiles(docs, "*.pdf");
-
-                            Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
-                                msgInfo.ToString(), iSubscribers, files);
+                            Program.Send("ЛК ЦБ NEW: " + msgInfo.Subject, msgInfoText);
                         }
                         else
                         {
-                            Program.Send("ЛК ЦБ исх: " + msgInfo.Subject,
-                                msgInfo.ToString(), oSubscribers);
+                            var taskSubscribers = JsonSection.Values(subscribers, message.TaskName);
+
+                            if (taskSubscribers.Length > 0)
+                            {
+                                if (message.Inbox)
+                                {
+                                    string docs = msgInfo.FullName!;
+                                    string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");
+
+                                    var files = File.Exists(pdf)
+                                        ? [pdf]
+                                        : Directory.GetFiles(docs, "*.pdf");
+
+
+                                    Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
+                                        msgInfoText, taskSubscribers, files);
+                                }
+                                else
+                                {
+                                    Program.Send("ЛК ЦБ исх: " + msgInfo.Subject,
+                                        msgInfoText, taskSubscribers);
+                                }
+                            }
                         }
                     }
                     else
                     {
                         report
                             .AppendLine($"-{++num}-")
-                            .AppendLine(msgInfo.ToString())
+                            .AppendLine(msgInfoText)
                             .AppendLine();
                     }
                 }
@@ -139,13 +156,15 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
                     msgInfo = await Messages.DecryptMessageFilesAsync(message, docPath);
                     error += Environment.NewLine + msgInfo.Notes;
                     msgInfo.Notes += error;
-                    await File.WriteAllTextAsync(zip + ".err", error);
-                    errors++;
+                    string msgInfoText = msgInfo.ToString();
 
                     report
                         .AppendLine($"-{++num} не скачать-")
-                        .AppendLine(msgInfo.ToString())
+                        .AppendLine(msgInfoText)
                         .AppendLine();
+
+                    await File.WriteAllTextAsync(zip + ".err", error);
+                    errors++;
                 }
 
                 if (docPath2 is not null)
@@ -167,15 +186,18 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
             messagesPage = await Messages.GetMessagesPageAsync(filter);
         }
 
+        // Загрузка окончена
+        string reportText = report.ToString();
+
         if (lk)
         {
             return errors == 0
                 ? 0
-                : Program.Fail(nameof(Loader), report.ToString());
+                : Program.Fail(nameof(Loader), reportText);
         }
         else
         {
-            return Program.Done($"ЛК ЦБ: Загружено {num} шт.", report.ToString(), subscribers);
+            return Program.Done($"ЛК ЦБ: Загружено {num} шт., ошибок {errors}", reportText);
         }
     }
 
