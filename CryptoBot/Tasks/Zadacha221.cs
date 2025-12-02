@@ -36,7 +36,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
     public async Task<int> RunAsync(Guid guid)
     {
-        if (string.IsNullOrEmpty(Program.EncryptTo))
+        if (string.IsNullOrEmpty(Program.Config.EncryptTo))
             throw new TaskException("В конфиге не указано на кого шифровать.");
 
         string id = guid.ToString();
@@ -68,7 +68,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             // AFN_4030702_0000000_20250623_00001.tpt.zip.enc
             string encFile = tptFile + ".enc";
-            if (!await Program.Crypto.EncryptFileAsync(tptFile, encFile, Program.EncryptTo))
+            if (!await Program.Crypto.EncryptFileAsync(tptFile, encFile, Program.Config.EncryptTo))
                 throw new TaskException(
                     $"Зашифровать файл {tptFile.PathQuoted()} не удалось.");
 
@@ -100,7 +100,8 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
-            Program.Done(nameof(Zadacha221), report, subscribers);
+            Notifications.Done(null, report, subscribers);
+
             File.Delete(encFile);
         }
 
@@ -128,7 +129,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             // AFN_4030702_0000000_20250623_00002.tpt.zip.enc
             string encFile = tptFile + ".enc";
-            if (!await Program.Crypto.EncryptFileAsync(tptFile, encFile, Program.EncryptTo))
+            if (!await Program.Crypto.EncryptFileAsync(tptFile, encFile, Program.Config.EncryptTo))
                 throw new TaskException(
                     $"Зашифровать файл {tptFile.PathQuoted()} не удалось.");
 
@@ -162,7 +163,8 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
-            Program.Done(_task, report, subscribers);
+            Notifications.Done(null, report, subscribers);
+
             File.Delete(encFile);
         }
 

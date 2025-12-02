@@ -23,8 +23,11 @@ namespace Diev.Extensions.Loggers;
 
 public sealed class FileLogger(string path) : ILogger, IDisposable
 {
-    //NET 9+ private static readonly Lock _lock = new();
+#if NET9_0_OR_GREATER
+    private static readonly Lock _lock = new();
+#else
     private static readonly object _lock = new();
+#endif
 
     /// <summary>
     /// Метод возвращает объект IDisposable, который представляет некоторую область видимости для логгера.

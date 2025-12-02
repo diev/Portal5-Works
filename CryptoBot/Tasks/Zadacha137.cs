@@ -17,6 +17,7 @@ limitations under the License.
 */
 #endregion
 
+using CryptoBot;
 using CryptoBot.Helpers;
 
 using Diev.Extensions.LogFile;
@@ -39,7 +40,7 @@ internal class Zadacha137(string uploadPath, string zip, string? xsd, string[] s
         if (!File.Exists(xsd))
             throw new TaskException($"Не найден файл схемы {xsd.PathQuoted}.");
 
-        if (string.IsNullOrEmpty(Program.EncryptTo))
+        if (string.IsNullOrEmpty(Program.Config.EncryptTo))
             throw new TaskException("В конфиге не указано на кого шифровать.");
 
         string zipFile = GetZipToUpload(uploadPath, zip, days ?? 0);
@@ -58,7 +59,7 @@ internal class Zadacha137(string uploadPath, string zip, string? xsd, string[] s
 
         Logger.TimeZZZLine("Подпись и шифрование");
 
-        await Files.SignAndEncryptToDirectoryAsync(zipFullName, Program.EncryptTo, temp);
+        await Files.SignAndEncryptToDirectoryAsync(zipFullName, Program.Config.EncryptTo, temp);
 
         Logger.TimeZZZLine("Отправка файла");
 
@@ -72,7 +73,7 @@ internal class Zadacha137(string uploadPath, string zip, string? xsd, string[] s
 
         string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
-        return Program.Done(nameof(Zadacha137), report, subscribers);
+        return Notifications.Done(null, report, subscribers);
     }
 
     /// <summary>

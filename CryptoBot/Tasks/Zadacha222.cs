@@ -105,7 +105,7 @@ internal class Zadacha222(string downloadPath, string[] subscribers)
                     sb.AppendLine(" -- Подпись не верна!");
             }
 
-            return Program.Done(nameof(Zadacha222), sb.ToString(), subscribers);
+            return Notifications.Done(null, sb.ToString(), subscribers);
         }
     }
 

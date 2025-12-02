@@ -24,8 +24,6 @@ using System.Text.Unicode;
 using Diev.Extensions.LogFile;
 using Diev.Portal5.API.Errors;
 
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 namespace Diev.Portal5;
 
 public record ApiResult<T>

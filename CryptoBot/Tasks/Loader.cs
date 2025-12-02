@@ -19,6 +19,7 @@ limitations under the License.
 
 using System.Text;
 
+using CryptoBot;
 using CryptoBot.Helpers;
 
 using Diev.Extensions.LogFile;
@@ -111,7 +112,7 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
                     {
                         if (subscribers.GetSection(message.TaskName) is null)
                         {
-                            Program.Send("ЛК ЦБ NEW: " + msgInfo.Subject, msgInfoText);
+                            Notifications.Send("ЛК ЦБ NEW: " + msgInfo.Subject, msgInfoText);
                         }
                         else
                         {
@@ -128,13 +129,12 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
                                         ? [pdf]
                                         : Directory.GetFiles(docs, "*.pdf");
 
-
-                                    Program.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
+                                    Notifications.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
                                         msgInfoText, taskSubscribers, files);
                                 }
                                 else
                                 {
-                                    Program.Send("ЛК ЦБ исх: " + msgInfo.Subject,
+                                    Notifications.Send("ЛК ЦБ исх: " + msgInfo.Subject,
                                         msgInfoText, taskSubscribers);
                                 }
                             }
@@ -193,11 +193,11 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
         {
             return errors == 0
                 ? 0
-                : Program.Fail(nameof(Loader), reportText);
+                : Notifications.Fail(null, reportText);
         }
         else
         {
-            return Program.Done($"ЛК ЦБ: Загружено {num} шт., ошибок {errors}", reportText);
+            return Notifications.Done($"ЛК ЦБ: Загружено {num} шт., ошибок {errors}", reportText);
         }
     }
 
