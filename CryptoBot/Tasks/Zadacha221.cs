@@ -100,7 +100,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
-            Notifications.Done(null, report, subscribers);
+            await Notifications.DoneAsync(null, report, subscribers);
 
             File.Delete(encFile);
         }
@@ -163,7 +163,7 @@ internal class Zadacha221(string uploadPath, string archivePath, string zip, str
 
             string report = $"Файл {encFile.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
-            Notifications.Done(null, report, subscribers);
+            await Notifications.DoneAsync(null, report, subscribers);
 
             File.Delete(encFile);
         }

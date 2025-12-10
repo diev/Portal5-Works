@@ -110,19 +110,19 @@ internal class Program
         }
         catch (NoMessagesException ex)
         {
-            return Notifications.Done(TaskName, ex.Message, Config.Subscribers);
+            return await Notifications.DoneAsync(TaskName, ex.Message, Config.Subscribers);
         }
         catch (Portal5Exception ex)
         {
-            return Notifications.FailAPI(TaskName, ex, Config.Subscribers);
+            return await Notifications.FailAPIAsync(TaskName, ex, Config.Subscribers);
         }
         catch (TaskException ex)
         {
-            return Notifications.FailTask(TaskName, ex, Config.Subscribers);
+            return await Notifications.FailTaskAsync(TaskName, ex, Config.Subscribers);
         }
         catch (Exception ex)
         {
-            return Notifications.Fail(TaskName, ex, Config.Subscribers);
+            return await Notifications.FailAsync(TaskName, ex, Config.Subscribers);
         }
         finally
         {

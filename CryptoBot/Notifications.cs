@@ -24,11 +24,11 @@ namespace CryptoBot;
 
 internal static class Notifications
 {
-    public static int Done(string? task, string message, string[]? subscribers = null, string[]? files = null)
+    public async static Task<int> DoneAsync(string? task, string message, string[]? subscribers = null, string[]? files = null)
     {
         Logger.TimeLine(message);
 
-        Send($"Portal5.{task ?? Program.TaskName}: OK",
+        await SendAsync($"Portal5.{task ?? Program.TaskName}: OK",
             message,
             subscribers ?? Program.Config.Subscribers,
             files);
@@ -36,11 +36,11 @@ internal static class Notifications
         return 0;
     }
 
-    public static int Fail(string? task, string message, string[]? subscribers = null, string[]? files = null)
+    public async static Task<int> FailAsync(string? task, string message, string[]? subscribers = null, string[]? files = null)
     {
         Logger.TimeLine(message);
 
-        Send($"Portal5.{task ?? Program.TaskName}: {message}",
+        await SendAsync($"Portal5.{task ?? Program.TaskName}: {message}",
             $"FAIL: {message}",
             subscribers ?? Program.Config.Subscribers,
             files);
@@ -48,12 +48,12 @@ internal static class Notifications
         return 1;
     }
 
-    public static int Fail(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    public async static Task<int> FailAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
     {
         Logger.TimeLine(ex.Message);
         Logger.LastError(ex);
 
-        Send($"Portal5.{task ?? Program.TaskName}: {ex.Message}",
+        await SendAsync($"Portal5.{task ?? Program.TaskName}: {ex.Message}",
             $"ERROR: {ex}",
             subscribers ?? Program.Config.Subscribers,
             files);
@@ -61,12 +61,12 @@ internal static class Notifications
         return 1;
     }
 
-    public static int FailAPI(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    public async static Task<int> FailAPIAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
     {
         Logger.TimeLine(ex.Message);
         Logger.LastError(ex);
 
-        Send($"Portal5.{task ?? Program.TaskName}: {ex.Message}",
+        await SendAsync($"Portal5.{task ?? Program.TaskName}: {ex.Message}",
             $"ERROR API: {ex}",
             subscribers ?? Program.Config.Subscribers,
             files);
@@ -74,12 +74,12 @@ internal static class Notifications
         return 3;
     }
 
-    public static int FailTask(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    public async static Task<int> FailTaskAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
     {
         Logger.TimeLine(ex.Message);
         Logger.LastError(ex);
 
-        Send($"Portal5.{task ?? Program.TaskName}: {ex.Message}",
+        await SendAsync($"Portal5.{task ?? Program.TaskName}: {ex.Message}",
             $"ERROR TASK: {ex}",
             subscribers ?? Program.Config.Subscribers,
             files);
@@ -87,9 +87,9 @@ internal static class Notifications
         return 2;
     }
 
-    public static void Send(string subject, string body, string[]? subscribers = null, string[]? files = null)
+    public async static Task SendAsync(string subject, string body, string[]? subscribers = null, string[]? files = null)
     {
-        Mailer.SendMessage(
+        await Mailer.SendMessageAsync(
             subscribers ?? Program.Config.Subscribers,
             subject,
             body,

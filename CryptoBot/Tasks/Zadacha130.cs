@@ -46,7 +46,7 @@ internal class Zadacha130(string downloadPath, string[] subscribers)
 
         string report = $"Получен файл {Path.GetFileName(zip).PathQuoted()}.";
 
-        return Notifications.Done(null, report, subscribers);
+        return await Notifications.DoneAsync(null, report, subscribers);
     }
 
     #region Mock

@@ -77,6 +77,9 @@ public static class Mailer
 
     public static void SendMessage(object? emails, string? subj = "", string? body = "", string[]? files = null)
     {
+        if (emails is null)
+            return;
+
         SendMessageAsync(emails, subj, body, files).Wait();
     }
 

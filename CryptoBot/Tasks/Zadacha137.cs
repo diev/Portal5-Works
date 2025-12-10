@@ -73,7 +73,7 @@ internal class Zadacha137(string uploadPath, string zip, string? xsd, string[] s
 
         string report = $"Файл {zip.PathQuoted()}, статус '{message.Status}'.{Environment.NewLine}{_title}";
 
-        return Notifications.Done(null, report, subscribers);
+        return await Notifications.DoneAsync(null, report, subscribers);
     }
 
     /// <summary>

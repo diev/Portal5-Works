@@ -112,7 +112,7 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
                     {
                         if (subscribers.GetSection(message.TaskName) is null)
                         {
-                            Notifications.Send("ЛК ЦБ NEW: " + msgInfo.Subject, msgInfoText);
+                            await Notifications.SendAsync("ЛК ЦБ NEW: " + msgInfo.Subject, msgInfoText);
                         }
                         else
                         {
@@ -129,12 +129,12 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
                                         ? [pdf]
                                         : Directory.GetFiles(docs, "*.pdf");
 
-                                    Notifications.Send($"ЛК ЦБ вх: {msgInfo.Subject}",
+                                    await Notifications.SendAsync($"ЛК ЦБ вх: {msgInfo.Subject}",
                                         msgInfoText, taskSubscribers, files);
                                 }
                                 else
                                 {
-                                    Notifications.Send("ЛК ЦБ исх: " + msgInfo.Subject,
+                                    await Notifications.SendAsync("ЛК ЦБ исх: " + msgInfo.Subject,
                                         msgInfoText, taskSubscribers);
                                 }
                             }
@@ -193,11 +193,11 @@ internal class Loader(string zipPath, string docPath, string? docPath2, string[]
         {
             return errors == 0
                 ? 0
-                : Notifications.Fail(null, reportText);
+                : await Notifications.FailAsync(null, reportText);
         }
         else
         {
-            return Notifications.Done($"ЛК ЦБ: Загружено {num} шт., ошибок {errors}", reportText);
+            return await Notifications.DoneAsync($"ЛК ЦБ: Загружено {num} шт., ошибок {errors}", reportText);
         }
     }
 
