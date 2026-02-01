@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace CryptoBot.Helpers;
 
-public static class JsonSection
+internal static class JsonSection
 {
     public static string[] Values(IConfigurationSection config, string key)
     {
@@ -36,18 +36,13 @@ public static class JsonSection
         return [.. list];
     }
 
-    public static string[] MyOld(IConfigurationSection config)
+    public static string[] Subscribers(IConfiguration config, string key)
     {
-        return Values(config, nameof(MyOld));
+        return Values(config.GetSection(key), nameof(Subscribers));
     }
 
     public static string[] Subscribers(IConfigurationSection config)
     {
         return Values(config, nameof(Subscribers));
     }
-
-    //public static string[] DoverXml(IConfigurationSection config)
-    //{
-    //    return Values(config, nameof(DoverXml));
-    //}
 }

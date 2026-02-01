@@ -5,9 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
-    <Version>10.2025.1201</Version>
+    <Version>10.2026.201</Version>
     <Description>Diev's extensions for Portal5.</Description>
-    <Copyright>Copyright 2022-2025 Dmitrii Evdokimov</Copyright>
+    <Copyright>Copyright 2022-2026 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <Company>diev</Company>
     <Authors>Diev</Authors>
@@ -24,6 +24,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="10.0.2" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Diev.Extensions\Diev.Extensions.csproj" />

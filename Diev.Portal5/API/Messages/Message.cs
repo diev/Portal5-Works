@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -174,7 +174,7 @@ public record Message
     /// "DivisionCode": "0000"<br/>
     /// }, ...]
     /// </summary>
-    IReadOnlyList<Receiver>? Receivers,
+    Receiver[]? Receivers,
 
     /// <summary>
     /// Файлы включенные в сообщение.<br/>
@@ -188,13 +188,13 @@ public record Message
     /// "RepositoryInfo": [...]<br/>
     /// }, ...]
     /// </summary>
-    IReadOnlyList<MessageFile> Files,
+    MessageFile[] Files,
 
     /// <summary>
     /// Квитанции, полученные в ответ на сообщение.<br/>
     /// Example: []
     /// </summary>
-    IReadOnlyList<MessageReceipt>? Receipts
+    MessageReceipt[]? Receipts
 )
 {
     [JsonIgnore]

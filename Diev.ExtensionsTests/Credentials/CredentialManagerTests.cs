@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@ limitations under the License.
 */
 #endregion
 
-using Diev.Extensions.Credentials;
+using Diev.Extensions.CredentialManager;
 
 namespace Diev.ExtensionsTests.Credentials
 {
@@ -28,7 +28,7 @@ namespace Diev.ExtensionsTests.Credentials
         public void ReadCredentialPortalTest()
         {
             string test = "http://localhost username password";
-            var cred = CredentialManager.ReadCredential(test);
+            var cred = CredentialService.StaticRead(test);
 
             if (!cred.TargetName.Equals("http://localhost"))
             {
@@ -50,7 +50,7 @@ namespace Diev.ExtensionsTests.Credentials
         public void ReadCredentialSmtpTlsTest()
         {
             string test = "gmail.com 589 tls sen@der password";
-            var cred = CredentialManager.ReadCredential(test);
+            var cred = CredentialService.StaticRead(test);
 
             if (!cred.TargetName.Equals("gmail.com 589 tls"))
             {
@@ -72,7 +72,7 @@ namespace Diev.ExtensionsTests.Credentials
         public void ReadCredentialSmtpNoTlsTest()
         {
             string test = "gmail.com 25 sender password";
-            var cred = CredentialManager.ReadCredential(test);
+            var cred = CredentialService.StaticRead(test);
 
             if (!cred.TargetName.Equals("gmail.com 25"))
             {

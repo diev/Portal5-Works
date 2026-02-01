@@ -41,7 +41,7 @@ public static class XsdChecker
         xmlReaderSettings.ValidationEventHandler += XmlReaderSettings_ValidationEventHandler;
 
         using var form = XmlReader.Create(xml, xmlReaderSettings);
-        while (await form.ReadAsync()) { }
+        while (await form.ReadAsync().ConfigureAwait(false)) { }
     }
 
     /// <summary>

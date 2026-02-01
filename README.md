@@ -7,7 +7,8 @@
 Works with API of Portal5.  
 Работа с Portal5 по API.
 
-Проект [CryptoBot](CryptoBot) находится в эксплуатации и адаптируется к новым условиям.
+Проект [CryptoBot](CryptoBot) находится в эксплуатации (v2025-11-22)
+и адаптируется к новым условиям (значительно переработан для использования DI и пр.)
 Использует библиотеки [Diev.Extensions](Diev.Extensions) и [Diev.Portal5](Diev.Portal5).
 
 ## License / Лицензия

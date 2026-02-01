@@ -29,10 +29,18 @@ namespace Diev.Extensions.Loggers;
 /// <param name="path"></param>
 [UnsupportedOSPlatform("browser")]
 [ProviderAlias("File")]
-public class FileLoggerProvider(string path) : ILoggerProvider
+public class FileLoggerProvider : ILoggerProvider
 {
-    public ILogger CreateLogger(string categoryName)
+    private readonly SystemdFormatter _formatter;
+    private readonly string _file; // сгенерированное имя файла
+
+    public FileLoggerProvider(string path)
     {
+        _formatter = new SystemdFormatter();
+
+        //_basePath = Path.Combine(basePath, $"{DateTime.Now:yyyy-MM}");
+        //_logFileName = $"{DateTime.Now:yyMMdd-HHmm}.log";
+
         string s = Environment.ExpandEnvironmentVariables(path);
 
         while (s.Contains('{'))
@@ -40,11 +48,29 @@ public class FileLoggerProvider(string path) : ILoggerProvider
             s = string.Format(s, DateTime.Now);
         }
 
-        return new FileLogger(s);
+        _file = s;
+        var dir = Path.GetDirectoryName(s);
+
+        if (!string.IsNullOrEmpty(dir))
+        {
+            Directory.CreateDirectory(dir); //TODO {0} => DateTime
+        }
     }
 
-    public void Dispose()
-    {
-        
-    }
+    public ILogger CreateLogger(string categoryName) =>
+        new SystemdFileLogger(_file, _formatter, categoryName);
+
+    //public ILogger CreateLogger(string categoryName)
+    //{
+    //    string s = Environment.ExpandEnvironmentVariables(path);
+
+    //    while (s.Contains('{'))
+    //    {
+    //        s = string.Format(s, DateTime.Now);
+    //    }
+
+    //    return new FileLogger(s);
+    //}
+
+    public void Dispose() {}
 }

@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ public record Profile
     /// <summary>
     /// Список видов деятельностей компании.
     /// </summary>
-    IReadOnlyList<Activities>? Activities,
+    Activities[]? Activities,
 
     /// <summary>
     /// Индивидуальный номер налогоплательщика компании.

@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,7 +67,7 @@ public record MessageReceipt
     /// <summary>
     /// Файлы, включенные в квитанцию.
     /// </summary>
-    IReadOnlyList<MessageFile> Files
+    MessageFile[] Files
 );
 
 #region Mock

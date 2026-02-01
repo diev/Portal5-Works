@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Diev.Extensions.Loggers;
 
-public sealed class FileLogger(string path) : ILogger, IDisposable
+public sealed class FileLogger(string logPath) : ILogger, IDisposable
 {
 #if NET9_0_OR_GREATER
     private static readonly Lock _lock = new();
@@ -37,10 +37,7 @@ public sealed class FileLogger(string path) : ILogger, IDisposable
     /// <returns></returns>
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default!;
 
-    public void Dispose()
-    {
-        
-    }
+    public void Dispose() {}
 
     /// <summary>
     /// Доступен ли логгер для использования.
@@ -63,8 +60,11 @@ public sealed class FileLogger(string path) : ILogger, IDisposable
     /// <param name="exception">Информация об исключении.</param>
     /// <param name="formatter">Функция форматирования, которая с помощью двух предыдущих
     /// параметов позволяет получить собственно сообщение для логгирования.</param>
-    public void Log<TState>(LogLevel logLevel,
-        EventId eventId, TState state, Exception? exception,
+    public void Log<TState>(
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
         if (!IsEnabled(logLevel))
@@ -74,8 +74,8 @@ public sealed class FileLogger(string path) : ILogger, IDisposable
 
         lock (_lock)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.AppendAllText(path, formatter(state, exception) + Environment.NewLine);
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            File.AppendAllText(logPath, formatter(state, exception) + Environment.NewLine);
         }
     }
 }

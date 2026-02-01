@@ -33,7 +33,7 @@ public class DraftMessage
     /// Example: "Zadacha_2-1"
     /// Example: "Zadacha_137"
     /// </summary>
-    public string Task { get; set; } = null!;
+    public required string Task { get; set; }
 
     /// <summary>
     /// Идентификатор корреляции сообщения
@@ -79,7 +79,7 @@ public class DraftMessage
     /// "Size":3238155,
     /// }, ...]
     /// </summary>
-    public List<DraftMessageFile> Files { get; set; } = [];
+    public required DraftMessageFile[] Files { get; set; }
 
     /// <summary>
     /// Получатели сообщения (необязательно, указывается для потоков адресной рассылки).
@@ -93,5 +93,5 @@ public class DraftMessage
     /// "Activity": ""
     /// }, ...]
     /// </summary>
-    public List<Receiver>? Receivers { get; set; }
+    public Receiver[]? Receivers { get; set; }
 }

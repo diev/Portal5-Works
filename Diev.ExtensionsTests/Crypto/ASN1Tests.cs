@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ public class ASN1Tests
                 b[i++] == 0x07 &&
                 b[i++] == 0x02))
         {
-            Assert.Fail("Convert string -> bytes.");
+            Assert.Fail("Convert string -> bytes");
         }
     }
 
@@ -54,7 +54,7 @@ public class ASN1Tests
 
         if (ASN1.Oid(bytes) != oid)
         {
-            Assert.Fail("Convert bytes -> string.");
+            Assert.Fail("Convert bytes -> string");
         }
     }
 }

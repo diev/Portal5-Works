@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,7 +87,7 @@ public record MessageFile
     /// "Path": "back/rapi2/messages/1d018a30-de5d-4f20-9eb9-b0890102f4be/files/14c80cb0-135d-42e2-b5a8-f1b04108d4ba/download"
     /// }]
     /// </summary>
-    IReadOnlyList<Repository>? RepositoryInfo
+    Repository[]? RepositoryInfo
 );
 
 #region Mock

@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -145,14 +145,12 @@ public class MessagesFilter
 
         if (Task is not null)
         {
-            if (Task.StartsWith("Zadacha_"))
-            {
-                query.Append("&Task=").Append(Task);
-            }
-            else
-            {
-                query.Append("&Task=Zadacha_").Append(Task);
-            }
+            query.Append("&Task=");
+
+            if (!Task.StartsWith("Zadacha_", StringComparison.Ordinal))
+                query.Append("Zadacha_");
+
+            query.Append(Task);
         }
 
         if (MinDateTime is not null)
@@ -178,14 +176,10 @@ public class MessagesFilter
             query.Append("&Status=").Append(Status);
 
         if (Page is not null && Page > 1)
-        {
             query.Append("&Page=").Append(Page);
-        }
 
         if (query.Length > 0)
-        {
             return '?' + query.ToString()[1..];
-        }
 
         return null; // string.Empty;
     }

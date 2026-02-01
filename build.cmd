@@ -22,7 +22,7 @@ rem call :bin %1 %option% %prj% net8.0 win-x86
 rem call :bin %1 %option% %prj% net9.0 win-x86
 rem call :bin %1 %option% %prj% net10.0 win-x86
 
-call :bin %1 %option% %prj% net8.0 win-x64
+rem call :bin %1 %option% %prj% net8.0 win-x64
 rem call :bin %1 %option% %prj% net9.0 win-x64
 call :bin %1 %option% %prj% net10.0 win-x64
 
@@ -42,7 +42,7 @@ echo === Pack %pack% ===
 "C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!bin -x!obj Diev.Extensions\ Diev.Portal5\
 "C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!.* -x!bin -x!obj -x!PublishProfiles -x!*.user %1\
 
-if exist %store% copy /y %pack% %store%
+rem if exist %store% copy /y %pack% %store%
 goto :eof
 
 :bin
@@ -80,7 +80,7 @@ set ymd=%date%
 reg add "hkcu\control panel\international" /v sshortdate /t reg_sz /d %sfmt% /f >nul
 reg add "hkcu\control panel\international" /v slongdate /t reg_sz /d %lfmt% /f >nul
 
-set store=G:\BankApps\AppStore
+rem set store=G:\BankApps\AppStore
 goto :eof
 
 :lower

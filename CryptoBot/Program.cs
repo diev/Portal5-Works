@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,134 +17,119 @@ limitations under the License.
 */
 #endregion
 
-using System.CommandLine;
 using System.Text;
 
-using CryptoBot.Helpers;
+using CryptoBot.Services;
+using CryptoBot.Tasks.Clean;
+using CryptoBot.Tasks.Load;
+using CryptoBot.Tasks.Z130;
+using CryptoBot.Tasks.Z137;
+using CryptoBot.Tasks.Z221;
+using CryptoBot.Tasks.Z222;
 
-using Diev.Extensions.Credentials;
+using Diev.Extensions.CredentialManager;
 using Diev.Extensions.Crypto;
-using Diev.Extensions.Info;
-using Diev.Extensions.LogFile;
-using Diev.Extensions.Tools;
-using Diev.Portal5;
+using Diev.Extensions.Exec;
+using Diev.Extensions.Loggers;
+using Diev.Extensions.Smtp;
 using Diev.Portal5.Exceptions;
+using Diev.Portal5.Tools;
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CryptoBot;
 
-internal class Program
+internal class Program(
+    ILogger<Program> logger,
+    IOptions<ProgramSettings> options,
+    ICliService cli,
+    INotifyService notifier
+    )
 {
-    public static IConfiguration JsonConfig { get; } = null!;
-    public static ICrypto Crypto { get; } = null!;
-    public static RestAPI RestAPI { get; } = null!;
-    public static AppConfig Config { get; } = null!;
     public static string TaskName { get; set; } = nameof(Program);
 
     static Program()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance); // required for 1251
-
-        if (Environment.ProcessPath is null) // Linux?
-        {
-            string appsettings = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
-
-            Console.WriteLine($"ВНИМАНИЕ: Настройки в файле {appsettings.PathQuoted()}");
-
-            JsonConfig = new ConfigurationBuilder()
-                .AddJsonFile(appsettings, true, false) // optional curdir
-                .Build();
-        }
-        else // Windows
-        {
-            string appsettings = Path.ChangeExtension(Environment.ProcessPath, ".config.json");
-            string comsettings = Path.Combine(App.CompanyData, Path.GetFileName(appsettings));
-
-            if (File.Exists(comsettings))
-            {
-                Console.WriteLine($"ВНИМАНИЕ: Настройки в файле {appsettings.PathQuoted()}");
-                Console.WriteLine($"могут изменяться настройками в файле {comsettings.PathQuoted()}!");
-            }
-
-            JsonConfig = new ConfigurationBuilder()
-                .AddJsonFile(appsettings, true, false) // optional app path\{appsettings}
-                .AddJsonFile(comsettings, true, false) // optional C:\ProgramData\{company}\{appsettings}
-                .Build();
-        }
-
-        var config = JsonConfig.GetSection(nameof(Program));
-        Config = new AppConfig(
-            TargetName: config["TargetName"] ?? "Portal5test *",
-            UtilName: config["UtilName"] ?? "CspTest",
-            CryptoName: config["CryptoName"] ?? "CryptoPro My",
-            EncryptTo: config["EncryptTo"],
-            MyOld: JsonSection.MyOld(config),
-            Subscribers: JsonSection.Subscribers(config),
-            Debug: bool.Parse(config["Debug"] ?? "false")
-        );
-
-        Crypto = Config.UtilName switch
-        {
-            nameof(CryptCP) => new CryptCP(Config.MyOld, Config.CryptoName),
-            _ => new CspTest(Config.MyOld, Config.CryptoName),
-        };
-
-        if (Config.Debug)
-        {
-            Logger.AutoFlush = true;
-            Logger.LogToConsole = true;
-        }
-
-        Logger.Reset();
-
-        var portal5 = CredentialManager.ReadCredential(Config.TargetName);
-        RestAPI = new(portal5, true, Config.Debug);
     }
 
     internal static async Task<int> Main(string[] args)
     {
+        var builder = Host.CreateApplicationBuilder(args);
+        var config = builder.Configuration;
+
+        builder.Logging
+            .AddConfiguration(config.GetSection("Logging"))
+            //.AddFile("logs/{0:yyyy-MM}/{0:yyyyMMdd-HHmm}.log")
+            .AddProvider(new SystemdLoggerProvider("logs/{0:yyyy-MM}/{0:yyyyMMdd-HHmm}.log"))
+            .AddProvider(new ExceptionLoggerProvider("logs/errors.log"));
+
+        builder.Services
+            .AddSingleton<Program>().Configure<ProgramSettings>(config.GetSection(nameof(Program)))
+            // Services
+            .AddTransient<ICliService, CliService>()
+            .AddSingleton<INotifyService, NotifyService>()
+            // Extensions
+            .AddCredentialManager()
+            .AddSmtpClient()
+            .AddExec()
+            .AddCrypto()
+            .AddPortal5()
+            // Tasks
+            .AddTransient<ICleaner, Cleaner>()
+            .AddTransient<ILoader, Loader>().Configure<LoaderSettings>(config.GetSection(nameof(Loader)))
+            .AddTransient<IZadacha130, Zadacha130>().Configure<Zadacha130Settings>(config.GetSection(nameof(Zadacha130)))
+            .AddTransient<IZadacha137, Zadacha137>().Configure<Zadacha137Settings>(config.GetSection(nameof(Zadacha137)))
+            .AddTransient<IZadacha221, Zadacha221>().Configure<Zadacha221Settings>(config.GetSection(nameof(Zadacha221)))
+            .AddTransient<IZadacha222, Zadacha222>().Configure<Zadacha222Settings>(config.GetSection(nameof(Zadacha222)));
+
+        using var host = builder.Build();
+        var program = host.Services.GetRequiredService<Program>();
+        return await program.RunAsync(args);
+    }
+
+    private async Task<int> RunAsync(string[] args)
+    {
+        var subscribers = options.Value.Subscribers; //.ToArray();
+        int exit = 0;
+
         try
         {
-            return await RunApplicationAsync(args);
+            logger.LogInformation("Start with: {Args}", string.Join(' ', args));
+            logger.LogDebug("LogLevel: {Level}", LogLevel.Debug);
+
+            var parser = cli.Parse(args);
+            exit = await parser.InvokeAsync();
         }
         catch (NoMessagesException ex)
         {
-            return await Notifications.DoneAsync(TaskName, ex.Message, Config.Subscribers);
+            logger.LogInformation("No Messages");
+            exit = await notifier.DoneAsync(TaskName, ex.Message, subscribers);
         }
         catch (Portal5Exception ex)
         {
-            return await Notifications.FailAPIAsync(TaskName, ex, Config.Subscribers);
+            logger.LogError(ex, "Portal5 Operation failed");
+            exit = await notifier.FailAPIAsync(TaskName, ex, subscribers);
         }
         catch (TaskException ex)
         {
-            return await Notifications.FailTaskAsync(TaskName, ex, Config.Subscribers);
+            logger.LogError(ex, "Task Operation failed");
+            exit = await notifier.FailTaskAsync(TaskName, ex, subscribers);
         }
         catch (Exception ex)
         {
-            return await Notifications.FailAsync(TaskName, ex, Config.Subscribers);
+            logger.LogError(ex, "Operation failed");
+            exit = await notifier.FailAsync(TaskName, ex, subscribers);
         }
         finally
         {
-            Logger.Flush();
+            logger.LogInformation("ErrorCode: {Code}", exit);
         }
-    }
 
-    private static async Task<int> RunApplicationAsync(string[] args)
-    {
-        Console.WriteLine(App.Title);
-
-        RootCommand rootCommand = new(App.Description)
-        {
-            CLI.CleanCommand,
-            CLI.LoadCommand,
-            CLI.Z130Command,
-            CLI.Z137Command,
-            CLI.Z221Command,
-            CLI.Z222Command
-        };
-
-        var parser = rootCommand.Parse(args);
-        return await parser.InvokeAsync();
+        return exit;
     }
 }

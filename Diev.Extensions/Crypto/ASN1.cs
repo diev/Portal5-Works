@@ -19,9 +19,6 @@ limitations under the License.
 
 using System.Text;
 
-using Diev.Extensions.LogFile;
-using Diev.Extensions.Tools;
-
 namespace Diev.Extensions.Crypto;
 
 public static class ASN1
@@ -33,17 +30,20 @@ public static class ASN1
     /// Криптопровайдер и проверка ЭП здесь не используются - только извлечение блока данных из формата ASN.1
     /// </summary>
     /// <param name="sourcePath">Исходный файл.</param>
-    /// <param name="destinationPath">Файл с результатом.</param>
+    /// <param name="destinationPath">Файл с результатом.
+    /// Если не указан, то это будет исходный с расширением на одно меньше.</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
-    public static async Task<bool> CleanSignAsync(string sourcePath, string destinationPath)
+    public static async Task<bool> CleanSignAsync(string sourcePath, string? destinationPath = null)
     {
         if (string.IsNullOrEmpty(sourcePath))
             throw new ArgumentNullException(nameof(sourcePath));
 
         if (!File.Exists(sourcePath))
             throw new FileNotFoundException("Not found", sourcePath);
+
+        destinationPath ??= Path.ChangeExtension(sourcePath, null);
 
         try
         {
@@ -247,7 +247,7 @@ public static class ASN1
         }
         catch
         {
-            Logger.TimeLine($"Ошибка извлечения данных из {sourcePath.PathQuoted()}.");
+            //logger.LogError($"Ошибка извлечения данных из {sourcePath.PathQuoted()}");
             return false;
         }
     }
@@ -361,28 +361,28 @@ public static class ASN1
         // Pick apart the OID
         int x = oid[0] / 40;
         int y = oid[0] % 40;
-        
+
         if (x > 2)
         {
             // Handle special case for large y if x = 2
             y += (x - 2) * 40;
             x = 2;
         }
-        
+
         sb.Append(x).Append('.').Append(y);
         long val = 0;
-        
+
         for (int i = 1; i < oid.Length; i++)
         {
             val = (val << 7) | ((byte)(oid[i] & 0x7F));
-        
+
             if ((oid[i] & 0x80) != 0x80)
             {
                 sb.Append('.').Append(val);
                 val = 0;
             }
         }
-        
+
         return sb.ToString();
     }
 
@@ -408,8 +408,8 @@ public static class ASN1
 
             b[0] = Convert.ToByte((x >> 21) & 0x7F | 0x80);
             b[1] = Convert.ToByte((x >> 14) & 0x7F | 0x80);
-            b[2] = Convert.ToByte((x >>  7) & 0x7F | 0x80);
-            b[3] = Convert.ToByte( x        & 0x7F);
+            b[2] = Convert.ToByte((x >> 7) & 0x7F | 0x80);
+            b[3] = Convert.ToByte(x & 0x7F);
 
             return b;
         }
@@ -419,8 +419,8 @@ public static class ASN1
             var b = new byte[3];
 
             b[0] = Convert.ToByte((x >> 14) & 0x7F | 0x80);
-            b[1] = Convert.ToByte((x >>  7) & 0x7F | 0x80);
-            b[2] = Convert.ToByte( x        & 0x7F);
+            b[1] = Convert.ToByte((x >> 7) & 0x7F | 0x80);
+            b[2] = Convert.ToByte(x & 0x7F);
 
             return b;
         }
@@ -430,7 +430,7 @@ public static class ASN1
             var b = new byte[2];
 
             b[0] = Convert.ToByte((x >> 7) & 0x7F | 0x80);
-            b[1] = Convert.ToByte( x       & 0x7F);
+            b[1] = Convert.ToByte(x & 0x7F);
 
             return b;
         }

@@ -4,10 +4,6 @@
       "commandName": "WSL2",
       "distributionName": ""
     },
-    "load -d 0": {
-      "commandName": "Project",
-      "commandLineArgs": "load --lk --outbox -d 0\r\n"
-    },
     "load -z 3-1 test": {
       "commandName": "Project",
       "commandLineArgs": "load -z 3-1 -n 1\r\n"
@@ -22,7 +18,7 @@
     },
     "z137": {
       "commandName": "Project",
-      "commandLineArgs": "z137 -d 7\r\n"
+      "commandLineArgs": "z137 -d 1\r\n"
     },
     "z130": {
       "commandName": "Project",
@@ -66,7 +62,11 @@
     },
     "load -d 1": {
       "commandName": "Project",
-      "commandLineArgs": "load -d 1\r\n"
+      "commandLineArgs": "load -d 4 --lk\r\n"
+    },
+    "z221": {
+      "commandName": "Project",
+      "commandLineArgs": "z221"
     }
   }
 }

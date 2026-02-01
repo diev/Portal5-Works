@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,7 @@ public record Level2ItemsPage
     /// <summary>
     /// Example: "[{...}, ...]"
     /// </summary>
-    IReadOnlyList<Level2Item> Items,
+    Level2Item[] Items,
 
     /// <summary>
     /// Example: {

@@ -19,7 +19,6 @@ limitations under the License.
 
 using Microsoft.Extensions.Logging;
 
-
 namespace Diev.Extensions.Loggers;
 
 public static class FileLoggerExtensions

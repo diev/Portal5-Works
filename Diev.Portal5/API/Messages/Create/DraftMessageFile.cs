@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2025 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ public class DraftMessageFile
     /// Example (E): "KYC_20230925.xml.zip.enc"
     /// Example (S): "KYC_20230925.xml.zip.sig"
     /// </summary>
-    public string Name { get; set; } = null!;
+    public required string Name { get; set; }
 
     /// <summary>
     /// Тип файла (только в версии v2).
