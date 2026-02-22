@@ -22,9 +22,9 @@ rem call :bin %1 %option% %prj% net8.0 win-x86
 rem call :bin %1 %option% %prj% net9.0 win-x86
 rem call :bin %1 %option% %prj% net10.0 win-x86
 
-rem call :bin %1 %option% %prj% net8.0 win-x64
-rem call :bin %1 %option% %prj% net9.0 win-x64
-call :bin %1 %option% %prj% net10.0 win-x64
+call :bin %1 %option% %prj% net8.0 win-x64
+call :bin %1 %option% %prj% net9.0 win-x64
+if not defined APPVEYOR call :bin %1 %option% %prj% net10.0 win-x64
 
 rem Linux
 set option=4

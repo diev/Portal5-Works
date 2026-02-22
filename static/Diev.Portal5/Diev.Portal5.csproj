@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
+    <Version>10.2026.218</Version>
+    <Description>Diev's extensions for Portal5.</Description>
+    <Copyright>Copyright 2022-2026 Dmitrii Evdokimov</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Company>diev</Company>
+    <Authors>Diev</Authors>
+    <Title>Diev.Portal5</Title>
+    <PackageProjectUrl>https://github.com/diev/Portal5-Works</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/diev/Portal5-Works</RepositoryUrl>
+    <PackageTags>portal5;api;restapi</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Diev.Extensions\Diev.Extensions.csproj" />
+  </ItemGroup>
+
+</Project>

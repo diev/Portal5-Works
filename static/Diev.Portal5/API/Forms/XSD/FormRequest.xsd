@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:mfb="urn:cbr-ru:e-forms-mf-sadd-base:v0.1"
+           xmlns:mf="urn:cbr-ru:e-forms-mf-sadd-request:v0.1"
+           xmlns:ai="urn:cbr-ru:e-forms-app-info:v1.0"
+           targetNamespace="urn:cbr-ru:e-forms-mf-sadd-request:v0.1"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+    <xs:import namespace="urn:cbr-ru:e-forms-mf-sadd-base:v0.1"
+               schemaLocation="cbr_ru_e-forms_mf_sadd_base_v00_01.xsd"/>
+    <xs:simpleType name="Form_Request_Message_Type_Type">
+        <xs:annotation>
+            <xs:documentation>Вид обращения</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_Type"/>
+    </xs:simpleType>
+    <xs:simpleType name="Form_Request_Subject_1_Type">
+        <xs:annotation>
+            <xs:documentation>1-уровень. Тип участника информационного обмена</xs:documentation>
+            <xs:appinfo>
+                <ai:Reference_Book Id="238D04266F574C0F89831D1ADDF8C47A" template="true">
+                    <ai:Value>Subjects1</ai:Value>
+                    <ai:Description>Subjects1</ai:Description>
+                </ai:Reference_Book>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_255_Type"/>
+    </xs:simpleType>
+    <xs:simpleType name="Form_Request_Subject_2_Type">
+        <xs:annotation>
+            <xs:documentation>2-уровень. Тематический вопрос</xs:documentation>
+            <xs:appinfo>
+                <ai:Reference_Book Id="25338CFB57134634BC53A81129483752" template="true">
+                    <ai:Value>Subjects2</ai:Value>
+                    <ai:Description>Subjects2</ai:Description>
+                </ai:Reference_Book>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_255_Type"/>
+    </xs:simpleType>
+    <xs:simpleType name="Form_Request_Addressee_Type">
+        <xs:annotation>
+            <xs:documentation>Адресат по запросам от КО</xs:documentation>
+            <xs:appinfo>
+                <ai:Reference_Book Id="64529D5AB1D9453C96F3F380EA577314" template="true">
+                    <ai:Value>Subject</ai:Value>
+                    <ai:Description>Subject</ai:Description>
+                </ai:Reference_Book>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:restriction base="mfb:Text_255_Type"/>
+    </xs:simpleType>
+    <xs:complexType name="Form_Request_Subject_Type">
+        <xs:attribute name="level_1" type="mf:Form_Request_Subject_1_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Адресат первого уровня</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="level_2" type="mf:Form_Request_Subject_2_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Адресат второго уровня</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="Addressee" type="mf:Form_Request_Addressee_Type" use="required">
+            <xs:annotation>
+                <xs:documentation>Адресат третьего уровня</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+    <xs:complexType name="Form_Request_Type">
+        <xs:complexContent>
+            <xs:extension base="mfb:_Form_Type">
+                <xs:sequence>
+                    <xs:element name="subject" type="mf:Form_Request_Subject_Type">
+                        <xs:annotation>
+                            <xs:documentation>Адресат</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="organization" type="mfb:Text_255_Type">
+                        <xs:annotation>
+                            <xs:documentation>Организация</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="department" type="mfb:SADD_RecipientName_Type">
+                        <xs:annotation>
+                            <xs:documentation>Структурное подразделение Банка России</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="folder" type="mfb:SADD_Folder_Type">
+                        <xs:annotation>
+                            <xs:documentation>Указатель на папку СДС </xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="doc_flag" type="mfb:SADD_doc_flag_Type">
+                        <xs:annotation>
+                            <xs:documentation>Характеристика ограничений доступа к документу</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="doc_rubric" minOccurs="0" maxOccurs="1">
+                        <xs:annotation>
+                            <xs:documentation>Рубрика</xs:documentation>
+                        </xs:annotation>
+                        <xs:complexType>
+                            <xs:attribute name="rubric_name" use="required">
+                                <xs:annotation>
+                                    <xs:documentation>Название рубрики</xs:documentation>
+                                </xs:annotation>
+                                <xs:simpleType>
+                                    <xs:restriction base="xs:string">
+                                        <xs:maxLength value="2000"/>
+                                        <xs:enumeration value="РВЭЦБ"/>
+                                    </xs:restriction>
+                                </xs:simpleType>
+                            </xs:attribute>
+                            <xs:attribute name="rubric_code" type="mfb:Text_64_Type" use="required">
+                                <xs:annotation>
+                                    <xs:documentation>Код рубрики</xs:documentation>
+                                </xs:annotation>
+                            </xs:attribute>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="doc_text" type="mfb:Text_Unlimited_Type">
+                        <xs:annotation>
+                            <xs:documentation>Сопроводительное письмо</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="org_official" type="mfb:SADD_org_official_Type">
+                        <xs:annotation>
+                            <xs:documentation>Подписант</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="doc_writer" type="mfb:SADD_doc_writer_Type">
+                        <xs:annotation>
+                            <xs:documentation>Исполнитель</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="doc_out" type="mfb:SADD_doc_out_Type">
+                        <xs:annotation>
+                            <xs:documentation>Исходящий документ</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                    <xs:element name="doc_out_volume" type="mfb:SADD_doc_out_volume_Type" minOccurs="0">
+                        <xs:annotation>
+                            <xs:documentation>Том архива приложения к электронному документу</xs:documentation>
+                        </xs:annotation>
+                    </xs:element>
+                </xs:sequence>
+                <xs:attribute name="message_type" type="mf:Form_Request_Message_Type_Type" use="required">
+                    <xs:annotation>
+                        <xs:documentation>Тип сообщения</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    <xs:element name="Form_Request" type="mf:Form_Request_Type">
+        <xs:annotation>
+            <xs:documentation>Обращение (запрос) в Банк России</xs:documentation>
+            <xs:appinfo>
+                <ai:Structure>
+                    <ai:Form/>
+                </ai:Structure>
+            </xs:appinfo>
+        </xs:annotation>
+    </xs:element>
+</xs:schema>

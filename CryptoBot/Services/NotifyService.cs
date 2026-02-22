@@ -26,7 +26,8 @@ namespace CryptoBot.Services;
 
 public class NotifyService(
     ILogger<NotifyService> logger,
-    ISmtpService mailer
+    ISmtpService mailer,
+    IOptions<ProgramSettings> options
     ) : INotifyService
 {
     public async Task<int> DoneAsync(string? task, string message, string[]? subscribers = null, string[]? files = null)
@@ -93,10 +94,22 @@ public class NotifyService(
     {
         logger.LogDebug("Send: {Subject}", subject);
 
-        await mailer.SendMessageAsync(
-            subscribers,
-            subject,
-            body,
-            files);
+        try
+        {
+            await mailer.SendMessageAsync(
+                subscribers,
+                subject,
+                body,
+                files);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Fail Send");
+
+            await mailer.SendMessageAsync(
+                options.Value.Subscribers,
+                ex.Message,
+                ex.ToString());
+        }
     }
 }

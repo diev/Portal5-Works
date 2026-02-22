@@ -79,10 +79,17 @@ public class SmtpService(
 
     private MailMessage CreateMessage(string[] emails, string? subj, string? body, string[]? files = null)
     {
+        subj ??= App.Name;
+
+        if (subj.Contains('\n')) //TODO other wrong chars
+        {
+            subj = subj.Replace('\n', ' ');
+        }
+
         MailMessage mail = new()
         {
             From = new(settings.UserName!, settings.DisplayName, Encoding.UTF8),
-            Subject = subj ?? App.Name,
+            Subject = subj,
             Body = $"{body}{Environment.NewLine}--{Environment.NewLine}{App.Title}"
         };
 
