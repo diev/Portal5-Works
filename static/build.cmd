@@ -34,7 +34,7 @@ rem call :bin %1 %option% %prj% net10.0 linux-x64
 
 call :version_txt %1 %prj% > bin\version.txt
 
-set pack=%1-v%version%.zip
+set pack=%1-v%version%-old-static.zip
 if exist %pack% del %pack%
 echo === Pack %pack% ===
 
@@ -42,7 +42,7 @@ echo === Pack %pack% ===
 "C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!bin -x!obj Diev.Extensions\ Diev.Portal5\
 "C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!.* -x!bin -x!obj -x!PublishProfiles -x!*.user %1\
 
-if exist %store% copy /y %pack% %store%
+rem if exist %store% copy /y %pack% %store%
 goto :eof
 
 :bin
@@ -80,7 +80,7 @@ set ymd=%date%
 reg add "hkcu\control panel\international" /v sshortdate /t reg_sz /d %sfmt% /f >nul
 reg add "hkcu\control panel\international" /v slongdate /t reg_sz /d %lfmt% /f >nul
 
-set store=G:\BankApps\AppStore
+rem set store=G:\BankApps\AppStore
 goto :eof
 
 :lower
@@ -101,7 +101,7 @@ call :lower %repo% repol
 echo %1
 echo %description%
 echo.
-echo Version: v%version%
+echo Version: v%version% (old static)
 echo Date:    %ymd%
 echo.
 echo Requires SDK .NET to build
