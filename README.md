@@ -1,6 +1,6 @@
 # Portal5-Works
 
-[![Build status](https://ci.appveyor.com/api/projects/status/25pytmgy12ey90ak?svg=true)](https://ci.appveyor.com/project/diev/portal5-works)
+[![.NET8 Desktop](https://github.com/diev/Portal5-Works/actions/workflows/dotnet8-desktop.yml/badge.svg)](https://github.com/diev/Portal5-Works/actions/workflows/dotnet8-desktop.yml)
 [![.NET10 Desktop](https://github.com/diev/Portal5-Works/actions/workflows/dotnet10-desktop.yml/badge.svg)](https://github.com/diev/Portal5-Works/actions/workflows/dotnet10-desktop.yml)
 [![GitHub Release](https://img.shields.io/github/release/diev/Portal5-Works.svg)](https://github.com/diev/Portal5-Works/releases/latest)
 

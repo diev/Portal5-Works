@@ -1,9 +1,5 @@
 # Portal5-Works (static)
 
-[![Build status](https://ci.appveyor.com/api/projects/status/25pytmgy12ey90ak?svg=true)](https://ci.appveyor.com/project/diev/portal5-works)
-[![.NET8 Desktop](https://github.com/diev/Portal5-Works/actions/workflows/dotnet8-desktop.yml/badge.svg)](https://github.com/diev/Portal5-Works/actions/workflows/dotnet8-desktop.yml)
-[![GitHub Release](https://img.shields.io/github/release/diev/Portal5-Works.svg)](https://github.com/diev/Portal5-Works/releases/latest)
-
 Works with API of Portal5.  
 Работа с Portal5 по API.
 
