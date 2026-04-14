@@ -20,7 +20,7 @@ limitations under the License.
 namespace Diev.Portal5.API.Info;
 
 /// <summary>
-/// 3.1.6.1. Справочник задач.<br/>
+/// 3.1.3.5.1. Справочник задач.<br/>
 /// GET https://portal5.cbr.ru/back/rapi2/tasks<br/>
 /// 200 OK
 /// </summary>

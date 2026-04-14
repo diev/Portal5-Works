@@ -20,7 +20,7 @@ limitations under the License.
 namespace Diev.Portal5.API.Dictionaries;
 
 /// <summary>
-/// 3.1.6.5. Список справочников.<br/>
+/// 3.1.3.5.5. Список справочников.<br/>
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries
 /// </summary>
 public record DictItem

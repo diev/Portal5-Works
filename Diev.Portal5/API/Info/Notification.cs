@@ -20,7 +20,7 @@ limitations under the License.
 namespace Diev.Portal5.API.Info;
 
 /// <summary>
-/// 3.1.6.4. Информация о технических оповещениях.<br/>
+/// 3.1.3.5.4. Информация о технических оповещениях.<br/>
 /// GET https://portal5.cbr.ru/back/rapi2/notifications<br/>
 /// 200 OK
 /// </summary>
