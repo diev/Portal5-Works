@@ -25,6 +25,7 @@ using CryptoBot.Tasks.Z130;
 using CryptoBot.Tasks.Z137;
 using CryptoBot.Tasks.Z221;
 using CryptoBot.Tasks.Z222;
+using CryptoBot.Tasks.Z296;
 
 using Diev.Extensions.Tools;
 using Diev.Portal5.API.Messages;
@@ -42,7 +43,8 @@ internal class CliService : ICliService
         IZadacha130 zadacha130,
         IZadacha137 zadacha137,
         IZadacha221 zadacha221,
-        IZadacha222 zadacha222
+        IZadacha222 zadacha222,
+        IZadacha222 zadacha296
         )
     {
         #region Options
@@ -240,6 +242,18 @@ internal class CliService : ICliService
             Program.TaskName = "Zadacha_222";
             return await zadacha222.RunAsync(p.GetValue(daysOption));
         });
+
+        Command z296 = new("z296",
+            "Размещение фидов, фидов+")
+        {
+            daysOption
+        };
+
+        z296.SetAction(async p =>
+        {
+            Program.TaskName = "Zadacha_296";
+            return await zadacha296.RunAsync(p.GetValue(daysOption));
+        });
         #endregion Commands
 
         root = new(App.Description)
@@ -249,7 +263,8 @@ internal class CliService : ICliService
             z130,
             z137,
             z221,
-            z222
+            z222,
+            z296
         };
     }
 

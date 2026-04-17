@@ -26,6 +26,7 @@ using CryptoBot.Tasks.Z130;
 using CryptoBot.Tasks.Z137;
 using CryptoBot.Tasks.Z221;
 using CryptoBot.Tasks.Z222;
+using CryptoBot.Tasks.Z296;
 
 using Diev.Extensions.CredentialManager;
 using Diev.Extensions.Crypto;
@@ -85,7 +86,8 @@ internal class Program(
             .AddTransient<IZadacha130, Zadacha130>().Configure<Zadacha130Settings>(config.GetSection(nameof(Zadacha130)))
             .AddTransient<IZadacha137, Zadacha137>().Configure<Zadacha137Settings>(config.GetSection(nameof(Zadacha137)))
             .AddTransient<IZadacha221, Zadacha221>().Configure<Zadacha221Settings>(config.GetSection(nameof(Zadacha221)))
-            .AddTransient<IZadacha222, Zadacha222>().Configure<Zadacha222Settings>(config.GetSection(nameof(Zadacha222)));
+            .AddTransient<IZadacha222, Zadacha222>().Configure<Zadacha222Settings>(config.GetSection(nameof(Zadacha222)))
+            .AddTransient<IZadacha296, Zadacha296>().Configure<Zadacha296Settings>(config.GetSection(nameof(Zadacha296)));
 
         using var host = builder.Build();
         var program = host.Services.GetRequiredService<Program>();
