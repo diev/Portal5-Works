@@ -46,7 +46,7 @@ public class PortalService(
     ) : IPortalService
 {
     /// <summary>
-    /// 3.1.3 Отправка пакета файлов из папки сообщения комплексно по задачам
+    /// 3.1.3.2 Отправка пакета файлов из папки сообщения комплексно по задачам
     /// </summary>
     /// <param name="task"></param>
     /// <param name="title"></param>
@@ -199,7 +199,7 @@ public class PortalService(
     }
 
     /// <summary>
-    /// 3.1.3 Отправка сообщений комплексно по задачам
+    /// 3.1.3.2 Отправка сообщений комплексно по задачам
     /// </summary>
     /// <param name="task"></param>
     /// <param name="title"></param>
@@ -297,7 +297,7 @@ public class PortalService(
     }
 
     /// <summary>
-    /// 3.1.4.1 Для получения всех сообщений с учетом фильтра используется метод GET.
+    /// 3.1.3.3.1 Для получения всех сообщений с учетом фильтра используется метод GET.
     /// GET: */messages
     /// Осторожно: эта функция загружает в память ВСЕ сообщения - 
     /// без разбиения на страницы по 100 сообщений.
@@ -431,7 +431,7 @@ public class PortalService(
     }
 
     /// <summary>
-    /// 3.1.5 Удаление сообщений с учетом фильтра.
+    /// 3.1.3.4.1. Удаление сообщений с учетом фильтра.
     /// </summary>
     /// <param name="filter"></param>
     /// <returns>True если все удалены или false если какие-то (или все) могли остаться.</returns>
@@ -613,6 +613,8 @@ public class PortalService(
         if (!Directory.CreateDirectory(path).Exists)
             return ApiResult<string>.CreateError(
                 $"Не удалось создать папку {path.PathQuoted()}");
+
+        //await api.DownloadMessageZipAsync(msgId, Path.Combine(path, msgId + ".zip")); /////////////////
 
         string file = Path.Combine(path, lastName!);
         var result = await api.DownloadMessageFileAsync(msgId, fileId, file);

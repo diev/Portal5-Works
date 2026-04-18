@@ -17,6 +17,7 @@ limitations under the License.
 */
 #endregion
 
+using System.Diagnostics;
 using System.Text;
 
 using Microsoft.Extensions.Logging;
@@ -29,18 +30,38 @@ public class HttpLogger(
 {
     private const int Len = 77;
 
+    private readonly bool trace = logger.IsEnabled(LogLevel.Trace);
+    private readonly bool debug = logger.IsEnabled(LogLevel.Debug);
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        if (logger.IsEnabled(LogLevel.Debug)) //TODO
+        if (trace)
         {
-            await LogRequestAsync(request)
+            await TraceLogRequestAsync(request)
                 .ConfigureAwait(false);
+
             var response = await base.SendAsync(request, cancellationToken)
                 .ConfigureAwait(false);
-            await LogResponseAsync(response)
+
+            await TraceLogResponseAsync(response)
                 .ConfigureAwait(false);
+
+            return response;
+        }
+
+        if (debug)
+        {
+            await DebugLogRequestAsync(request)
+                .ConfigureAwait(false);
+
+            var response = await base.SendAsync(request, cancellationToken)
+                .ConfigureAwait(false);
+            
+            await DebugLogResponseAsync(response)
+                .ConfigureAwait(false);
+            
             return response;
         }
 
@@ -48,23 +69,20 @@ public class HttpLogger(
             .ConfigureAwait(false);
     }
 
-    private async Task LogRequestAsync(HttpRequestMessage request)
+    private async Task TraceLogRequestAsync(HttpRequestMessage request)
     {
         var logBuilder = new StringBuilder();
         logBuilder.AppendLine($"HTTP REQUEST: {request.Method} {request.RequestUri}");
 
-        if (request.Headers.Any())
+        foreach (var header in request.Headers)
         {
-            foreach (var header in request.Headers)
+            if (header.Key.Equals("Authorization", StringComparison.Ordinal))
             {
-                if (header.Key.Equals("Authorization", StringComparison.Ordinal))
-                {
-                    logBuilder.AppendLine($"{header.Key}: ****");
-                }
-                else
-                {
-                    logBuilder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-                }
+                logBuilder.AppendLine($"{header.Key}: ****");
+            }
+            else
+            {
+                logBuilder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
             }
         }
 
@@ -73,17 +91,56 @@ public class HttpLogger(
             await using var stream = new MemoryStream();
             await request.Content.CopyToAsync(stream)
                 .ConfigureAwait(false);
-            stream.Position = 0;
-
             var len = stream.Length;
-            var count = Math.Min(len, Len);
-            var bytes = new byte[count];
-            await stream.ReadExactlyAsync(bytes)
-                .ConfigureAwait(false);
 
             if (len > 0)
             {
                 logBuilder.AppendLine($"Content: {len} bytes sending");
+                var bytes = stream.ToArray();
+
+                if (bytes[0] == '[' || bytes[0] == '{')
+                {
+                    string s = Encoding.UTF8.GetString(bytes);
+                    logBuilder.AppendLine(s);
+                }
+            }
+        }
+
+        logger.LogTrace("{Request}", logBuilder.ToString());
+    }
+
+    private async Task DebugLogRequestAsync(HttpRequestMessage request)
+    {
+        var logBuilder = new StringBuilder();
+        logBuilder.AppendLine($"HTTP REQUEST: {request.Method} {request.RequestUri}");
+
+        //foreach (var header in request.Headers)
+        //{
+        //    if (header.Key.Equals("Authorization", StringComparison.Ordinal))
+        //    {
+        //        logBuilder.AppendLine($"{header.Key}: ****");
+        //    }
+        //    else
+        //    {
+        //        logBuilder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
+        //    }
+        //}
+
+        if (request.Content != null)
+        {
+            await using var stream = new MemoryStream();
+            await request.Content.CopyToAsync(stream)
+                .ConfigureAwait(false);
+            var len = stream.Length;
+
+            if (len > 0)
+            {
+                logBuilder.AppendLine($"Content: {len} bytes sending");
+                var count = Math.Min(len, Len);
+                var bytes = new byte[count];
+                stream.Position = 0;
+                await stream.ReadExactlyAsync(bytes)
+                    .ConfigureAwait(false);
 
                 if (bytes[0] == '[' || bytes[0] == '{')
                 {
@@ -96,23 +153,55 @@ public class HttpLogger(
         logger.LogDebug("{Request}", logBuilder.ToString());
     }
 
-    private async Task LogResponseAsync(HttpResponseMessage response)
+    private async Task TraceLogResponseAsync(HttpResponseMessage response)
     {
         var logBuilder = new StringBuilder();
         logBuilder.AppendLine($"HTTP RESPONSE: {(int)response.StatusCode} {response.ReasonPhrase}");
 
-        if (response.Headers.Any())
+        foreach (var header in response.Headers)
         {
-            foreach (var header in response.Headers)
+            logBuilder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
+        }
+
+        if (response.Content != null)
+        {
+            var type = response.Content.Headers.ContentType;
+            await using var stream = new MemoryStream();
+            await response.Content.CopyToAsync(stream)
+                .ConfigureAwait(false);
+
+            var bytes = stream.ToArray();
+            var len = bytes.Length;
+
+            if (len > 0)
             {
-                if (header.Key.Equals("Set-Cookie", StringComparison.Ordinal))
+                logBuilder.AppendLine($"Content: {len} bytes received");
+
+                if (bytes[0] == '[' || bytes[0] == '{')
                 {
-                    logBuilder.AppendLine($"{header.Key}: ****");
+                    string s = Encoding.UTF8.GetString(bytes);
+                    logBuilder.AppendLine(s);
                 }
-                else
-                {
-                    logBuilder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
-                }
+            }
+
+            // return back the original response!
+            response.Content = new ByteArrayContent(bytes);
+            response.Content.Headers.ContentType = type;
+        }
+
+        logger.LogTrace("{Response}", logBuilder.ToString());
+    }
+
+    private async Task DebugLogResponseAsync(HttpResponseMessage response)
+    {
+        var logBuilder = new StringBuilder();
+        logBuilder.AppendLine($"HTTP RESPONSE: {(int)response.StatusCode} {response.ReasonPhrase}");
+
+        foreach (var header in response.Headers)
+        {
+            if (header.Key.StartsWith("EPVV-", StringComparison.Ordinal))
+            {
+                logBuilder.AppendLine($"{header.Key}: {string.Join(", ", header.Value)}");
             }
         }
 
@@ -122,13 +211,9 @@ public class HttpLogger(
             await using var stream = new MemoryStream();
             await response.Content.CopyToAsync(stream)
                 .ConfigureAwait(false);
-            stream.Position = 0;
 
-            var len = stream.Length;
-            var count = Math.Min(len, Len);
-            var bytes = new byte[count];
-            await stream.ReadExactlyAsync(bytes)
-                .ConfigureAwait(false);
+            var bytes = stream.ToArray();
+            var len = bytes.Length;
 
             if (len > 0)
             {
@@ -136,13 +221,14 @@ public class HttpLogger(
 
                 if (bytes[0] == '[' || bytes[0] == '{')
                 {
-                    string s = Encoding.UTF8.GetString(bytes);
+                    var count = Math.Min(len, Len);
+                    string s = Encoding.UTF8.GetString(bytes[..count]);
                     logBuilder.AppendLine(len > Len ? s + "..." : s);
                 }
             }
 
             // return back the original response!
-            response.Content = new ByteArrayContent(stream.ToArray());
+            response.Content = new ByteArrayContent(bytes);
             response.Content.Headers.ContentType = type;
         }
 

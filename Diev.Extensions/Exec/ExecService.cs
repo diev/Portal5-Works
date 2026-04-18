@@ -77,6 +77,9 @@ public class ExecService(
                 ?? throw new InvalidOperationException("Fail to get exec process.");
 
             process.WaitForExit();
+            int result = process.ExitCode;
+
+            logger.LogTrace("Exit code: {ExitCode}", result);
         }
         catch (Exception ex)
         {
@@ -127,8 +130,11 @@ public class ExecService(
                 ?? throw new InvalidOperationException("Fail to get exec process");
 
             await process.WaitForExitAsync();
+            int result = process.ExitCode;
 
-            return process.ExitCode;
+            logger.LogTrace("Exit code: {ExitCode}", result);
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -271,6 +277,8 @@ public class ExecService(
             //}
 
             process.Close();
+
+            logger.LogTrace("Exit code: {ExitCode}", result);
         }
         catch (Exception ex)
         {

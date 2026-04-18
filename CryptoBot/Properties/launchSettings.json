@@ -8,33 +8,9 @@
       "commandName": "Project",
       "commandLineArgs": "load -d 0\r\n"
     },
-    "load -z 3-1 test": {
-      "commandName": "Project",
-      "commandLineArgs": "load -z 3-1 -n 1\r\n"
-    },
-    "load -id": {
-      "commandName": "Project",
-      "commandLineArgs": "load --id 44d94bf2-5a6b-4170-93eb-b252007762cf"
-    },
     "load -z 130 -f (in)": {
       "commandName": "Project",
       "commandLineArgs": "load -z 130 -f 2024-03-01\r\n"
-    },
-    "z137": {
-      "commandName": "Project",
-      "commandLineArgs": "z137 -d 7\r\n"
-    },
-    "z130": {
-      "commandName": "Project",
-      "commandLineArgs": "z130 -d 1\r\n"
-    },
-    "load -z 3-1 (in)": {
-      "commandName": "Project",
-      "commandLineArgs": "load -z 3-1 -f 2024-03-01\r\n"
-    },
-    "load -z 2-1 (out)": {
-      "commandName": "Project",
-      "commandLineArgs": "load -z 2-1 -f 2024-12-27\r\n"
     },
     "-?": {
       "commandName": "Project",
@@ -52,21 +28,49 @@
       "commandName": "Project",
       "commandLineArgs": "load -z 130,137 -d 1\r\n"
     },
-    "z221 -req": {
+    "load -z 3-1 -n 1": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 3-1 -n 1\r\n"
+    },
+    "load --id": {
+      "commandName": "Project",
+      "commandLineArgs": "load --id 44d94bf2-5a6b-4170-93eb-b252007762cf"
+    },
+    "z137 -d 7": {
+      "commandName": "Project",
+      "commandLineArgs": "z137 -d 7\r\n"
+    },
+    "z130 -d 100": {
+      "commandName": "Project",
+      "commandLineArgs": "z130 -d 100\r\n"
+    },
+    "load -z 3-1 -f (in)": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 3-1 -f 2024-03-01\r\n"
+    },
+    "load -z 2-1 -f (out)": {
+      "commandName": "Project",
+      "commandLineArgs": "load -z 2-1 -f 2024-12-27\r\n"
+    },
+    "z221 --req": {
       "commandName": "Project",
       "commandLineArgs": "z221 --req 414f7ce1-07d6-4680-980d-b1ff01109dda"
     },
-    "lko": {
+    "--lk --output": {
       "commandName": "Project",
       "commandLineArgs": "--lk --output"
     },
-    "load -d 1": {
+    "load -d 10": {
       "commandName": "Project",
-      "commandLineArgs": "load -d 1\r\n"
+      "commandLineArgs": "load -d 10\r\n"
     },
-    "lk": {
+    "--lk -d 7": {
       "commandName": "Project",
       "commandLineArgs": "--lk -d 7"
+    },
+    "z296 -d 30": {
+      "commandName": "Project",
+      "commandLineArgs": "z296 -d 30\r\n"
     }
   }
 }

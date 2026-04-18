@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>10.2026.417</Version>
+    <Version>10.2026.418</Version>
     <Description>Diev's common helper extensions for local projects.</Description>
     <Copyright>Copyright 2022-2026 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

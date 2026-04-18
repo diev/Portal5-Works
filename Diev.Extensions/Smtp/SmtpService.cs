@@ -66,7 +66,7 @@ public class SmtpService(
                     EnableSsl = settings.UseTls
                 };
 
-                await client.SendMailAsync(mail).ConfigureAwait(false); //send silently fails!
+                await client.SendMailAsync(mail).ConfigureAwait(false); //send silently fails! //TODO ?
                 await Task.Delay(1000); //time to send mail before closing the app...
                 //_queue.Enqueue(mail);
             }

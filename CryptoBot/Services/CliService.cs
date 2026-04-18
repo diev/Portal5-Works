@@ -44,7 +44,7 @@ internal class CliService : ICliService
         IZadacha137 zadacha137,
         IZadacha221 zadacha221,
         IZadacha222 zadacha222,
-        IZadacha222 zadacha296
+        IZadacha296 zadacha296
         )
     {
         #region Options
@@ -244,7 +244,7 @@ internal class CliService : ICliService
         });
 
         Command z296 = new("z296",
-            "Размещение фидов, фидов+")
+            "Feeds: Размещение фидов, фидов+")
         {
             daysOption
         };
