@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024-2025 Dmitrii Evdokimov
+Copyright 2024-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ namespace Diev.Extensions.Crypto;
 
 public static class ASN1
 {
-    public static int BufferSize { get; set; } = 4096;
+    public static int BufferSize { get; set; } = 0x040000; //262144 в PCKS#7 data
 
     /// <summary>
     /// Извлечь из файла PKCS#7 с ЭП чистый исходный файл.
@@ -81,39 +81,54 @@ public static class ASN1
             if (reader.ReadByte() != 0x04)
                 return false;
 
-            // length of enclosed data (long or undefined)
-            var len = ReadLength();
-
-            if (len is null) // undefined
-            {
-                var start = stream.Position;
-                var end = Seek(stream, [0x00, 0x00]);
-
-                len = end - start;
-                stream.Position = start;
-            }
-
             // start of enclosed data
+            long dataLength = 0;
+
             using (var output = new FileStream(destinationPath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read, BufferSize, true))
             {
-                //await stream.CopyToAsync(output); //TODO copy len bytes only
-                //output.SetLength((long)len); // truncate tail and write to disk
-                //await output.FlushAsync();
-
                 var buffer = new byte[BufferSize];
-                int bytesRead;
-                long bytesToRead = (long)len;
 
-                while ((bytesRead = await stream.ReadAsync(buffer.AsMemory(0, (int)Math.Min(BufferSize, bytesToRead)))) > 0)
+                do
                 {
-                    await output.WriteAsync(buffer.AsMemory(0, bytesRead));
-                    bytesToRead -= bytesRead;
+                    // length of enclosed data (long or undefined)
+                    var length = ReadLength();
+
+                    if (length is null) // undefined
+                    {
+                        var start = stream.Position;
+                        var end = Seek(stream, [0x00, 0x00]);
+
+                        length = end - start;
+                        stream.Position = start;
+                    }
+
+                    long bytesToRead = (long)length;
+                    dataLength += bytesToRead;
+
+//                    while ((bytesRead = await stream.ReadAsync(buffer.AsMemory(0, (int)Math.Min(BufferSize, bytesToRead)))) > 0)
+//                    {
+//                        await output.WriteAsync(buffer.AsMemory(0, bytesRead));
+//                        bytesToRead -= bytesRead;
+//                    }
+
+                    while (bytesToRead > 0)
+                    {
+                        int bytesRead = (int)Math.Min(BufferSize, bytesToRead);
+                        bytesRead = stream.Read(buffer, 0, bytesRead);
+                        output.Write(buffer, 0, bytesRead);
+                        bytesToRead -= bytesRead;
+                    }
+
+                    output.Flush();
+
                 }
+                // type 0x04 - next OctetString
+                while (reader.ReadByte() == 0x04);
             }
 
             var fileInfo = new FileInfo(destinationPath);
 
-            return fileInfo.Exists && fileInfo.Length == len;
+            return fileInfo.Exists && fileInfo.Length == dataLength;
 
             #region local functions
             // 1..5 bytes
