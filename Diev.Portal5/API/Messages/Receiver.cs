@@ -17,7 +17,7 @@ limitations under the License.
 */
 #endregion
 
-namespace Diev.Portal5.API.Info;
+namespace Diev.Portal5.API.Messages;
 
 /// <summary>
 /// Получатель сообщения (необязательно, указывается для потоков адресной рассылки).

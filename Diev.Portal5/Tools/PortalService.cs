@@ -20,7 +20,6 @@ limitations under the License.
 using System.IO.Compression;
 using System.Net;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 
 using Diev.Extensions.Crypto;
@@ -228,7 +227,7 @@ public class PortalService(
             Files = [.. draftFiles]
         };
 
-        if (corrId is not null)
+        if (corrId.HasValue)
             draft.CorrelationId = corrId.ToString();
 
         // Step 1 - post request for new message
@@ -636,7 +635,7 @@ public class PortalService(
 #endif
 
         var source = Directory.GetDirectories(temp)[0];
-        string xml = Path.Combine(source, message.Outbox ? "form.xml" : "passport.xml");
+        string xml = Path.Combine(source, message.Outbox() ? "form.xml" : "passport.xml");
         string enc = xml + ".enc";
 
         if (!File.Exists(xml) && File.Exists(enc))
@@ -687,7 +686,7 @@ public class PortalService(
             }
         }
 
-        string xml = Path.Combine(temp, message.Outbox ? "form.xml" : "passport.xml");
+        string xml = Path.Combine(temp, message.Outbox() ? "form.xml" : "passport.xml");
         string enc = xml + ".enc";
 
         if (!File.Exists(xml) && File.Exists(enc))

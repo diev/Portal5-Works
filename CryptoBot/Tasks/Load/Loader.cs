@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024-2025 Dmitrii Evdokimov
+Copyright 2024-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,11 +54,11 @@ internal class Loader(
 
     private int num = 0;
     private int errors = 0;
-    private StringBuilder report = new();
+    private readonly StringBuilder report = new();
 
     public async Task<int> RunAsync(Guid? guid, MessagesFilter filter, bool lk = false)
     {
-        if (guid is not null && guid.HasValue)
+        if (guid.HasValue)
         {
             //await SaveMessageDocsAsync(guid.ToString()!);
             //return 0;
@@ -137,7 +137,7 @@ internal class Loader(
                 foreach (var message in messagesPage.Messages)
                 {
                     // Пропускаем исходящие без регистрации или успеха
-                    if (message.Outbox && !message.Registered && !message.Success)
+                    if (message.Outbox() && !message.Registered() && !message.Success())
                         continue;
 
                     // Пропускаем игнорируемые задачи
@@ -243,7 +243,7 @@ internal class Loader(
         string key = $"{nameof(Loader)}:{message.TaskName}";
         var subscribers = JsonSection.Subscribers(config, key);
 
-        if (message.Inbox)
+        if (message.Inbox())
         {
             string docs = msgInfo.FullName!;
             string pdf = Path.Combine(docs, "ВизуализацияЭД.PDF");

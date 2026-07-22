@@ -80,7 +80,7 @@ internal class CliService : ICliService
 
         Option<DateTime?> maxDateTimeOption = new("--max-date", "-t")
         {
-            Description = "До какой даты (время по умолчанию 00:00!)"
+            Description = "До какой даты (время по умолчанию 00:00 - не вкл.!)"
         };
 
         Option<uint?> minSizeOption = new("--min-size")

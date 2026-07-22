@@ -17,29 +17,35 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
+using Diev.Portal5.Tools;
+
 namespace Diev.Portal5.API.Messages;
 
 /// <summary>
 /// Квитанции, полученные в ответ на сообщение.
 /// </summary>
-public record MessageReceipt
-(
+public class MessageReceipt
+{
     /// <summary>
     /// Уникальный идентификатор квитанции.
     /// Устанавливается сервером в ответном сообщении.
     /// Example: "6e16a6ad-018f-4136-a8c6-b088010899bc"
     /// </summary>
-    string Id,
+    public required string Id { get; set; }
 
     /// <summary>
     /// Время получения квитанции в UTC.
     /// </summary>
-    string ReceiveTime,
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime ReceiveTime { get; set; }
 
     /// <summary>
     /// Время из самой квитанции в UTC.
     /// </summary>
-    string StatusTime,
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime StatusTime { get; set; }
 
     /// <summary>
     /// Состояние обработки сообщения (возможные значения и их описание находится в п.2.4):
@@ -57,18 +63,18 @@ public record MessageReceipt
     /// success    Доставлено: Сообщение успешно размещено в ЛК/Сообщение передано роутером во внутреннюю систему
     ///            Банка России, от которой не ожидается ответ о регистрации.
     /// </summary>
-    string Status,
+    public required string Status { get; set; }
 
     /// <summary>
     /// Дополнительная информация из квитанции.
     /// </summary>
-    string? Message,
+    public string? Message { get; set; }
 
     /// <summary>
     /// Файлы, включенные в квитанцию.
     /// </summary>
-    MessageFile[] Files
-);
+    public required MessageFile[] Files { get; set; }
+}
 
 #region Mock
 //public static class MockMessageReceipt

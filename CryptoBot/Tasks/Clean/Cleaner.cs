@@ -32,7 +32,7 @@ internal class Cleaner(
 {
     public async Task<int> RunAsync(Guid? guid, MessagesFilter filter)
     {
-        if (guid is not null && guid.HasValue)
+        if (guid.HasValue)
         {
             string id = guid.ToString()!;
 

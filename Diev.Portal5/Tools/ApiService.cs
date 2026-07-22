@@ -39,6 +39,10 @@ public class ApiService(
     HttpClient httpClient
     ) : IApiService
 {
+    private readonly string BaseAddress = httpClient.BaseAddress!.ToString();
+
+    public Uri GetBaseAddress() => httpClient.BaseAddress!;
+
     #region 3.1.3.2
 
     /* 3.1.3.2 Отправка сообщений */
@@ -52,7 +56,7 @@ public class ApiService(
     /// <exception cref="Exception"></exception>
     public async Task<ApiResult<Message>> PostMessageRequestAsync(DraftMessage draft)
     {
-        string url = $"{httpClient.BaseAddress}messages";
+        string url = $"{BaseAddress}messages";
         using var response = await httpClient.PostAsJsonAsync(url, draft, JsonHelper.JsonOptions)
             .ConfigureAwait(false);
 
@@ -92,7 +96,7 @@ public class ApiService(
     /// <exception cref="Exception"></exception>
     public async Task<ApiResult<UploadSession>> PostUploadRequestAsync(string msgId, string fileId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/files/{fileId}/createUploadSession";
+        string url = $"{BaseAddress}messages/{msgId}/files/{fileId}/createUploadSession";
         using var response = await httpClient.PostAsync(url, null)
             .ConfigureAwait(false);
 
@@ -236,7 +240,7 @@ public class ApiService(
     /// <exception cref="Exception"></exception>
     public async Task<ApiResult<bool>> PostMessageAsync(string msgId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}";
+        string url = $"{BaseAddress}messages/{msgId}";
         using var response = await httpClient.PostAsync(url, null)
             .ConfigureAwait(false);
 
@@ -280,7 +284,7 @@ public class ApiService(
     /// <exception cref="Exception"></exception>
     public async Task<ApiResult<MessagesPage>> GetMessagesPageAsync(string? filter)
     {
-        string url = $"{httpClient.BaseAddress}messages{filter}";
+        string url = $"{BaseAddress}messages{filter}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -352,7 +356,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<Message>> GetMessageAsync(string msgId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}";
+        string url = $"{BaseAddress}messages/{msgId}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -388,7 +392,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<bool>> DownloadMessageZipAsync(string msgId, string path, bool overwrite = false)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/download";
+        string url = $"{BaseAddress}messages/{msgId}/download";
         return await DownloadFileAsync(url, path, overwrite)
             .ConfigureAwait(false);
     }
@@ -402,7 +406,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<MessageFile>> GetMessageFileAsync(string msgId, string fileId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/files/{fileId}";
+        string url = $"{BaseAddress}messages/{msgId}/files/{fileId}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -443,7 +447,7 @@ public class ApiService(
     {
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/files/{fileId}/download";
+        string url = $"{BaseAddress}messages/{msgId}/files/{fileId}/download";
         return await DownloadFileAsync(url, path, overwrite)
             .ConfigureAwait(false);
 
@@ -462,7 +466,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<MessageReceipt[]>> GetMessageReceiptsAsync(string msgId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/receipts";
+        string url = $"{BaseAddress}messages/{msgId}/receipts";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -497,7 +501,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<MessageReceipt>> GetMessageReceiptAsync(string msgId, string rcptId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/receipts/{rcptId}";
+        string url = $"{BaseAddress}messages/{msgId}/receipts/{rcptId}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -533,7 +537,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<MessageFile>> GetMessageReceiptFileAsync(string msgId, string rcptId, string fileId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/receipts/{rcptId}/files/{fileId}";
+        string url = $"{BaseAddress}messages/{msgId}/receipts/{rcptId}/files/{fileId}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -573,7 +577,7 @@ public class ApiService(
     {
         //TODO Header: string Range - Запрашиваемый диапазон байтов (необязательное поле).
 
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/receipts/{rcptId}/files/{fileId}/download";
+        string url = $"{BaseAddress}messages/{msgId}/receipts/{rcptId}/files/{fileId}/download";
         return await DownloadFileAsync(url, path, overwrite)
             .ConfigureAwait(false);
 
@@ -595,7 +599,7 @@ public class ApiService(
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     public async Task<ApiResult<bool>> DeleteMessageAsync(string msgId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}";
+        string url = $"{BaseAddress}messages/{msgId}";
         using var response = await httpClient.DeleteAsync(url)
             .ConfigureAwait(false); // 200 Ok или 404 – Сообщение не найдено
 
@@ -617,7 +621,7 @@ public class ApiService(
     /// <param name="fileId">Уникальный идентификатор файла в формате UUID [4].</param>
     public async Task<ApiResult<bool>> DeleteMessageFileAsync(string msgId, string fileId)
     {
-        string url = $"{httpClient.BaseAddress}messages/{msgId}/files/{fileId}";
+        string url = $"{BaseAddress}messages/{msgId}/files/{fileId}";
         using var response = await httpClient.DeleteAsync(url)
             .ConfigureAwait(false); // 200 Ok или 404 – Сообщение не найдено
 
@@ -650,9 +654,9 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<Tasks>> GetTasksAsync(int? direction = null)
     {
-        string url = direction is not null
-            ? $"{httpClient.BaseAddress}tasks"
-            : $"{httpClient.BaseAddress}tasks?direction={direction}";
+        string url = direction.HasValue
+            ? $"{BaseAddress}tasks"
+            : $"{BaseAddress}tasks?direction={direction}";
 
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
@@ -686,7 +690,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<Profile>> GetProfileAsync()
     {
-        string url = $"{httpClient.BaseAddress}profile";
+        string url = $"{BaseAddress}profile";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -719,7 +723,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<Quota>> GetQuotaAsync()
     {
-        string url = $"{httpClient.BaseAddress}profile/quota";
+        string url = $"{BaseAddress}profile/quota";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -754,7 +758,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<Notification[]>> GetNotificationsAsync()
     {
-        string url = $"{httpClient.BaseAddress}notifications";
+        string url = $"{BaseAddress}notifications";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -789,7 +793,7 @@ public class ApiService(
     /// <returns></returns>
     public async Task<ApiResult<DictItems>> GetLevelsPageAsync()
     {
-        string url = $"{httpClient.BaseAddress}dictionaries";
+        string url = $"{BaseAddress}dictionaries";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -835,7 +839,7 @@ public class ApiService(
     public async Task<ApiResult<Level1ItemsPage>> GetLevels1PageAsync(int page = 1,
         string dictId = "238d0426-6f57-4c0f-8983-1d1addf8c47a")
     {
-        string url = $"{httpClient.BaseAddress}dictionaries/{dictId}?page={page}";
+        string url = $"{BaseAddress}dictionaries/{dictId}?page={page}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -881,7 +885,7 @@ public class ApiService(
     public async Task<ApiResult<Level2ItemsPage>> GetLevels2PageAsync(int page = 1,
         string dictId = "25338cfb-5713-4634-bc53-a81129483752")
     {
-        string url = $"{httpClient.BaseAddress}dictionaries/{dictId}?page={page}";
+        string url = $"{BaseAddress}dictionaries/{dictId}?page={page}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -927,7 +931,7 @@ public class ApiService(
     public async Task<ApiResult<Level3ItemsPage>> GetLevels3PageAsync(int page = 1,
         string dictId = "64529d5a-b1d9-453c-96f3-f380ea577314")
     {
-        string url = $"{httpClient.BaseAddress}dictionaries/{dictId}?page={page}";
+        string url = $"{BaseAddress}dictionaries/{dictId}?page={page}";
         using var response = await httpClient.GetAsync(url)
             .ConfigureAwait(false);
 
@@ -971,7 +975,7 @@ public class ApiService(
         //В файле данных возвращаются все записи справочника со статусом не равным «удален».
         //Xsd-схемы xml-файлов справочников определены в Приложении И документа [5].
 
-        string url = $"{httpClient.BaseAddress}dictionaries/{dictId}/download";
+        string url = $"{BaseAddress}dictionaries/{dictId}/download";
         //path = Path.Combine(path, $"{id}.zip");
 
         return await DownloadFileAsync(url, path, overwrite)

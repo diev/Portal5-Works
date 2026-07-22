@@ -17,6 +17,10 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
+using Diev.Portal5.Tools;
+
 namespace Diev.Portal5.API.Tools;
 
 /// <summary>
@@ -24,11 +28,13 @@ namespace Diev.Portal5.API.Tools;
 /// </summary>
 /// <param name="NextExpectedRange">Путь для загрузки файла.</param>
 /// <param name="ExpirationDateTime">Дата и время истечения сессии.</param>
-public record class AcceptedRange
-(
-    string[] NextExpectedRange,
-    DateTime ExpirationDateTime
-);
+public class AcceptedRange
+{
+    public required string[] NextExpectedRange { get; set; }
+
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime ExpirationDateTime { get; set; }
+}
 
 #region Mock
 //public static class MockAcceptedRange

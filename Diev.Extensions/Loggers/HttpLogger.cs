@@ -18,6 +18,7 @@ limitations under the License.
 #endregion
 
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 
 using Microsoft.Extensions.Logging;
@@ -32,47 +33,83 @@ public class HttpLogger(
 
     private readonly bool trace = logger.IsEnabled(LogLevel.Trace);
     private readonly bool debug = logger.IsEnabled(LogLevel.Debug);
+    private readonly bool info = logger.IsEnabled(LogLevel.Information);
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        if (trace)
+        var timer = Stopwatch.StartNew();
+
+        try
         {
-            await TraceLogRequestAsync(request)
-                .ConfigureAwait(false);
+            if (trace)
+            {
+                await TraceLogRequestAsync(request)
+                    .ConfigureAwait(false);
 
-            var response = await base.SendAsync(request, cancellationToken)
-                .ConfigureAwait(false);
+                var response = await base.SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+                timer.Stop();
 
-            await TraceLogResponseAsync(response)
-                .ConfigureAwait(false);
+                await TraceLogResponseAsync(response,
+                    timer.ElapsedMilliseconds)
+                    .ConfigureAwait(false);
 
-            return response;
+                return response;
+            }
+
+            if (debug)
+            {
+                await DebugLogRequestAsync(request)
+                    .ConfigureAwait(false);
+
+                var response = await base.SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+                timer.Stop();
+
+                await DebugLogResponseAsync(response,
+                    timer.ElapsedMilliseconds)
+                    .ConfigureAwait(false);
+
+                return response;
+            }
+
+            if (info)
+            {
+                logger.LogInformation("HTTP {Method} {FullUri}",
+                    request.Method.Method,
+                    request.RequestUri?.ToString());
+
+                var response = await base.SendAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+                timer.Stop();
+
+                logger.LogInformation("HTTP {StatusCode} {ReasonPhrase} {DurationMs} ms",
+                    (int)response.StatusCode,
+                    response.ReasonPhrase,
+                    timer.ElapsedMilliseconds);
+
+                return response;
+            }
+
+            return await base.SendAsync(request, cancellationToken)
+                .ConfigureAwait(false);
         }
-
-        if (debug)
+        catch (Exception ex)
         {
-            await DebugLogRequestAsync(request)
-                .ConfigureAwait(false);
+            timer.Stop();
+            logger.LogError(ex, "HTTP failed after {DurationMs} ms",
+                timer.ElapsedMilliseconds);
 
-            var response = await base.SendAsync(request, cancellationToken)
-                .ConfigureAwait(false);
-            
-            await DebugLogResponseAsync(response)
-                .ConfigureAwait(false);
-            
-            return response;
+            return new HttpResponseMessage(HttpStatusCode.InternalServerError);
         }
-
-        return await base.SendAsync(request, cancellationToken)
-            .ConfigureAwait(false);
     }
 
     private async Task TraceLogRequestAsync(HttpRequestMessage request)
     {
         var logBuilder = new StringBuilder();
-        logBuilder.AppendLine($"HTTP REQUEST: {request.Method} {request.RequestUri}");
+        logBuilder.AppendLine($"HTTP {request.Method} {request.RequestUri}");
 
         foreach (var header in request.Headers)
         {
@@ -112,7 +149,7 @@ public class HttpLogger(
     private async Task DebugLogRequestAsync(HttpRequestMessage request)
     {
         var logBuilder = new StringBuilder();
-        logBuilder.AppendLine($"HTTP REQUEST: {request.Method} {request.RequestUri}");
+        logBuilder.AppendLine($"HTTP {request.Method} {request.RequestUri}");
 
         //foreach (var header in request.Headers)
         //{
@@ -153,10 +190,10 @@ public class HttpLogger(
         logger.LogDebug("{Request}", logBuilder.ToString());
     }
 
-    private async Task TraceLogResponseAsync(HttpResponseMessage response)
+    private async Task TraceLogResponseAsync(HttpResponseMessage response, long duration)
     {
         var logBuilder = new StringBuilder();
-        logBuilder.AppendLine($"HTTP RESPONSE: {(int)response.StatusCode} {response.ReasonPhrase}");
+        logBuilder.AppendLine($"HTTP {(int)response.StatusCode} {response.ReasonPhrase} {duration} ms");
 
         foreach (var header in response.Headers)
         {
@@ -192,10 +229,10 @@ public class HttpLogger(
         logger.LogTrace("{Response}", logBuilder.ToString());
     }
 
-    private async Task DebugLogResponseAsync(HttpResponseMessage response)
+    private async Task DebugLogResponseAsync(HttpResponseMessage response, long duration)
     {
         var logBuilder = new StringBuilder();
-        logBuilder.AppendLine($"HTTP RESPONSE: {(int)response.StatusCode} {response.ReasonPhrase}");
+        logBuilder.AppendLine($"HTTP {(int)response.StatusCode} {response.ReasonPhrase} {duration} ms");
 
         foreach (var header in response.Headers)
         {

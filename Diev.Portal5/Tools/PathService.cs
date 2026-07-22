@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024-2025 Dmitrii Evdokimov
+Copyright 2024-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,7 +57,7 @@ public class PathService : IPathService
 
         return Path.Combine(
             Path.GetFullPath(root),
-            message.Outbox ? "Исх.ЦБ" : "Вх.ЦБ", // "OUT" : "INC",
+            message.Outbox() ? "Исх.ЦБ" : "Вх.ЦБ", // "OUT" : "INC",
             msgInfo.Date[0..7], // 2024-10-04 => 2024-10
             msgInfo.Name!);
     }

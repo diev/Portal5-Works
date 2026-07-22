@@ -17,6 +17,10 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
+using Diev.Portal5.Tools;
+
 namespace Diev.Portal5.API.Info;
 
 /// <summary>
@@ -24,20 +28,21 @@ namespace Diev.Portal5.API.Info;
 /// GET https://portal5.cbr.ru/back/rapi2/notifications<br/>
 /// 200 OK
 /// </summary>
-public record Notification
-(
+public class Notification
+{
     /// <summary>
     /// Текст технического оповещения.
     /// Example:
     /// </summary>
-    string Text,
+    public required string Text { get; set; }
 
     /// <summary>
     /// Дата и время технического оповещения.
     /// Example:
     /// </summary>
-    DateTime Date
-);
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime Date { get; set; }
+}
 
 #region Mock
 //public static class MockNotifications

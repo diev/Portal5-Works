@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2022-2024 Dmitrii Evdokimov
+Copyright 2022-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,13 +34,13 @@ public class FormResponse
     /// Адресат: первого уровня
     /// (1-уровень. Тип участника информационного обмена)
     /// </summary>
-    public string SubjectLevel1 { get; set; } = null!;
+    public required string SubjectLevel1 { get; set; }
 
     /// <summary>
     /// Адресат: второго уровня
     /// (2-уровень. Тематический вопрос)
     /// </summary>
-    public string SubjectLevel2 { get; set; } = null!;
+    public required string SubjectLevel2 { get; set; }
 
     /// <summary>
     /// Адресат: третьего уровня
@@ -78,7 +78,7 @@ public class FormResponse
     /// <summary>
     /// Подписант: ФИО
     /// </summary>
-    public string OrgOfficialName { get; set; } = null!;
+    public required string OrgOfficialName { get; set; }
 
     /// <summary>
     /// Подписант: Должность
@@ -93,12 +93,12 @@ public class FormResponse
     /// <summary>
     /// Исполнитель: ФИО
     /// </summary>
-    public string DocWriterName { get; set; } = null!;
+    public required string DocWriterName { get; set; }
 
     /// <summary>
     /// Исполнитель: Должность
     /// </summary>
-    public string DocWriterPost { get; set; } = null!;
+    public required string DocWriterPost { get; set; }
 
     /// <summary>
     /// Исполнитель: Контактный номер телефона
@@ -108,24 +108,24 @@ public class FormResponse
     /// <summary>
     /// Исходящий документ: Номер
     /// </summary>
-    public string DocOutNumber { get; set; } = null!;
+    public required string DocOutNumber { get; set; }
 
     /// <summary>
     /// Исходящий документ: Дата
     /// </summary>
-    public DateTime DocOutDate { get; set; }
+    public required DateTime DocOutDate { get; set; }
 
     /// <summary>
     /// Отчётность, направленная в соответствии с запросом/предписанием:
     /// Входящий номер, присвоенный пакету отчётности
     /// </summary>
-    public string ReportingNumber { get; set; } = null!;
+    public required string ReportingNumber { get; set; }
 
     /// <summary>
     /// Отчётность, направленная в соответствии с запросом/предписанием:
     /// Дата отправки пакета
     /// </summary>
-    public DateTime ReportingDate { get; set; }
+    public required DateTime ReportingDate { get; set; }
 }
 
 /*

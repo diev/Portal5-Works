@@ -17,6 +17,10 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
+using Diev.Portal5.Tools;
+
 namespace Diev.Portal5.API.Info;
 
 /// <summary>
@@ -24,68 +28,69 @@ namespace Diev.Portal5.API.Info;
 /// GET https://portal5.cbr.ru/back/rapi2/profile
 /// 200 OK
 /// </summary>
-public record Profile
-(
+public class Profile
+{
     /// <summary>
     /// Краткое наименование компании.
     /// </summary>
-    string? ShortName,
+    public string? ShortName { get; set; }
 
     /// <summary>
     /// Полное наименование компании.
     /// </summary>
-    string? FullName,
+    public string? FullName { get; set; }
 
     /// <summary>
     /// Список видов деятельностей компании.
     /// </summary>
-    Activities[]? Activities,
+    public Activities[]? Activities { get; set; }
 
     /// <summary>
     /// Индивидуальный номер налогоплательщика компании.
     /// </summary>
-    string? Inn,
+    public string? Inn { get; set; }
 
     /// <summary>
     /// Основной государственный регистрационный номер компании.
     /// </summary>
-    string? Ogrn,
+    public string? Ogrn { get; set; }
 
     /// <summary>
     /// Международный идентификатор (необязательное, зарезервированное поле).
     /// </summary>
-    string? InternationalId,
+    public string? InternationalId { get; set; }
 
     /// <summary>
     /// Организационно-правовая форма компании.
     /// </summary>
-    string? Opf,
+    public string? Opf { get; set; }
 
     /// <summary>
     /// Электронный адрес компании.
     /// </summary>
-    string? Email,
+    public string? Email { get; set; }
 
     /// <summary>
     /// Почтовый адрес компании.
     /// </summary>
-    string? Address,
+    public string? Address { get; set; }
 
     /// <summary>
     /// Контактный телефон компании.
     /// </summary>
-    string? Phone,
+    public string? Phone { get; set; }
 
     /// <summary>
     /// Дата создания ЛК компании.
     /// </summary>
-    DateTime CreationDate,
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public DateTime CreationDate { get; set; }
 
     /// <summary>
     /// Текущий статус ЛК компании.
     /// </summary>
-    string? Status
-);
+    public string? Status { get; set; }
+}
 
 /// <summary>
 /// Краткое наименование вида деятельности.

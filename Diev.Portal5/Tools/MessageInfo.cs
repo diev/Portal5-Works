@@ -151,7 +151,7 @@ public class MessageInfo
         info.Append(TType(Message.Type))
             .Append($" от {TDate(Date)}");
 
-        if (Message.Registered && Message.UpdatedDate is not null)
+        if (Message.Registered() && Message.UpdatedDate.HasValue)
         {
             if (Message.RegNumber is null || !Message.RegNumber.StartsWith(Number))
             {
@@ -202,10 +202,10 @@ public class MessageInfo
             if (file.SignedFile is not null)
                 continue;
 
-            if (Message.Inbox && file.Name.StartsWith("passport.xml", StringComparison.OrdinalIgnoreCase))
+            if (Message.Inbox() && file.Name.StartsWith("passport.xml", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (Message.Outbox && file.Name.StartsWith("form.xml", StringComparison.OrdinalIgnoreCase))
+            if (Message.Outbox() && file.Name.StartsWith("form.xml", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             if (file.Name.Equals("info.txt", StringComparison.OrdinalIgnoreCase))

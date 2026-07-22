@@ -17,8 +17,6 @@ limitations under the License.
 */
 #endregion
 
-using Diev.Portal5.API.Info;
-
 namespace Diev.Portal5.API.Messages.Create;
 
 /// <summary>

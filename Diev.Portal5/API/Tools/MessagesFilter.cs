@@ -18,8 +18,10 @@ limitations under the License.
 #endregion
 
 using System.Text;
+using System.Text.Json.Serialization;
 
 using Diev.Portal5.API.Messages;
+using Diev.Portal5.Tools;
 
 namespace Diev.Portal5.API.Tools;
 
@@ -39,6 +41,7 @@ public class MessagesFilter
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные позднее указанной даты).
     /// Можно и по маске «yyyy-MM-dd», но помнить, что время в зоне Z (UTC) и надо переводить из локального!
     /// </summary>
+    [JsonConverter(typeof(LocalTimeNullableConverter))]
     public DateTime? MinDateTime { get; set; }
 
     /// <summary>
@@ -46,6 +49,7 @@ public class MessagesFilter
     /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные ранее указанной даты).
     /// Можно и по маске «yyyy-MM-dd», но помнить, что время в зоне Z (UTC) и надо переводить из локального!
     /// </summary>
+    [JsonConverter(typeof(LocalTimeNullableConverter))]
     public DateTime? MaxDateTime { get; set; }
 
     /// <summary>
@@ -153,20 +157,20 @@ public class MessagesFilter
             query.Append(Task);
         }
 
-        if (MinDateTime is not null)
+        if (MinDateTime.HasValue)
             query.Append("&MinDateTime=")
                 .AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}",
                     ((DateTime)MinDateTime).ToUniversalTime());
 
-        if (MaxDateTime is not null)
+        if (MaxDateTime.HasValue)
             query.Append("&MaxDateTime=")
                 .AppendFormat("{0:yyyy-MM-dd'T'HH:mm:ss'Z'}",
                     ((DateTime)MaxDateTime).ToUniversalTime());
 
-        if (MinSize is not null)
+        if (MinSize.HasValue)
             query.Append("&MinSize=").Append(MinSize);
 
-        if (MaxSize is not null)
+        if (MaxSize.HasValue)
             query.Append("&MaxSize=").Append(MaxSize);
 
         if (Type is not null)
@@ -175,7 +179,7 @@ public class MessagesFilter
         if (Status is not null)
             query.Append("&Status=").Append(Status);
 
-        if (Page is not null && Page > 1)
+        if (Page.HasValue && Page > 1)
             query.Append("&Page=").Append(Page);
 
         if (query.Length > 0)

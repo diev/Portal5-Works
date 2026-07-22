@@ -19,7 +19,7 @@ limitations under the License.
 
 using System.Text.Json.Serialization;
 
-using Diev.Portal5.API.Info;
+using Diev.Portal5.Tools;
 
 namespace Diev.Portal5.API.Messages;
 
@@ -47,35 +47,35 @@ namespace Diev.Portal5.API.Messages;
 /// <example>
 /// GET https://portal5.cbr.ru/back/rapi2/messages?Task=Zadacha_130&MinDateTime=2023-11-01T00:00:00Z&MaxDateTime=2023-11-07T23:59:59Z
 /// </example>
-public record Message
-(
+public class Message
+{
     /// <summary>
     /// Уникальный идентификатор сообщения.<br/>
     /// Устанавливается сервером в ответном сообщении.<br/>
     /// Example: "6e16a6ad-018f-4136-a8c6-b088010899bc"
     /// </summary>
-    string Id,
+    public required string Id { get; set; }
 
     /// <summary>
     /// Идентификатор корреляции сообщения.<br/>
     /// Example: null<br/>
     /// Example: "1f6158a2-a7a1-4e14-aace-af7a00f65145"
     /// </summary>
-    string? CorrelationId,
+    public string? CorrelationId { get; set; }
 
     /// <summary>
     /// Идентификатор группы сообщений.<br/>
     /// Example: null<br/>
     /// Example: "a4e5902c-e961-47a3-9670-bd717bcc1749"
     /// </summary>
-    string? GroupId,
+    public string? GroupId { get; set; }
 
     /// <summary>
     /// Тип сообщения исходящее (значение: outbox) или входящее (значение: inbox).<br/>
     /// Example: "inbox"  // нам входящие<br/>
     /// Example: "outbox" // наши исходящие
     /// </summary>
-    string Type,
+    public required string Type { get; set; }
 
     /// <summary>
     /// Название сообщения (subject).<br/>
@@ -85,7 +85,7 @@ public record Message
     /// Example: "Получение информации об уровне риска ЮЛ/ИП"<br/>
     /// Example: "Ежедневное информирование Банка России о составе и объеме клиентской базы (REST)"
     /// </summary>
-    string? Title,
+    public string? Title { get; set; }
 
     /// <summary>
     /// Текст сообщения (body).<br/>
@@ -94,20 +94,22 @@ public record Message
     /// Example: "предоставление запрошенной информации"<br/>
     /// Example: "О данных для расчета размера обязательных резервов"
     /// </summary>
-    string? Text,
+    public string? Text { get; set; }
 
     /// <summary>
     /// Дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'») в UTC.<br/>
     /// Example: "2023-09-25T16:03:31Z"
     /// </summary>
-    DateTime CreationDate,
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime CreationDate { get; set; }
 
     /// <summary>
     /// Дата последнего изменения статуса сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'») в UTC.<br/>
     /// Example: null<br/>
     /// Example: "2023-01-09T13:18:19Z"
     /// </summary>
-    DateTime? UpdatedDate,
+    [JsonConverter(typeof(LocalTimeNullableConverter))]
+    public DateTime? UpdatedDate { get; set; }
 
     /// <summary>
     /// Статус сообщения (возможные значения и их описание находится в п.2.4).<br/>
@@ -125,7 +127,7 @@ public record Message
     /// success    Доставлено: Сообщение успешно размещено в ЛК/Сообщение передано роутером во внутреннюю систему<br/>
     ///            Банка России, от которой не ожидается ответ о регистрации.
     /// </summary>
-    string Status,
+    public required string Status { get; set; }
 
     /// <summary>
     /// Наименование задачи.<br/>
@@ -135,20 +137,20 @@ public record Message
     /// Example: "Zadacha_137"<br/>
     /// Example: "GroupTask_22"
     /// </summary>
-    string TaskName,
+    public required string TaskName { get; set; }
 
     /// <summary>
     /// Регистрационный номер.<br/>
     /// Example: null<br/>
     /// Example: "20-2-1/1"
     /// </summary>
-    string? RegNumber,
+    public string? RegNumber { get; set; }
 
     /// <summary>
     /// Общий размер сообщения в байтах.<br/>
     /// Example: 3241554
     /// </summary>
-    long? TotalSize,
+    public long? TotalSize { get; set; }
 
     /// <summary>
     /// Отправитель сообщения (необязательное поле, только для сообщений, отправляемых другими Пользователями).<br/>
@@ -161,7 +163,7 @@ public record Message
     /// "DivisionCode": "0000"<br/>
     /// }
     /// </summary>
-    Sender? Sender,
+    public Sender? Sender { get; set; }
 
     /// <summary>
     /// Получатели сообщения (необязательно, указывается для потоков адресной рассылки).<br/>
@@ -174,7 +176,7 @@ public record Message
     /// "DivisionCode": "0000"<br/>
     /// }, ...]
     /// </summary>
-    Receiver[]? Receivers,
+    public Receiver[]? Receivers { get; set; }
 
     /// <summary>
     /// Файлы включенные в сообщение.<br/>
@@ -188,24 +190,13 @@ public record Message
     /// "RepositoryInfo": [...]<br/>
     /// }, ...]
     /// </summary>
-    MessageFile[] Files,
+    public required MessageFile[] Files { get; set; }
 
     /// <summary>
     /// Квитанции, полученные в ответ на сообщение.<br/>
     /// Example: []
     /// </summary>
-    MessageReceipt[]? Receipts
-)
-{
-    [JsonIgnore]
-    public bool Inbox => Type.Equals(MessageType.Inbox, StringComparison.Ordinal);
-    [JsonIgnore]
-    public bool Outbox => Type.Equals(MessageType.Outbox, StringComparison.Ordinal);
-
-    [JsonIgnore]
-    public bool Registered => Status.Equals(MessageOutStatus.Registered, StringComparison.Ordinal);
-    [JsonIgnore]
-    public bool Success => Status.Equals(MessageOutStatus.Success, StringComparison.Ordinal);
+    public MessageReceipt[]? Receipts { get; set; }
 }
 
 /* GET https://portal5.cbr.ru/back/rapi2/messages

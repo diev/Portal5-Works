@@ -2,12 +2,15 @@
 call :init
 
 set app1=CryptoBot
+set app2=Portal5
 
 call :pack %app1%
+call :pack %app2% -windows
 exit /b 0
 
 :pack
 rem %1 - app
+rem %2 - target (-windows)
 if exist bin rd /s /q bin
 for %%i in (%1\*.csproj) do set prj=%%~dpnxi
 
@@ -18,13 +21,13 @@ rem 3 - Build a single-file app when no runtime required (NET embedded)
 rem 4 - Build an app with many dlls for Linux
 set option=2
 
-rem call :bin %1 %option% %prj% net8.0 win-x86
-rem call :bin %1 %option% %prj% net9.0 win-x86
-rem call :bin %1 %option% %prj% net10.0 win-x86
+rem call :bin %1 %option% %prj% net8.0%2 win-x86
+rem call :bin %1 %option% %prj% net9.0%2 win-x86
+call :bin %1 %option% %prj% net10.0%2 win-x86
 
-call :bin %1 %option% %prj% net8.0 win-x64
-call :bin %1 %option% %prj% net9.0 win-x64
-call :bin %1 %option% %prj% net10.0 win-x64
+rem call :bin %1 %option% %prj% net8.0%2 win-x64
+rem call :bin %1 %option% %prj% net9.0%2 win-x64
+call :bin %1 %option% %prj% net10.0%2 win-x64
 
 rem Linux
 set option=4
@@ -39,7 +42,7 @@ if exist %pack% del %pack%
 echo === Pack %pack% ===
 
 "C:\Program Files\7-Zip\7z.exe" a %pack% LICENSE *.md *.sln *.cmd bin\
-"C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!bin -x!obj Diev.Extensions\ Diev.Portal5\
+"C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!bin -x!obj -x!static Diev.Extensions\ Diev.Portal5\
 "C:\Program Files\7-Zip\7z.exe" a %pack% -r -x!.* -x!bin -x!obj -x!PublishProfiles -x!*.user %1\
 
 rem if exist %store% copy /y %pack% %store%

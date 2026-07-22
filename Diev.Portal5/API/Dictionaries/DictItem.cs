@@ -17,32 +17,37 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
+using Diev.Portal5.Tools;
+
 namespace Diev.Portal5.API.Dictionaries;
 
 /// <summary>
 /// 3.1.3.5.5. Список справочников.<br/>
 /// GET https://portal5.cbr.ru/back/rapi2/dictionaries
 /// </summary>
-public record DictItem
-(
+public class DictItem
+{
     /// <summary>
     /// Уникальный идентификатор справочника, используется для идентификации задачи.
     /// Example: "e88c4281-7109-438e-b72b-139fe82308a1"
     /// </summary>
-    string Id,
+    public required string Id { get; set; }
 
     /// <summary>
     /// Текстовое наименование справочника.
     /// Example: "Расписание кредитных операций"
     /// </summary>
-    string Text,
+    public required string Text { get; set; }
 
     /// <summary>
     /// Дата последнего обновления справочника.
     /// Example: "2023-11-09T03:22:00Z"
     /// </summary>
-    string Date
-);
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime Date { get; set; }
+}
 
 #region Mock
 //public static class MockDictItem

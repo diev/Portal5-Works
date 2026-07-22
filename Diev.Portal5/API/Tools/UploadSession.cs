@@ -17,6 +17,10 @@ limitations under the License.
 */
 #endregion
 
+using System.Text.Json.Serialization;
+
+using Diev.Portal5.Tools;
+
 namespace Diev.Portal5.API.Tools;
 
 /// <summary>
@@ -24,17 +28,18 @@ namespace Diev.Portal5.API.Tools;
 /// POST https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}/createUploadSession<br/>
 /// 200 OK
 /// </summary>
-public record UploadSession
-(
+public class UploadSession
+{
     /// <summary>
     /// Путь для загрузки файла.<br/>
     /// Example: "https://portal5.cbr.ru/back/rapi2/messages/{MessageId}/files/{FileId}"
     /// </summary>
-    string UploadUrl,
+    public required string UploadUrl { get; set; }
 
     /// <summary>
     /// Дата и время истечения сессии.<br/>
     /// Example: "2023-09-25T16:03:31.81615122Z"
     /// </summary>
-    DateTime ExpirationDateTime
-);
+    [JsonConverter(typeof(LocalTimeConverter))]
+    public required DateTime ExpirationDateTime { get; set; }
+}
