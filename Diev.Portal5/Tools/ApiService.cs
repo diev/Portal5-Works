@@ -41,8 +41,6 @@ public class ApiService(
 {
     private readonly string BaseAddress = httpClient.BaseAddress!.ToString();
 
-    public Uri GetBaseAddress() => httpClient.BaseAddress!;
-
     #region 3.1.3.2
 
     /* 3.1.3.2 Отправка сообщений */
@@ -290,7 +288,7 @@ public class ApiService(
 
         if (response.StatusCode == HttpStatusCode.OK) // 200 Ok
         {
-            var messages = await response.Content.ReadFromJsonAsync<Message[]>(JsonHelper.JsonOptions)
+            var messages = await response.Content.ReadFromJsonAsync<List<Message>>(JsonHelper.JsonOptions)
                 .ConfigureAwait(false);
 
             if (messages is null)
@@ -464,7 +462,7 @@ public class ApiService(
     /// </summary>
     /// <param name="msgId">Уникальный идентификатор сообщения в формате UUID [4].</param>
     /// <returns></returns>
-    public async Task<ApiResult<MessageReceipt[]>> GetMessageReceiptsAsync(string msgId)
+    public async Task<ApiResult<List<MessageReceipt>>> GetMessageReceiptsAsync(string msgId)
     {
         string url = $"{BaseAddress}messages/{msgId}/receipts";
         using var response = await httpClient.GetAsync(url)
@@ -474,22 +472,22 @@ public class ApiService(
         {
             try
             {
-                var messageReceipts = await response.Content.ReadFromJsonAsync<MessageReceipt[]>(JsonHelper.JsonOptions)
+                var messageReceipts = await response.Content.ReadFromJsonAsync<List<MessageReceipt>>(JsonHelper.JsonOptions)
                     .ConfigureAwait(false);
 
                 return messageReceipts is null
-                    ? ApiResult<MessageReceipt[]>.CreateJsonError()
-                    : ApiResult<MessageReceipt[]>.CreateOK(messageReceipts);
+                    ? ApiResult<List<MessageReceipt>>.CreateJsonError()
+                    : ApiResult<List<MessageReceipt>>.CreateOK(messageReceipts);
             }
             catch (Exception e)
             {
-                ApiResult<MessageReceipt[]>.CreateExceptionError(e,
+                ApiResult<List<MessageReceipt>>.CreateExceptionError(e,
                     $"Квитанции для сообщения '{msgId}' не получены");
             }
         }
 
         // HTTP 404 – Not found
-        return ApiResult<MessageReceipt[]>.CreateError(response);
+        return ApiResult<List<MessageReceipt>>.CreateError(response);
     }
 
     /// <summary>
@@ -756,7 +754,7 @@ public class ApiService(
     /// GET: */notifications
     /// </summary>
     /// <returns></returns>
-    public async Task<ApiResult<Notification[]>> GetNotificationsAsync()
+    public async Task<ApiResult<List<Notification>>> GetNotificationsAsync()
     {
         string url = $"{BaseAddress}notifications";
         using var response = await httpClient.GetAsync(url)
@@ -766,16 +764,16 @@ public class ApiService(
         {
             try
             {
-                var notifications = await response.Content.ReadFromJsonAsync<Notification[]>(JsonHelper.JsonOptions)
+                var notifications = await response.Content.ReadFromJsonAsync<List<Notification>>(JsonHelper.JsonOptions)
                     .ConfigureAwait(false);
 
                 return notifications is null
-                    ? ApiResult<Notification[]>.CreateJsonError()
-                    : ApiResult<Notification[]>.CreateOK(notifications);
+                    ? ApiResult<List<Notification>>.CreateJsonError()
+                    : ApiResult<List<Notification>>.CreateOK(notifications);
             }
             catch (Exception e)
             {
-                return ApiResult<Notification[]>.CreateExceptionError(e,
+                return ApiResult<List<Notification>>.CreateExceptionError(e,
                     "Информация о технических оповещениях не получена");
             }
         }
@@ -783,7 +781,7 @@ public class ApiService(
         // HTTP 400 – Bad Request
         // HTTP 403 – Forbidden
         // HTTP 404 – Not found
-        return ApiResult<Notification[]>.CreateError(response);
+        return ApiResult<List<Notification>>.CreateError(response);
     }
 
     /// <summary>

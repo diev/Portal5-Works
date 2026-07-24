@@ -32,9 +32,11 @@ public class MessagesFilter
 {
     /// <summary>
     /// Наименование задачи<br/>
-    /// (если параметр будет указан, то будут возвращены только сообщения полученные/отправленные в рамках указанной задачи).
+    /// (если параметр будет указан, то будут возвращены только сообщения, полученные/отправленные в рамках указанной задачи).
     /// </summary>
     public string? Task { get; set; }
+    public List<string>? Tasks { get; set; }
+    public List<string>? NoTasks { get; set; }
 
     /// <summary>
     /// Минимально возможная дата создания сообщения (ГОСТ ISO 8601-2001 по маске «yyyy-MM-dd'T'HH:mm:ss'Z'»)<br/>
@@ -97,16 +99,17 @@ public class MessagesFilter
     /// </summary>
     public uint? Page { get; set; }
 
-    public MessagesFilter()
-    { }
+    public MessagesFilter() { }
 
-    public MessagesFilter(string? task,
+    public MessagesFilter(string? task, List<string>? tasks, List<string>? notasks,
         uint? before, uint? days, uint? day, DateTime? minDateTime, DateTime? maxDateTime,
         uint? minSize, uint? maxSize,
         bool inbox, bool outbox,
         string? status, uint? page)
     {
         Task = task;
+        Tasks = tasks;
+        NoTasks = notasks;
 
         var today = DateTime.Today; // next 00:00
 
@@ -143,18 +146,17 @@ public class MessagesFilter
         Page = page;
     }
 
-    public string? GetQuery()
+    public string? GetQuery(int i = 0)
     {
         var query = new StringBuilder();
 
-        if (Task is not null)
+        if (!string.IsNullOrEmpty(Task))
         {
-            query.Append("&Task=");
-
-            if (!Task.StartsWith("Zadacha_", StringComparison.Ordinal))
-                query.Append("Zadacha_");
-
-            query.Append(Task);
+            query.Append("&Task=").Append(Task);
+        }
+        else if (Tasks is not null && i < Tasks.Count)
+        {
+            query.Append("&Task=").Append(Tasks[i]);
         }
 
         if (MinDateTime.HasValue)

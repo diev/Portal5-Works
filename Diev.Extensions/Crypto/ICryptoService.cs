@@ -22,7 +22,7 @@ namespace Diev.Extensions.Crypto;
 public interface ICryptoService
 {
     Task<bool> DecryptFileAsync(string file, string resultFile);
-    Task<bool> EncryptFileAsync(string file, string resultFile, string[] to);
+    Task<bool> EncryptFileAsync(string file, string resultFile, List<string> to);
     Task<bool> SignDetachedFileAsync(string file, string resultFile);
     Task<bool> SignFileAsync(string file, string resultFile);
     Task<bool> VerifyDetachedFileAsync(string file, string signFile);

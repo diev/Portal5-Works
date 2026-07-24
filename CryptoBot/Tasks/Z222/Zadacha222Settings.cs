@@ -22,5 +22,5 @@ namespace CryptoBot.Tasks.Z222;
 public class Zadacha222Settings
 {
     public string DownloadPath { get; set; } = "FORMS/ZBR/IN";
-    public string[] Subscribers { get; set; } = [];
+    public List<string> Subscribers { get; set; } = [];
 }

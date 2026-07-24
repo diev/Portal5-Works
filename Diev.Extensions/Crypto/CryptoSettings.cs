@@ -22,6 +22,12 @@ namespace Diev.Extensions.Crypto;
 public class CryptoSettings
 {
     /// <summary>
+    /// Тип используемой утилиты командной строки:
+    /// CspTest, CryptCP
+    /// </summary>
+    public string? Provider { get; set; }
+
+    /// <summary>
     /// Исполняемый файл командной строки.
     /// </summary>
     public string? Util { get; set; }
@@ -39,7 +45,7 @@ public class CryptoSettings
     /// <summary>
     /// Архив отпечатков своего сертификата.
     /// </summary>
-    public string[] MyOld { get; set; } = [];
+    public List<string> MyOld { get; set; } = [];
 
     /// <summary>
     /// Пароль своего сертификата.
@@ -50,7 +56,7 @@ public class CryptoSettings
     /// Массив отпечатков сертификатов получателей, на которые надо шифровать.
     /// Свой программа добавит самостоятельно.
     /// </summary>
-    public string[] EncryptTo { get; set; } = [];
+    public List<string> EncryptTo { get; set; } = [];
 
     /// <summary>
     /// Команда подписи.

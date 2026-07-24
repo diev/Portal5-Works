@@ -22,6 +22,6 @@ namespace Diev.Extensions.CredentialManager;
 public interface ICredentialService
 {
     Credential[] Enumerate(string? filter = null);
-    Credential Read(string targetName);
+    Credential? Read(string targetName);
     void Write(string targetName, string userName, string? secret);
 }

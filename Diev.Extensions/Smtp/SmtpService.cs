@@ -37,17 +37,17 @@ public class SmtpService(
     //private ConcurrentQueue<MailMessage> _queue = new();
     private readonly SmtpSettings settings = options.Value;
 
-    public void SendMessage(string[]? emails, string? subj, string? body, string[]? files = null)
+    public void SendMessage(List<string>? emails, string? subj, string? body, List<string>? files = null)
     {
-        if (emails is null || emails.Length == 0)
+        if (emails is null || emails.Count == 0)
             return;
 
         SendMessageAsync(emails, subj, body, files).Wait();
     }
 
-    public async Task SendMessageAsync(string[]? emails, string? subj, string? body, string[]? files = null)
+    public async Task SendMessageAsync(List<string>? emails, string? subj, string? body, List<string>? files = null)
     {
-        if (emails is null || emails.Length == 0)
+        if (emails is null || emails.Count == 0)
             return;
 
         try
@@ -77,7 +77,7 @@ public class SmtpService(
         }
     }
 
-    private MailMessage CreateMessage(string[] emails, string? subj, string? body, string[]? files = null)
+    private MailMessage CreateMessage(List<string> emails, string? subj, string? body, List<string>? files = null)
     {
         subj ??= App.Name;
 

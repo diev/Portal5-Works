@@ -33,5 +33,5 @@ public record MessageType
     public static string Outbox => "outbox";
 
     [JsonIgnore]
-    public static string[] Values => [Inbox, Outbox];
+    public static List<string> Values => [Inbox, Outbox];
 }

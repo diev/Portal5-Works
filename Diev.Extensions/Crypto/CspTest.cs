@@ -40,6 +40,7 @@ public class CspTest : CryptoBase
         settings = options.Value;
 
         settings.Util ??= @"C:\Program Files\Crypto Pro\CSP\csptest.exe";
+        Enabled = File.Exists(settings.Util);
 
         settings.Sign ??= @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime";
         settings.SignDetached ??= @"-sfsign -sign -silent -in ""{0}"" -out ""{1}"" -my {2} -add -addsigtime -detached";

@@ -61,5 +61,5 @@ public record ReceiptOutStatus
     public static string Success => "success";
 
     [JsonIgnore]
-    public static string[] Values => [Delivered, Error, Processing, Registered, Rejected, Success];
+    public static List<string> Values => [Delivered, Error, Processing, Registered, Rejected, Success];
 }

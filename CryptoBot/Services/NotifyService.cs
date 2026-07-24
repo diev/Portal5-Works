@@ -30,7 +30,7 @@ public class NotifyService(
     IOptions<ProgramSettings> options
     ) : INotifyService
 {
-    public async Task<int> DoneAsync(string? task, string message, string[]? subscribers = null, string[]? files = null)
+    public async Task<int> DoneAsync(string? task, string message, List<string>? subscribers = null, List<string>? files = null)
     {
         logger.LogInformation("{Message}", message);
 
@@ -42,7 +42,7 @@ public class NotifyService(
         return 0;
     }
 
-    public async Task<int> FailAsync(string? task, string message, string[]? subscribers = null, string[]? files = null)
+    public async Task<int> FailAsync(string? task, string message, List<string>? subscribers = null, List<string>? files = null)
     {
         logger.LogWarning("{Message}", message);
 
@@ -54,7 +54,7 @@ public class NotifyService(
         return 1;
     }
 
-    public async Task<int> FailAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    public async Task<int> FailAsync(string? task, Exception ex, List<string>? subscribers = null, List<string>? files = null)
     {
         logger.LogError(ex, "Fail");
 
@@ -66,7 +66,7 @@ public class NotifyService(
         return 1;
     }
 
-    public async Task<int> FailAPIAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    public async Task<int> FailAPIAsync(string? task, Exception ex, List<string>? subscribers = null, List<string>? files = null)
     {
         logger.LogError(ex, "Fail API");
 
@@ -78,7 +78,7 @@ public class NotifyService(
         return 3;
     }
 
-    public async Task<int> FailTaskAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null)
+    public async Task<int> FailTaskAsync(string? task, Exception ex, List<string>? subscribers = null, List<string>? files = null)
     {
         logger.LogError(ex, "Fail Task");
 
@@ -90,7 +90,7 @@ public class NotifyService(
         return 2;
     }
 
-    public async Task SendAsync(string subject, string body, string[]? subscribers = null, string[]? files = null)
+    public async Task SendAsync(string subject, string body, List<string>? subscribers = null, List<string>? files = null)
     {
         logger.LogDebug("Send: {Subject}", subject);
 

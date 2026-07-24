@@ -18,31 +18,22 @@ limitations under the License.
 #endregion
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace CryptoBot.Helpers;
+namespace Diev.Extensions.Crypto;
 
-internal static class JsonSection
+public class CryptoServiceFactory(IServiceProvider sp)
 {
-    public static List<string> Values(IConfigurationSection config, string key)
+    public ICryptoService Create()
     {
-        var section = config.GetSection(key);
-        List<string> list = [];
+        var config = sp.GetRequiredService<IConfiguration>();
+        var provider = config["Crypto:Provider"] ?? "CspTest";
 
-        foreach (var item in section.GetChildren())
+        return provider switch
         {
-            list.Add(item.Value!);
-        }
-        
-        return [.. list];
-    }
-
-    public static List<string> Subscribers(IConfiguration config, string key)
-    {
-        return Values(config.GetSection(key), nameof(Subscribers));
-    }
-
-    public static List<string> Subscribers(IConfigurationSection config)
-    {
-        return Values(config, nameof(Subscribers));
+            "CspTest" => sp.GetRequiredService<CspTest>(),
+            "CryptCP" => sp.GetRequiredService<CryptCP>(),
+            _ => throw new ArgumentException($"Неизвестный криптопровайдер: {provider}")
+        };
     }
 }

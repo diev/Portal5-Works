@@ -77,7 +77,7 @@ public class DraftMessage
     /// "Size":3238155,
     /// }, ...]
     /// </summary>
-    public required DraftMessageFile[] Files { get; set; }
+    public required List<DraftMessageFile> Files { get; set; }
 
     /// <summary>
     /// Получатели сообщения (необязательно, указывается для потоков адресной рассылки).
@@ -91,5 +91,5 @@ public class DraftMessage
     /// "Activity": ""
     /// }, ...]
     /// </summary>
-    public Receiver[]? Receivers { get; set; }
+    public List<Receiver>? Receivers { get; set; }
 }

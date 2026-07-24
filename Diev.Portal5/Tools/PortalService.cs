@@ -44,6 +44,8 @@ public class PortalService(
     HttpClient httpClient
     ) : IPortalService
 {
+    private readonly string BaseAddress = httpClient.BaseAddress!.ToString();
+
     /// <summary>
     /// 3.1.3.2 Отправка пакета файлов из папки сообщения комплексно по задачам
     /// </summary>
@@ -167,7 +169,7 @@ public class PortalService(
         // Step 4 - post ready message
         logger.LogDebug("4. Post ready message");
 
-        if (sent == message.Files.Length)
+        if (sent == message.Files.Count)
         {
             var postResult = await api.PostMessageAsync(msgId);
 
@@ -305,78 +307,85 @@ public class PortalService(
     /// <param name="filter"></param>
     /// <returns>Все сообщения с учетом фильтра.</returns>
     /// <exception cref="Exception"></exception>
-    public async Task<ApiResult<Message[]>> GetMessagesAsync(MessagesFilter filter)
+    public async Task<ApiResult<List<Message>>> GetMessagesAsync(MessagesFilter filter)
     {
         logger.LogInformation("Get messages");
 
-        if (filter.Task is null || !filter.Task.Contains(','))
+        List<string> tasks = [];
+
+        if (filter.Task is not null)
         {
-            var messages = await GetMessagesCoreAsync(filter);
-            return ApiResult<Message[]>.CreateOK(messages.Data);
+            if (filter.Task.Contains(','))
+                tasks.AddRange(filter.Task.Split(','));
+            else
+                tasks.Add(filter.Task);
         }
 
-        List<Message> rangeMessages = [];
-        var tasks = filter.Task!.Split(',');
+        if (filter.Tasks is not null)
+            tasks.AddRange(filter.Tasks);
+
+        if (tasks.Count == 0)
+            tasks.Add(string.Empty);
+
+        List<Message> messages = [];
 
         foreach (var task in tasks)
         {
             filter.Task = task;
             filter.Page = null;
 
-            var rangeResult = await GetMessagesCoreAsync(filter);
+            // Get first page of 100
+            var result = await api.GetMessagesPageAsync(filter);
 
-            if (!rangeResult.OK)
+            if (!result.OK)
+                return ApiResult<List<Message>>.CreateError(result.Error);
+
+            var messagesPage = result.Data!;
+
+            while (messagesPage.Messages.Count > 0)
             {
-                return ApiResult<Message[]>.CreateError("Range is null");
-            }
+                // Do action
+                messages.AddRange(messagesPage.Messages);
 
-            var range = rangeResult.Data!;
+                // Exit if last page
+                if (messagesPage.Pages.CurrentPage == messagesPage.Pages.TotalPages)
+                    break;
 
-            if (range.Length > 0)
-            {
-                rangeMessages.AddRange(range);
+                // Get next page of 100
+                filter.Page = (uint)messagesPage.Pages.CurrentPage + 1;
+                result = await api.GetMessagesPageAsync(filter);
+
+                if (!result.OK)
+                    return ApiResult<List<Message>>.CreateError(result.Error);
+
+                messagesPage = result.Data!;
             }
         }
 
-        return ApiResult<Message[]>.CreateOK([.. rangeMessages]);
+        if (filter.NoTasks is not null)
+        {
+            var noSet = new HashSet<string>(filter.NoTasks);
+            messages.RemoveAll(message => noSet.Contains(message.TaskName));
+        }
+
+        return ApiResult<List<Message>>.CreateOK(messages);
     }
 
-    private async Task<ApiResult<Message[]>> GetMessagesCoreAsync(MessagesFilter filter)
+    public async Task<ApiResult<bool>> DownloadMessageFilesAsync(Message message, string path)
     {
-        List<Message> messages = [];
+        int count = 0;
+        int total = message.Files.Count;
 
-        // Get first page of 100
-        var messagesPageResult = await api.GetMessagesPageAsync(filter);
-
-        if (!messagesPageResult.OK)
+        foreach (var file in message.Files)
         {
-            ApiResult<Message[]>.CreateError(messagesPageResult.Error);
+            string filePath = Path.Combine(path, file.Name);
+            var result = await api.DownloadMessageFileAsync(message.Id, file.Id, filePath);
+            count += result.OK ? 1 : 0;
         }
 
-        var messagesPage = messagesPageResult.Data!;
-
-        while (messagesPage.Messages.Length > 0)
-        {
-            // Do action
-            messages.AddRange(messagesPage.Messages);
-
-            // Exit if last page
-            if (messagesPage.Pages.CurrentPage == messagesPage.Pages.TotalPages)
-                break;
-
-            // Get next page of 100
-            filter.Page = (uint)messagesPage.Pages.CurrentPage + 1;
-            messagesPageResult = await api.GetMessagesPageAsync(filter);
-
-            if (!messagesPageResult.OK)
-            {
-                ApiResult<Message[]>.CreateError(messagesPageResult.Error);
-            }
-
-            messagesPage = messagesPageResult.Data!;
-        }
-
-        return ApiResult<Message[]>.CreateOK([.. messages]);
+        return count == total
+            ? ApiResult<bool>.CreateOK(true)
+            : ApiResult<bool>.CreateError($"Message Files saved {count}/{total} only");
     }
 
     /// <summary>
@@ -392,7 +401,7 @@ public class PortalService(
         if (SkipExisting(path, overwrite))
             return ApiResult<bool>.CreateOK(true);
 
-        string url = httpClient.BaseAddress + $"messages/{msgId}";
+        string url = $"{BaseAddress}messages/{msgId}";
         using var response = await httpClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
@@ -406,6 +415,14 @@ public class PortalService(
         return ApiResult<bool>.CreateOK(File.Exists(path));
     }
 
+    public async Task<ApiResult<bool>> DownloadMessageZipAsync(string msgId, string path)
+    {
+        var result = await api.DownloadMessageZipAsync(msgId, path);
+        return result.OK
+            ? ApiResult<bool>.CreateOK(true)
+            : ApiResult<bool>.CreateError("Message.zip file not saved");
+    }
+
     /// <summary>
     /// Сохранение JSON информации о конкретном сообщении в файл.
     /// </summary>
@@ -414,7 +431,7 @@ public class PortalService(
     /// <returns></returns>
     public async Task<ApiResult<bool>> AppendMessageJsonAsync(string msgId, FileStream file)
     {
-        string url = httpClient.BaseAddress + $"messages/{msgId}";
+        string url = $"{BaseAddress}messages/{msgId}";
         using var response = await httpClient.GetAsync(url);
 
         if (response.StatusCode == HttpStatusCode.OK)
@@ -468,6 +485,16 @@ public class PortalService(
             : ApiResult<bool>.CreateError("Deleted files not all");
     }
 
+    public async Task<ApiResult<bool>> SaveMessagesJsonAsync(List<Message> messages, string path)
+    {
+        using var stream = File.OpenWrite(path);
+        await JsonSerializer.SerializeAsync(stream, messages, JsonHelper.JsonOptions);
+
+        return File.Exists(path)
+            ? ApiResult<bool>.CreateOK(true)
+            : ApiResult<bool>.CreateError("Messages.json file not saved");
+    }
+
     public async Task<ApiResult<bool>> SaveMessageJsonAsync(Message message, string path)
     {
         using var stream = File.OpenWrite(path);
@@ -476,14 +503,6 @@ public class PortalService(
         return File.Exists(path)
             ? ApiResult<bool>.CreateOK(true)
             : ApiResult<bool>.CreateError("Message.json file not saved");
-    }
-
-    public async Task<ApiResult<bool>> SaveMessageZipAsync(string id, string path)
-    {
-        var result = await api.DownloadMessageZipAsync(id, path);
-        return result.OK
-            ? ApiResult<bool>.CreateOK(true)
-            : ApiResult<bool>.CreateError("Message.zip file not saved");
     }
 
     /// <summary>
@@ -581,7 +600,7 @@ public class PortalService(
             return ApiResult<string>.CreateError("Не получено никаких сообщений");
 
         var messages = messagesResult.Data!;
-        int count = messages.Length;
+        int count = messages.Count;
 
         if (count == 0)
             return ApiResult<string>.CreateError("Получено ноль сообщений");
@@ -899,7 +918,7 @@ public class PortalService(
     /// <param name="encryptTo">Отпечатки сертификатов получателей.</param>
     /// <param name="temp">Временная папка с создаваемыми для отправки файлами.</param>
     /// <returns></returns>
-    public async Task<ApiResult<bool>> SignAndEncryptToDirectoryAsync(string path, string[] encryptTo, string store) //TODO ///
+    public async Task<ApiResult<bool>> SignAndEncryptToDirectoryAsync(string path, List<string> encryptTo, string store) //TODO ///
     {
         string file = Path.GetFileName(path);
         string sig = Path.Combine(store, file + ".sig");
@@ -917,6 +936,21 @@ public class PortalService(
         return ApiResult<bool>.CreateOK(true);
     }
 
+    /// <summary>
+    /// Возвращает адрес указанного сообщения на портале в браузере.
+    /// </summary>
+    /// <param name="msgId"></param>
+    /// <returns></returns>
+    public string GetMessageUrl(string msgId)
+    {
+        var baseUri = httpClient.BaseAddress!;
+        string path = $"/messages/view-message/{msgId}/";
+        var uri = new Uri(baseUri, path);
+
+        return uri.ToString();
+    }
+
+    #region private
     //private static bool SkipFile(string dir, MessageFile file)
     //{
     //    if (file.SignedFile is not null) // file.Name.EndsWith(".sig", StringComparison.Ordinal)
@@ -947,4 +981,5 @@ public class PortalService(
 
         return false;
     }
+    #endregion private
 }

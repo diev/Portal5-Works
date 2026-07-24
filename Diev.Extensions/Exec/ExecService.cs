@@ -254,7 +254,7 @@ public class ExecService(
             //if (_errorsWritten)
             //{
             //    // Signal that the error file had something written to it.
-            //    string[] errorOutput = await File.ReadAllLinesAsync(ErrorFile);
+            //    List<string> errorOutput = await File.ReadAllLinesAsync(ErrorFile);
 
             //    if (errorOutput.Length > 0)
             //    {

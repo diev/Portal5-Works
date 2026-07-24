@@ -73,7 +73,7 @@ public class MessageReceipt
     /// <summary>
     /// Файлы, включенные в квитанцию.
     /// </summary>
-    public required MessageFile[] Files { get; set; }
+    public required List<MessageFile> Files { get; set; }
 }
 
 #region Mock

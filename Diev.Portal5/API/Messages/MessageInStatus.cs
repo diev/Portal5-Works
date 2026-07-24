@@ -46,5 +46,5 @@ public record MessageInStatus
     public static string Replied => "replied";
 
     [JsonIgnore]
-    public static string[] Values => [New, Read, Replied];
+    public static List<string> Values => [New, Read, Replied];
 }

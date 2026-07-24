@@ -29,7 +29,7 @@ public record MessagesPage
     /// <summary>
     /// Example: "[{...}, ...]"
     /// </summary>
-    Message[] Messages,
+    List<Message> Messages,
 
     /// <summary>
     /// Example: {

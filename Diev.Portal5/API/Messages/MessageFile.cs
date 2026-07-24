@@ -87,7 +87,7 @@ public record MessageFile
     /// "Path": "back/rapi2/messages/1d018a30-de5d-4f20-9eb9-b0890102f4be/files/14c80cb0-135d-42e2-b5a8-f1b04108d4ba/download"
     /// }]
     /// </summary>
-    Repository[]? RepositoryInfo
+    List<Repository>? RepositoryInfo
 );
 
 #region Mock

@@ -24,5 +24,5 @@ public class Zadacha221Settings
     public string ArchivePath { get; set; } = "Archive"; // "FORMS/ZBR/OUT/Archive";
     public string UploadPath { get; set; } = "."; // "FORMS/ZBR/OUT";
     public string Zip { get; set; } = "AFN_4030702_0000000_{0:yyyyMMdd}_{1:D5}.zip";
-    public string[] Subscribers { get; set; } = [];
+    public List<string> Subscribers { get; set; } = [];
 }

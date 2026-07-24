@@ -21,6 +21,6 @@ namespace Diev.Extensions.Smtp;
 
 public interface ISmtpService
 {
-    void SendMessage(string[]? emails, string? subj = "", string? body = "", string[]? files = null);
-    Task SendMessageAsync(string[]? emails, string? subj = "", string? body = "", string[]? files = null);
+    void SendMessage(List<string>? emails, string? subj = "", string? body = "", List<string>? files = null);
+    Task SendMessageAsync(List<string>? emails, string? subj = "", string? body = "", List<string>? files = null);
 }

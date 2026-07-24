@@ -35,6 +35,8 @@ public abstract class CryptoBase : ICryptoService
     protected abstract string AppendPIN(string pin);
     protected abstract string AppendCert(string cert);
 
+    public bool Enabled { get; set; }
+
     /// <summary>
     /// Расшифровать файл.
     /// </summary>
@@ -112,7 +114,7 @@ public abstract class CryptoBase : ICryptoService
     /// <param name="to">Список отпечатков сертификатов получателей файла, куда будет добавлен и свой.</param>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="FileNotFoundException"></exception>
-    public async Task<bool> EncryptFileAsync(string file, string resultFile, string[] to)
+    public async Task<bool> EncryptFileAsync(string file, string resultFile, List<string> to)
     {
         // Файлы более 256k (или все) должны шифроваться потоковым методом (-stream)
         // Файлы должны шифроваться по ГОСТ Р 34.12-2015 Кузнечик (-1215gh)

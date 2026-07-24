@@ -1,6 +1,6 @@
 ﻿namespace Portal5
 {
-    partial class MessagesPageForm
+    partial class MessagesForm
     {
         /// <summary>
         ///  Required designer variable.
@@ -36,22 +36,21 @@
             taskBox = new ComboBox();
             minDateBox = new DateTimePicker();
             maxDateBox = new DateTimePicker();
-            pageBox = new NumericUpDown();
-            actionButton = new Button();
             statusStrip1 = new StatusStrip();
+            StatusLabel = new ToolStripStatusLabel();
             contextMenu = new ContextMenuStrip(components);
+            refreshMenuItem = new ToolStripMenuItem();
             filterMenuItem = new ToolStripMenuItem();
             toolStripSeparator2 = new ToolStripSeparator();
-            savePageMenuItem = new ToolStripMenuItem();
-            saveJsonMenuItem = new ToolStripMenuItem();
+            saveMessagesMenuItem = new ToolStripMenuItem();
+            saveMessageMenuItem = new ToolStripMenuItem();
             saveZipMenuItem = new ToolStripMenuItem();
             saveFilesMenuItem = new ToolStripMenuItem();
+            decryptFilesMenuItem = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             viewLkMenuItem = new ToolStripMenuItem();
-            StatusLabel = new ToolStripStatusLabel();
             ((System.ComponentModel.ISupportInitialize)messagesGrid).BeginInit();
             flowLayoutPanel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)pageBox).BeginInit();
             statusStrip1.SuspendLayout();
             contextMenu.SuspendLayout();
             SuspendLayout();
@@ -60,7 +59,6 @@
             // 
             messagesGrid.AllowUserToAddRows = false;
             messagesGrid.AllowUserToDeleteRows = false;
-            messagesGrid.AllowUserToOrderColumns = true;
             messagesGrid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             messagesGrid.Dock = DockStyle.Fill;
             messagesGrid.Location = new Point(0, 31);
@@ -81,8 +79,6 @@
             flowLayoutPanel1.Controls.Add(taskBox);
             flowLayoutPanel1.Controls.Add(minDateBox);
             flowLayoutPanel1.Controls.Add(maxDateBox);
-            flowLayoutPanel1.Controls.Add(pageBox);
-            flowLayoutPanel1.Controls.Add(actionButton);
             flowLayoutPanel1.Dock = DockStyle.Top;
             flowLayoutPanel1.Location = new Point(0, 0);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
@@ -148,26 +144,6 @@
             maxDateBox.TabIndex = 5;
             maxDateBox.ValueChanged += RefreshGrid;
             // 
-            // pageBox
-            // 
-            pageBox.Location = new Point(501, 3);
-            pageBox.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            pageBox.Name = "pageBox";
-            pageBox.Size = new Size(42, 23);
-            pageBox.TabIndex = 8;
-            pageBox.Value = new decimal(new int[] { 1, 0, 0, 0 });
-            pageBox.ValueChanged += RefreshGrid;
-            // 
-            // actionButton
-            // 
-            actionButton.Location = new Point(549, 3);
-            actionButton.Name = "actionButton";
-            actionButton.Size = new Size(42, 23);
-            actionButton.TabIndex = 9;
-            actionButton.Text = "Go!";
-            actionButton.UseVisualStyleBackColor = true;
-            actionButton.Click += RefreshGrid;
-            // 
             // statusStrip1
             // 
             statusStrip1.Items.AddRange(new ToolStripItem[] { StatusLabel });
@@ -177,65 +153,6 @@
             statusStrip1.TabIndex = 2;
             statusStrip1.Text = "statusStrip1";
             // 
-            // contextMenu
-            // 
-            contextMenu.Items.AddRange(new ToolStripItem[] { filterMenuItem, toolStripSeparator2, savePageMenuItem, saveJsonMenuItem, saveZipMenuItem, saveFilesMenuItem, toolStripSeparator1, viewLkMenuItem });
-            contextMenu.Name = "contextMenu";
-            contextMenu.Size = new Size(190, 148);
-            contextMenu.Opening += contextMenu_Opening;
-            // 
-            // filterMenuItem
-            // 
-            filterMenuItem.Name = "filterMenuItem";
-            filterMenuItem.Size = new Size(189, 22);
-            filterMenuItem.Text = "Фильтр по TaskName";
-            filterMenuItem.Click += filterMenuItem_Click;
-            // 
-            // toolStripSeparator2
-            // 
-            toolStripSeparator2.Name = "toolStripSeparator2";
-            toolStripSeparator2.Size = new Size(186, 6);
-            // 
-            // savePageMenuItem
-            // 
-            savePageMenuItem.Name = "savePageMenuItem";
-            savePageMenuItem.Size = new Size(189, 22);
-            savePageMenuItem.Text = "Сохранить Page...";
-            savePageMenuItem.Click += savePageMenuItem_Click;
-            // 
-            // saveJsonMenuItem
-            // 
-            saveJsonMenuItem.Name = "saveJsonMenuItem";
-            saveJsonMenuItem.Size = new Size(189, 22);
-            saveJsonMenuItem.Text = "Сохранить Json...";
-            saveJsonMenuItem.Click += saveJsonMenuItem_Click;
-            // 
-            // saveZipMenuItem
-            // 
-            saveZipMenuItem.Name = "saveZipMenuItem";
-            saveZipMenuItem.Size = new Size(189, 22);
-            saveZipMenuItem.Text = "Сохранить Zip...";
-            saveZipMenuItem.Click += saveZipMenuItem_Click;
-            // 
-            // saveFilesMenuItem
-            // 
-            saveFilesMenuItem.Name = "saveFilesMenuItem";
-            saveFilesMenuItem.Size = new Size(189, 22);
-            saveFilesMenuItem.Text = "Сохранить файлы...";
-            saveFilesMenuItem.Click += saveFilesMenuItem_Click;
-            // 
-            // toolStripSeparator1
-            // 
-            toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new Size(186, 6);
-            // 
-            // viewLkMenuItem
-            // 
-            viewLkMenuItem.Name = "viewLkMenuItem";
-            viewLkMenuItem.Size = new Size(189, 22);
-            viewLkMenuItem.Text = "Открыть на сайте ЦБ";
-            viewLkMenuItem.Click += viewLkMenuItem_Click;
-            // 
             // StatusLabel
             // 
             StatusLabel.DisplayStyle = ToolStripItemDisplayStyle.Text;
@@ -243,7 +160,80 @@
             StatusLabel.Size = new Size(64, 17);
             StatusLabel.Text = "Загрузка...";
             // 
-            // MessagesPageForm
+            // contextMenu
+            // 
+            contextMenu.Items.AddRange(new ToolStripItem[] { refreshMenuItem, filterMenuItem, toolStripSeparator2, saveMessagesMenuItem, saveMessageMenuItem, saveZipMenuItem, saveFilesMenuItem, decryptFilesMenuItem, toolStripSeparator1, viewLkMenuItem });
+            contextMenu.Name = "contextMenu";
+            contextMenu.Size = new Size(208, 192);
+            contextMenu.Opening += contextMenu_Opening;
+            // 
+            // refreshMenuItem
+            // 
+            refreshMenuItem.Name = "refreshMenuItem";
+            refreshMenuItem.Size = new Size(207, 22);
+            refreshMenuItem.Text = "Обновить";
+            refreshMenuItem.Click += RefreshGrid;
+            // 
+            // filterMenuItem
+            // 
+            filterMenuItem.Name = "filterMenuItem";
+            filterMenuItem.Size = new Size(207, 22);
+            filterMenuItem.Text = "Фильтр по TaskName";
+            filterMenuItem.Click += filterMenuItem_Click;
+            // 
+            // toolStripSeparator2
+            // 
+            toolStripSeparator2.Name = "toolStripSeparator2";
+            toolStripSeparator2.Size = new Size(204, 6);
+            // 
+            // saveMessagesMenuItem
+            // 
+            saveMessagesMenuItem.Name = "saveMessagesMenuItem";
+            saveMessagesMenuItem.Size = new Size(207, 22);
+            saveMessagesMenuItem.Text = "Сохранить Messages...";
+            saveMessagesMenuItem.Click += saveMessagesMenuItem_Click;
+            // 
+            // saveMessageMenuItem
+            // 
+            saveMessageMenuItem.Name = "saveMessageMenuItem";
+            saveMessageMenuItem.Size = new Size(207, 22);
+            saveMessageMenuItem.Text = "Сохранить Message...";
+            saveMessageMenuItem.Click += saveMessageMenuItem_Click;
+            // 
+            // saveZipMenuItem
+            // 
+            saveZipMenuItem.Name = "saveZipMenuItem";
+            saveZipMenuItem.Size = new Size(207, 22);
+            saveZipMenuItem.Text = "Сохранить Zip...";
+            saveZipMenuItem.Click += saveZipMenuItem_Click;
+            // 
+            // saveFilesMenuItem
+            // 
+            saveFilesMenuItem.Name = "saveFilesMenuItem";
+            saveFilesMenuItem.Size = new Size(207, 22);
+            saveFilesMenuItem.Text = "Сохранить файлы...";
+            saveFilesMenuItem.Click += saveFilesMenuItem_Click;
+            // 
+            // decryptFilesMenuItem
+            // 
+            decryptFilesMenuItem.Name = "decryptFilesMenuItem";
+            decryptFilesMenuItem.Size = new Size(207, 22);
+            decryptFilesMenuItem.Text = "Расшифровать файлы...";
+            decryptFilesMenuItem.Click += decryptFilesMenuItem_Click;
+            // 
+            // toolStripSeparator1
+            // 
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new Size(204, 6);
+            // 
+            // viewLkMenuItem
+            // 
+            viewLkMenuItem.Name = "viewLkMenuItem";
+            viewLkMenuItem.Size = new Size(207, 22);
+            viewLkMenuItem.Text = "Открыть на сайте ЦБ";
+            viewLkMenuItem.Click += viewLkMenuItem_Click;
+            // 
+            // MessagesForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -251,12 +241,11 @@
             Controls.Add(messagesGrid);
             Controls.Add(flowLayoutPanel1);
             Controls.Add(statusStrip1);
-            Name = "MessagesPageForm";
-            Text = "Portal5";
+            Name = "MessagesForm";
+            Text = "Portal5 Messages";
             ((System.ComponentModel.ISupportInitialize)messagesGrid).EndInit();
             flowLayoutPanel1.ResumeLayout(false);
             flowLayoutPanel1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)pageBox).EndInit();
             statusStrip1.ResumeLayout(false);
             statusStrip1.PerformLayout();
             contextMenu.ResumeLayout(false);
@@ -274,11 +263,9 @@
         private DateTimePicker minDateBox;
         private DateTimePicker maxDateBox;
         private StatusStrip statusStrip1;
-        private NumericUpDown pageBox;
-        private Button actionButton;
         private ContextMenuStrip contextMenu;
-        private ToolStripMenuItem savePageMenuItem;
-        private ToolStripMenuItem saveJsonMenuItem;
+        private ToolStripMenuItem saveMessagesMenuItem;
+        private ToolStripMenuItem saveMessageMenuItem;
         private ToolStripMenuItem saveZipMenuItem;
         private ToolStripMenuItem saveFilesMenuItem;
         private ToolStripSeparator toolStripSeparator1;
@@ -286,5 +273,7 @@
         private ToolStripMenuItem filterMenuItem;
         private ToolStripSeparator toolStripSeparator2;
         private ToolStripStatusLabel StatusLabel;
+        private ToolStripMenuItem refreshMenuItem;
+        private ToolStripMenuItem decryptFilesMenuItem;
     }
 }

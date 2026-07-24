@@ -35,7 +35,7 @@ using static NativeMethods;
 public class CredentialService : ICredentialService
 {
     // Использует публичный конструктор
-    public static Credential StaticRead(string targetName) =>
+    public static Credential? StaticRead(string targetName) =>
         new CredentialService().Read(targetName);
 
     public static void StaticWrite(string targetName, string userName, string? secret) =>
@@ -49,9 +49,10 @@ public class CredentialService : ICredentialService
     /// </summary>
     /// <param name="targetName">String with 'Start *' or 'Name' (Windows secret only)
     /// or 'Host UserName Password' (Linux/Windows plain).</param>
-    /// <returns>Credential record (type, host, username?, secret?).</returns>
+    /// <returns>Credential record (type, host, username?, secret?)
+    /// или null, если запись не найдена.</returns>
     /// <exception cref="Exception"></exception>
-    public Credential Read(string targetName)
+    public Credential? Read(string targetName)
     {
         var words = targetName.Split();
         int num = words.Length;
@@ -79,8 +80,9 @@ public class CredentialService : ICredentialService
                         return ReadFromNativeCredential(cred);
                     }
 
-                    throw new InvalidOperationException(
-                        $"Windows Credential Manager has no '{targetName}' entries");
+                    return null;
+                    //throw new InvalidOperationException(
+                    //    $"Windows Credential Manager has no '{targetName}' entries");
                 }
 
                 if (CredRead(targetName, CredentialType.Generic, 0, out nint nCredPtr))
@@ -92,8 +94,9 @@ public class CredentialService : ICredentialService
                     return ReadFromNativeCredential(cred);
                 }
 
-                throw new InvalidOperationException(
-                    $"Windows Credential Manager has no '{targetName}' entries");
+                return null;
+                //throw new InvalidOperationException(
+                //    $"Windows Credential Manager has no '{targetName}' entries");
             }
 
             // Linux plain: 'Name Username' or 'Name'

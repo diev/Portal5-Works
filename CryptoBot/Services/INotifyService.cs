@@ -21,10 +21,10 @@ namespace CryptoBot.Services;
 
 internal interface INotifyService
 {
-    Task<int> DoneAsync(string? task, string message, string[]? subscribers = null, string[]? files = null);
-    Task<int> FailAPIAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null);
-    Task<int> FailAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null);
-    Task<int> FailAsync(string? task, string message, string[]? subscribers = null, string[]? files = null);
-    Task<int> FailTaskAsync(string? task, Exception ex, string[]? subscribers = null, string[]? files = null);
-    Task SendAsync(string subject, string body, string[]? subscribers = null, string[]? files = null);
+    Task<int> DoneAsync(string? task, string message, List<string>? subscribers = null, List<string>? files = null);
+    Task<int> FailAPIAsync(string? task, Exception ex, List<string>? subscribers = null, List<string>? files = null);
+    Task<int> FailAsync(string? task, Exception ex, List<string>? subscribers = null, List<string>? files = null);
+    Task<int> FailAsync(string? task, string message, List<string>? subscribers = null, List<string>? files = null);
+    Task<int> FailTaskAsync(string? task, Exception ex, List<string>? subscribers = null, List<string>? files = null);
+    Task SendAsync(string subject, string body, List<string>? subscribers = null, List<string>? files = null);
 }

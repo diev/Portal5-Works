@@ -19,6 +19,20 @@ limitations under the License.
 
 namespace Portal5;
 
-public class ProgramSettings
+public class MessagesFilterSettings
 {
+    public string? Task { get; set; }
+    public List<string>? Tasks { get; set; }
+    public List<string>? NoTasks { get; set; }
+    public uint? Before { get; set; }
+    public uint? Days { get; set; }
+    public uint? Day { get; set; }
+    public DateTime? MinDateTime { get; set; }
+    public DateTime? MaxDateTime { get; set; }
+    public uint? MinSize { get; set; }
+    public uint? MaxSize { get; set; }
+    public bool Inbox { get; set; }
+    public bool Outbox { get; set; }
+    public string? Status { get; set; }
+    public uint? Page { get; set; }
 }

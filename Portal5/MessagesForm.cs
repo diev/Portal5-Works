@@ -18,41 +18,60 @@ limitations under the License.
 #endregion
 
 using System.Diagnostics;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Unicode;
 
-using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 using Diev.Portal5.Interfaces;
 
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using Microsoft.Extensions.Options;
 
 namespace Portal5;
 
-public partial class MessagesPageForm : Form
+public partial class MessagesForm : Form
 {
-    private readonly IApiService _api;
-    private MessagesPage _page = null!;
+    private readonly IPortalService _portal;
+    private List<Diev.Portal5.API.Messages.Message> _messages = [];
     private string _downloadPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
-        WriteIndented = true
-    };
 
-    public MessagesPageForm() : this(null!) { }
+    public MessagesForm() : this(null!, null!) { }
 
-    public MessagesPageForm(IApiService api)
+    public MessagesForm(
+        IPortalService portal,
+        IOptions<MessagesFilterSettings> messagesFilterSettings
+        )
     {
-        _api = api;
+        _portal = portal;
 
         InitializeComponent();
         messagesGrid.ContextMenuStrip = contextMenu;
 
+        var s = messagesFilterSettings.Value;
+        var filter = new MessagesFilter(
+            task: s.Task,
+            tasks: s.Tasks,
+            notasks: s.NoTasks,
+            before: s.Before,
+            days: s.Days,
+            day: s.Day,
+            minDateTime: s.MinDateTime,
+            maxDateTime: s.MaxDateTime,
+            minSize: s.MinSize,
+            maxSize: s.MaxSize,
+            inbox: s.Inbox,
+            outbox: s.Outbox,
+            status: s.Status,
+            page: s.Page
+            );
+        inBox.Checked = s.Inbox;
+        outBox.Checked = s.Outbox;
+        minDateBox.Value = filter.MinDateTime ?? DateTime.Today;
+        maxDateBox.Value = filter.MaxDateTime ?? DateTime.Today.AddDays(1);
+
         string text = "Все задачи";
         taskBox.Items.Add(text);
         taskBox.SelectedItem = text; //RefreshGrid();
+
+        //messagesGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        FitColumnsToWidthNoScroll(messagesGrid);
     }
 
     private void RefreshGrid(object sender, EventArgs e)
@@ -67,6 +86,8 @@ public partial class MessagesPageForm : Form
 
         var filter = new MessagesFilter(
             task: taskBox.Text == "Все задачи" ? null : taskBox.Text,
+            tasks: null,
+            notasks: null,
             before: null,
             days: null,
             day: null,
@@ -77,27 +98,26 @@ public partial class MessagesPageForm : Form
             inbox: inBox.Checked,
             outbox: outBox.Checked,
             status: null,
-            page: (uint?)pageBox.Value);
+            page: null);
 
-        var result = await _api.GetMessagesPageAsync(filter);
+        var result = await _portal.GetMessagesAsync(filter);
 
         if (result.OK)
         {
-            _page = result.Data!;
-            var pages = _page.Pages;
-            StatusLabel.Text = $"Страница {pages.CurrentPage} из {pages.TotalPages}";
+            _messages = result.Data!;
+            StatusLabel.Text = $"Всего: {_messages.Count}";
 
-            int i = 0;
-            var rows = _page.Messages.Select(x => new
+            //int i = 0;
+            var rows = _messages.Select(x => new
             {
-                N = ++i,
+                //N = ++i,
                 Type = x.Type == "inbox" ? "Вх" : "Исх",
                 x.TaskName,
                 x.Title,
                 x.Text,
                 x.CreationDate,
                 Status = $"{x.Status} {x.RegNumber}",
-                Files = $"{x.Files.Length}: " +
+                Files = $"{x.Files.Count}: " +
                     string.Join(", ", x.Files.Where(f => f.SignedFile is null).Select(f => f.Name).Order()),
                 x.TotalSize
                 //x.Id,
@@ -105,16 +125,12 @@ public partial class MessagesPageForm : Form
             }).ToArray();
 
             messagesGrid.DataSource = rows;
+            SetupSortableColumns(messagesGrid);
             messagesGrid.AutoResizeColumns();
-
-            pageBox.Maximum = pages.TotalPages;
-            pageBox.Enabled = pageBox.Maximum > 1;
-
-            StatusLabel.Text = $"Страница {pages.CurrentPage} из {pages.TotalPages}";
         }
         else
         {
-            StatusLabel.Text = "Ошибка загрузки";
+            StatusLabel.Text = $"Ошибка загрузки: {result.Error?.ErrorMessage}";
         }
 
         Cursor = Cursors.Default;
@@ -155,28 +171,16 @@ public partial class MessagesPageForm : Form
         }
 
         int rowIndex = hit.RowIndex;
-        var row = _page.Messages[rowIndex];
+        var message = _messages[rowIndex];
 
-        // Сохраняем Message.Id в Tag меню, чтобы потом его использовать
-        contextMenu.Tag = row.Id;
-        filterMenuItem.Text = $"Фильтр по {row.TaskName}";
+        contextMenu.Tag = message;
+        filterMenuItem.Text = $"Фильтр по {message.TaskName}";
     }
 
     private void filterMenuItem_Click(object sender, EventArgs e)
     {
-        if (contextMenu.Tag is not string id)
-            return;
-
-        // Находим объект по Id (на случай, если список отфильтрован и индексы не совпадают)
-        var row = _page.Messages.FirstOrDefault(x => x.Id == id);
-        if (row == null)
-        {
-            MessageBox.Show("Элемент не найден.",
-                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        string text = row.TaskName;
+        var message = (Diev.Portal5.API.Messages.Message)contextMenu.Tag!;
+        string text = message.TaskName;
 
         if (!taskBox.Items.Contains(text))
         {
@@ -186,25 +190,23 @@ public partial class MessagesPageForm : Form
         taskBox.SelectedItem = text; //RefreshGrid();
     }
 
-    private async void savePageMenuItem_Click(object sender, EventArgs e)
+    private async void saveMessagesMenuItem_Click(object sender, EventArgs e)
     {
         using var dialog = new SaveFileDialog
         {
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
             Title = "Куда сохранить файл?",
             InitialDirectory = _downloadPath,
-            FileName = $"Portal5-{DateTime.Now:yyyyMMdd-HHmm}.json",
+            FileName = $"Portal5 {DateTime.Now:yyyyMMdd-HHmm}.json",
             DefaultExt = "json"
         };
 
         if (dialog.ShowDialog() != DialogResult.OK)
             return;
 
-        string json = JsonSerializer.Serialize(_page, _jsonOptions);
-
         string path = dialog.FileName;
         _downloadPath = Path.GetDirectoryName(path) ?? string.Empty;
-        await File.WriteAllTextAsync(path, json);
+        var result = await _portal.SaveMessagesJsonAsync(_messages, path);
 
         if (Path.Exists(path))
         {
@@ -218,28 +220,17 @@ public partial class MessagesPageForm : Form
         }
     }
 
-    private async void saveJsonMenuItem_Click(object sender, EventArgs e)
+    private async void saveMessageMenuItem_Click(object sender, EventArgs e)
     {
-        if (contextMenu.Tag is not string id)
-            return;
-
-        // Находим объект по Id (на случай, если список отфильтрован и индексы не совпадают)
-        var row = _page.Messages.FirstOrDefault(x => x.Id == id);
-        if (row == null)
-        {
-            MessageBox.Show("Элемент не найден.",
-                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        string json = JsonSerializer.Serialize(row, _jsonOptions);
+        var message = (Diev.Portal5.API.Messages.Message)contextMenu.Tag!;
+        var msgId = message.Id;
 
         using var dialog = new SaveFileDialog
         {
             Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
             Title = "Куда сохранить файл?",
             InitialDirectory = _downloadPath,
-            FileName = $"{id}.json",
+            FileName = $"{msgId}.json",
             DefaultExt = "json"
         };
 
@@ -248,40 +239,31 @@ public partial class MessagesPageForm : Form
 
         string path = dialog.FileName;
         _downloadPath = Path.GetDirectoryName(path) ?? string.Empty;
-        await File.WriteAllTextAsync(path, json);
+        var result = await _portal.SaveMessageJsonAsync(message, path);
 
-        if (Path.Exists(path))
+        if (result.OK)
         {
             MessageBox.Show($"Json сохранён в {path}",
                 "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         else
         {
-            MessageBox.Show($"Json не сохранён в {path}",
+            MessageBox.Show(result.Error?.ErrorMessage,
                 "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 
     private async void saveZipMenuItem_Click(object sender, EventArgs e)
     {
-        if (contextMenu.Tag is not string id)
-            return;
-
-        // Находим объект по Id (на случай, если список отфильтрован и индексы не совпадают)
-        var row = _page.Messages.FirstOrDefault(x => x.Id == id);
-        if (row == null)
-        {
-            MessageBox.Show("Элемент не найден.",
-                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+        var message = (Diev.Portal5.API.Messages.Message)contextMenu.Tag!;
+        var msgId = message.Id;
 
         using var dialog = new SaveFileDialog
         {
             Filter = "ZIP files (*.zip)|*.zip|All files (*.*)|*.*",
             Title = "Куда сохранить файл?",
             InitialDirectory = _downloadPath,
-            FileName = $"{id}.zip",
+            FileName = $"{msgId}.zip",
             DefaultExt = "zip"
         };
 
@@ -290,7 +272,7 @@ public partial class MessagesPageForm : Form
 
         string path = dialog.FileName;
         _downloadPath = Path.GetDirectoryName(path) ?? string.Empty;
-        var result = await _api.DownloadMessageZipAsync(id, path);
+        var result = await _portal.DownloadMessageZipAsync(msgId, path);
 
         if (result.OK)
         {
@@ -299,24 +281,14 @@ public partial class MessagesPageForm : Form
         }
         else
         {
-            MessageBox.Show($"Zip не сохранён в {path}",
+            MessageBox.Show(result.Error?.ErrorMessage,
                 "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 
     private async void saveFilesMenuItem_Click(object sender, EventArgs e)
     {
-        if (contextMenu.Tag is not string id)
-            return;
-
-        // Находим объект по Id (на случай, если список отфильтрован и индексы не совпадают)
-        var row = _page.Messages.FirstOrDefault(x => x.Id == id);
-        if (row == null)
-        {
-            MessageBox.Show("Элемент не найден.",
-                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
+        var message = (Diev.Portal5.API.Messages.Message)contextMenu.Tag!;
 
         using var dialog = new FolderBrowserDialog
         {
@@ -327,52 +299,61 @@ public partial class MessagesPageForm : Form
         if (dialog.ShowDialog() != DialogResult.OK)
             return;
 
-        string folder = dialog.SelectedPath;
-        _downloadPath = folder;
-        bool ok = true;
+        string path = dialog.SelectedPath;
+        _downloadPath = path;
+        var result = await _portal.DownloadMessageFilesAsync(message, path);
 
-        foreach (var file in row.Files)
+        if (result.OK)
         {
-            string path = Path.Combine(folder, file.Name);
-            var result = await _api.DownloadMessageFileAsync(id, file.Id, path);
-            ok = ok && result.OK;
-        }
-
-        if (ok)
-        {
-            MessageBox.Show($"Файлы сохранены в {folder}",
+            MessageBox.Show($"Файлы сохранены в {path}",
                 "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         else
         {
-            MessageBox.Show($"Файлы не сохранены в {folder}",
+            MessageBox.Show(result.Error?.ErrorMessage,
+                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private async void decryptFilesMenuItem_Click(object sender, EventArgs e)
+    {
+        var message = (Diev.Portal5.API.Messages.Message)contextMenu.Tag!;
+
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Выберите папку для сохранения",
+            SelectedPath = _downloadPath,
+        };
+
+        if (dialog.ShowDialog() != DialogResult.OK)
+            return;
+
+        string path = dialog.SelectedPath;
+        _downloadPath = path;
+        var result = await _portal.DecryptMessageFilesAsync(message, path);
+
+        if (result.OK)
+        {
+            MessageBox.Show($"Файлы расшифрованы в {path}",
+                "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show(result.Error?.ErrorMessage,
                 "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 
     private void viewLkMenuItem_Click(object sender, EventArgs e)
     {
-        if (contextMenu.Tag is not string id)
-            return;
-
-        // Находим объект по Id (на случай, если список отфильтрован и индексы не совпадают)
-        var row = _page.Messages.FirstOrDefault(x => x.Id == id);
-        if (row == null)
-        {
-            MessageBox.Show("Элемент не найден.",
-                "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
-        var baseUri = _api.GetBaseAddress();
-        string path = $"/messages/view-message/{id}/";
-        var uri = new Uri(baseUri, path);
+        var message = (Diev.Portal5.API.Messages.Message)contextMenu.Tag!;
+        string url = _portal.GetMessageUrl(message.Id);
 
         try
         {
             var startInfo = new ProcessStartInfo
             {
-                FileName = uri.ToString(),
+                FileName = url,
                 UseShellExecute = true
             };
 
@@ -380,8 +361,46 @@ public partial class MessagesPageForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Не удалось открыть ссылку: {ex.Message}",
+            MessageBox.Show($"Не удалось открыть ссылку {url}{Environment.NewLine}{ex.Message}",
                 "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private static void FitColumnsToWidthNoScroll(DataGridView dgv)
+    {
+        // Сначала подгоняем под содержимое
+        dgv.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.DisplayedCells);
+
+        int totalWidth = 0;
+        foreach (DataGridViewColumn col in dgv.Columns)
+        {
+            if (!col.Visible) continue;
+            totalWidth += col.Width;
+        }
+
+        int clientWidth = dgv.ClientSize.Width - (dgv.RowHeadersVisible ? dgv.RowHeadersWidth : 0);
+
+        if (totalWidth > clientWidth)
+        {
+            // Пропорционально уменьшаем все колонки
+            double ratio = (double)clientWidth / totalWidth;
+            foreach (DataGridViewColumn col in dgv.Columns)
+            {
+                if (!col.Visible) continue;
+                col.Width = (int)(col.Width * ratio);
+            }
+        }
+    }
+
+    private static void SetupSortableColumns(DataGridView dgv)
+    {
+        dgv.AllowUserToOrderColumns = false;
+        dgv.AllowUserToResizeColumns = true; // по желанию
+
+        foreach (DataGridViewColumn col in dgv.Columns)
+        {
+            // Для простых типов (string, int, DateTime) достаточно Programmatic
+            col.SortMode = DataGridViewColumnSortMode.Automatic;
         }
     }
 }

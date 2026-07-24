@@ -43,7 +43,7 @@ public class Profile
     /// <summary>
     /// Список видов деятельностей компании.
     /// </summary>
-    public Activities[]? Activities { get; set; }
+    public List<Activities>? Activities { get; set; }
 
     /// <summary>
     /// Индивидуальный номер налогоплательщика компании.

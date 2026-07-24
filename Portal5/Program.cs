@@ -20,7 +20,10 @@ limitations under the License.
 using System.Text;
 
 using Diev.Extensions.CredentialManager;
+using Diev.Extensions.Crypto;
+using Diev.Extensions.Exec;
 using Diev.Extensions.Loggers;
+using Diev.Portal5.API.Tools;
 using Diev.Portal5.Tools;
 
 using Microsoft.Extensions.Configuration;
@@ -54,12 +57,15 @@ public static class Program
 
         builder.Services
             .AddCredentialManager()
+            .AddExec()
+            .AddCrypto()
             .AddPortal5()
+            .Configure<MessagesFilterSettings>(config.GetSection("MessagesFilter"))
             //AddSingleton<IDataService>(sp => new DataService())
-            .AddTransient<MessagesPageForm>();
+            .AddTransient<MessagesForm>();
 
         using var host = builder.Build();
-        var form = host.Services.GetRequiredService<MessagesPageForm>();
+        var form = host.Services.GetRequiredService<MessagesForm>();
         Application.Run(form);
     }
 }

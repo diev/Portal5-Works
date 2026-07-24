@@ -40,6 +40,7 @@ public class CryptCP : CryptoBase
         settings = options.Value;
 
         settings.Util ??= @"cryptcp.x64.exe";
+        Enabled = File.Exists(settings.Util);
 
         settings.Sign ??= @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -attached -addchain";
         settings.SignDetached ??= @"-sign ""{0}"" ""{1}"" -thumbprint {2} -nochain -der -detached -addchain";

@@ -116,7 +116,7 @@ internal class Loader(
 
             var messagesPage = result.Data!;
 
-            if (messagesPage.Messages.Length == 0)
+            if (messagesPage.Messages.Count == 0)
             {
                 logger.LogInformation("Нет сообщений");
                 return 0;
@@ -124,15 +124,15 @@ internal class Loader(
 
             logger.LogInformation("В списке сообщений {Pages} стр. по {Messages} шт.",
                 messagesPage.Pages.TotalPages,
-                messagesPage.Messages.Length);
+                messagesPage.Messages.Count);
 
             report
                 .Append($"В списке сообщений {messagesPage.Pages.TotalPages} стр.")
-                .AppendLine($" по {messagesPage.Messages.Length} шт.")
+                .AppendLine($" по {messagesPage.Messages.Count} шт.")
                 .AppendLine();
 
             // Приступаем к загрузке
-            while (messagesPage!.Messages.Length > 0)
+            while (messagesPage!.Messages.Count > 0)
             {
                 foreach (var message in messagesPage.Messages)
                 {
@@ -191,7 +191,7 @@ internal class Loader(
 
     private async Task SaveMessageAsync(bool lk, Message message, string zip)
     {
-        if ((await portal.SaveMessageZipAsync(message.Id, zip)).OK)
+        if ((await portal.DownloadMessageZipAsync(message.Id, zip)).OK)
         {
             var result = await portal.DecryptMessageZipAsync(message, zip, docPath);
             var msgInfo = result.Data!;
@@ -250,7 +250,7 @@ internal class Loader(
 
             var files = File.Exists(pdf)
                 ? [pdf]
-                : Directory.GetFiles(docs, "*.pdf");
+                : Directory.GetFiles(docs, "*.pdf").ToList();
 
             await notifier.SendAsync($"ЛК ЦБ вх: {subj}", text, subscribers, files);
         }

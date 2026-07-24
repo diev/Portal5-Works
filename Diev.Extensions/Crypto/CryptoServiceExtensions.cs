@@ -47,6 +47,18 @@ public static class CryptoServiceExtensions
         // Регистрируем настройки как IOptions<CryptoSettings>
         services.Configure<CryptoSettings>(config.GetSection(sectionName));
 
+        // Регистрируем провайдеров Crypto с их ILogger и т.п.
+        services.AddSingleton<CspTest>();
+        services.AddSingleton<CryptCP>();
+
+        // Регистрируем указанного в конфиге провайдера
+        services.AddSingleton<CryptoServiceFactory>();
+        services.AddSingleton(sp =>
+        {
+            var factory = sp.GetRequiredService<CryptoServiceFactory>();
+            return factory.Create();
+        });
+
         // Применяем дополнительные настройки
         services.PostConfigure<CryptoSettings>(settings =>
         {
@@ -56,33 +68,21 @@ public static class CryptoServiceExtensions
             }
         });
 
-        // Регистрируем Crypto
-        //services.AddKeyedSingleton<ICryptoService, CspTest>(nameof(CspTest));
-        //services.AddKeyedSingleton<ICryptoService, CryptCP>(nameof(CryptCP));
-
-        //TODO switch if file exists
-        services.AddSingleton<ICryptoService, CryptCP>();
-
         return services;
     }
 
     private static void ReadCredentialManager(ref CryptoSettings settings)
     {
         string filter = settings.My ?? "CryptoPro My";
+        var cred = new CredentialService().Read(filter);
 
-        try
-        {
-            var cred = new CredentialService().Read(filter);
-            string name = cred.TargetName;
+        if (cred is null)
+            return;
 
-            settings.My = cred.UserName
-                ?? throw new Exception($"Windows Credential Manager '{name}' has no UserName");
-            settings.PIN = cred.Password;
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException(
-                $"Windows Credential Manager '{filter}' has wrong format", ex);
-        }
+        string name = cred.TargetName;
+
+        settings.My = cred.UserName
+            ?? throw new Exception($"Windows Credential Manager '{name}' has no UserName");
+        settings.PIN = cred.Password;
     }
 }

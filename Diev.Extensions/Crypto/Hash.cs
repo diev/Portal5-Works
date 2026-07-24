@@ -1,6 +1,6 @@
 ﻿#region License
 /*
-Copyright 2024-2025 Dmitrii Evdokimov
+Copyright 2024-2026 Dmitrii Evdokimov
 Open source software
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,7 @@ public class Hash : CryptoBase
         settings = options.Value;
 
         settings.Util ??= @"C:\Program Files\Crypto Pro\CSP\cpverify.exe";
+        Enabled = File.Exists(settings.Util);
 
         //TODO Flags:
         /*

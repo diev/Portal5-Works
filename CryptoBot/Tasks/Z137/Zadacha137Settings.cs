@@ -24,5 +24,5 @@ public class Zadacha137Settings
     public string UploadPath { get; set; } = "."; // "FORMS/ZSK/OUT";
     public string Xsd { get; set; } = "ClientFileXML.xsd";
     public string Zip { get; set; } = "KYCCL_7831001422_3194_{0:yyyyMMdd}_000001.zip";
-    public string[] Subscribers { get; set; } = [];
+    public List<string> Subscribers { get; set; } = [];
 }

@@ -30,7 +30,7 @@ namespace Diev.Portal5.API.Tools;
 /// <param name="ExpirationDateTime">Дата и время истечения сессии.</param>
 public class AcceptedRange
 {
-    public required string[] NextExpectedRange { get; set; }
+    public required List<string> NextExpectedRange { get; set; }
 
     [JsonConverter(typeof(LocalTimeConverter))]
     public required DateTime ExpirationDateTime { get; set; }

@@ -57,7 +57,7 @@ internal class Zadacha222(
             throw new TaskException("Не получено сообщений");
 
         var messages = messagesResult.Data!;
-        int count = messages.Length;
+        int count = messages.Count;
 
         if (count == 0)
         {

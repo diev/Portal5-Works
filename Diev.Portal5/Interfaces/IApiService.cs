@@ -17,8 +17,6 @@ limitations under the License.
 */
 #endregion
 
-using System.Data;
-
 using Diev.Portal5.API.Dictionaries;
 using Diev.Portal5.API.Info;
 using Diev.Portal5.API.Messages;
@@ -35,8 +33,6 @@ namespace Diev.Portal5.Interfaces;
 /// </summary>
 public interface IApiService
 {
-    Uri GetBaseAddress();
-
     /* 3.1.2.1. Взаимодействие с разделом Пользователи */
 
     // 3.1.2.1.1 Для получения списка всех Пользователей с учетом необязательных фильтров (не более 100 Пользователей за один запрос) используется метод GET
@@ -116,7 +112,7 @@ public interface IApiService
     Task<ApiResult<bool>> DownloadMessageFileAsync(string msgId, string fileId, string path, bool overwrite = false);
 
     // 3.1.3.3.6. Для получения данных о квитанциях на сообщение используется метод GET
-    Task<ApiResult<MessageReceipt[]>> GetMessageReceiptsAsync(string msgId);
+    Task<ApiResult<List<MessageReceipt>>> GetMessageReceiptsAsync(string msgId);
     
     // 3.1.3.3.7. Для получения данных о квитанции на сообщение используется метод GET
     Task<ApiResult<MessageReceipt>> GetMessageReceiptAsync(string msgId, string rcptId);
@@ -149,7 +145,7 @@ public interface IApiService
     Task<ApiResult<Quota>> GetQuotaAsync();
     
     // 3.1.3.5.4. Для получения информации о технических оповещениях используется метод GET
-    Task<ApiResult<Notification[]>> GetNotificationsAsync();
+    Task<ApiResult<List<Notification>>> GetNotificationsAsync();
     
     // 3.1.3.5.5. Для получения списка справочников используется метод GET
     Task<ApiResult<DictItems>> GetLevelsPageAsync();

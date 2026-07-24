@@ -40,6 +40,7 @@ public class SpkiUtl : CryptoBase
         settings = options.Value;
 
         settings.Util ??= @"C:\Program Files\MDPREI\spki\spki1utl.exe";
+        Enabled = File.Exists(settings.Util);
 
         settings.Sign ??= @"-sign -data ""{0}"" -out ""{1}""";
         settings.SignDetached ??= @"-sign -data ""{0}"" -out ""{1}"" -detached";

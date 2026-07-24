@@ -21,5 +21,5 @@ namespace CryptoBot;
 
 public class ProgramSettings
 {
-    public string[] Subscribers { get; set; } = [];
+    public List<string> Subscribers { get; set; } = [];
 }

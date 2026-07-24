@@ -176,7 +176,7 @@ public class Message
     /// "DivisionCode": "0000"<br/>
     /// }, ...]
     /// </summary>
-    public Receiver[]? Receivers { get; set; }
+    public List<Receiver>? Receivers { get; set; }
 
     /// <summary>
     /// Файлы включенные в сообщение.<br/>
@@ -190,13 +190,13 @@ public class Message
     /// "RepositoryInfo": [...]<br/>
     /// }, ...]
     /// </summary>
-    public required MessageFile[] Files { get; set; }
+    public required List<MessageFile> Files { get; set; }
 
     /// <summary>
     /// Квитанции, полученные в ответ на сообщение.<br/>
     /// Example: []
     /// </summary>
-    public MessageReceipt[]? Receipts { get; set; }
+    public List<MessageReceipt>? Receipts { get; set; }
 }
 
 /* GET https://portal5.cbr.ru/back/rapi2/messages

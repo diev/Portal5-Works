@@ -22,5 +22,5 @@ namespace CryptoBot.Tasks.Z130;
 public class Zadacha130Settings
 {
     public string DownloadPath { get; set; } = "FORMS/ZSK/IN";
-    public string[] Subscribers { get; set; } = [];
+    public List<string> Subscribers { get; set; } = [];
 }

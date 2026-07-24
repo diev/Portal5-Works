@@ -22,5 +22,5 @@ namespace CryptoBot.Tasks.Z296;
 public class Zadacha296Settings
 {
     public string DownloadPath { get; set; } = "FORMS/Feeds/IN";
-    public string[] Subscribers { get; set; } = [];
+    public List<string> Subscribers { get; set; } = [];
 }

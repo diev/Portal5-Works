@@ -253,10 +253,10 @@ public class MessageInfo
     private static string FormatFileSize(long bytes)
     {
         double size = bytes;
-        string[] units = ["B", "KB", "MB", "GB"];
+        List<string> units = ["B", "KB", "MB", "GB"];
         int i = 0;
 
-        while (size >= 1024 && i < units.Length - 1)
+        while (size >= 1024 && i < units.Count - 1)
         {
             size /= 1024;
             i++;

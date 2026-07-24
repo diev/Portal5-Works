@@ -32,7 +32,7 @@ public record DictItems
     /// не более 100 за один запрос.
     /// Example: "[{...}, ...]"
     /// </summary>
-    DictItem[] Items
+    List<DictItem> Items
 );
 
 #region Mock

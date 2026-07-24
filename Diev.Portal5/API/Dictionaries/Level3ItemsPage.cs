@@ -31,7 +31,7 @@ public record Level3ItemsPage
     /// <summary>
     /// Example: "[{...}, ...]"
     /// </summary>
-    Level3Item[] Items,
+    List<Level3Item> Items,
 
     /// <summary>
     /// Example: {

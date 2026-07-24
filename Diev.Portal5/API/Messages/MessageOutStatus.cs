@@ -77,5 +77,5 @@ public record MessageOutStatus
     public static string Success => "success";
 
     [JsonIgnore]
-    public static string[] Values => [Draft, Sent, Delivered, Error, Processing, Registered, Rejected, Success];
+    public static List<string> Values => [Draft, Sent, Delivered, Error, Processing, Registered, Rejected, Success];
 }
