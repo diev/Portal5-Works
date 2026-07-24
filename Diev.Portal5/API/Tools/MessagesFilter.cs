@@ -35,7 +35,15 @@ public class MessagesFilter
     /// (если параметр будет указан, то будут возвращены только сообщения, полученные/отправленные в рамках указанной задачи).
     /// </summary>
     public string? Task { get; set; }
+    
+    /// <summary>
+    /// Белый список для передачи в Task
+    /// </summary>
     public List<string>? Tasks { get; set; }
+    
+    /// <summary>
+    /// Черный список для удаления по Task из выборки
+    /// </summary>
     public List<string>? NoTasks { get; set; }
 
     /// <summary>
@@ -101,6 +109,20 @@ public class MessagesFilter
 
     public MessagesFilter() { }
 
+    public MessagesFilter(MessagesFilter filter)
+    {
+        Task = filter.Task;
+        Tasks = filter.Tasks;
+        NoTasks = filter.NoTasks;
+        MinDateTime = filter.MinDateTime;
+        MaxDateTime = filter.MaxDateTime;
+        MinSize = filter.MinSize;
+        MaxSize = filter.MaxSize;
+        Type = filter.Type;
+        Status = filter.Status;
+        Page = filter.Page;
+    }
+
     public MessagesFilter(string? task, List<string>? tasks, List<string>? notasks,
         uint? before, uint? days, uint? day, DateTime? minDateTime, DateTime? maxDateTime,
         uint? minSize, uint? maxSize,
@@ -146,18 +168,12 @@ public class MessagesFilter
         Page = page;
     }
 
-    public string? GetQuery(int i = 0)
+    public string? GetQuery()
     {
         var query = new StringBuilder();
 
         if (!string.IsNullOrEmpty(Task))
-        {
             query.Append("&Task=").Append(Task);
-        }
-        else if (Tasks is not null && i < Tasks.Count)
-        {
-            query.Append("&Task=").Append(Tasks[i]);
-        }
 
         if (MinDateTime.HasValue)
             query.Append("&MinDateTime=")

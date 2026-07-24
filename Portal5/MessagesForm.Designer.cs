@@ -67,6 +67,7 @@
             messagesGrid.Size = new Size(800, 397);
             messagesGrid.TabIndex = 0;
             messagesGrid.CellContentDoubleClick += messagesGrid_CellContentDoubleClick;
+            messagesGrid.CellFormatting += messagesGrid_CellFormatting;
             // 
             // flowLayoutPanel1
             // 
@@ -88,8 +89,6 @@
             // inBox
             // 
             inBox.AutoSize = true;
-            inBox.Checked = true;
-            inBox.CheckState = CheckState.Checked;
             inBox.Location = new Point(3, 3);
             inBox.Name = "inBox";
             inBox.Size = new Size(39, 19);
@@ -101,8 +100,6 @@
             // outBox
             // 
             outBox.AutoSize = true;
-            outBox.Checked = true;
-            outBox.CheckState = CheckState.Checked;
             outBox.Location = new Point(48, 3);
             outBox.Name = "outBox";
             outBox.Size = new Size(47, 19);
@@ -124,6 +121,7 @@
             // 
             // minDateBox
             // 
+            minDateBox.Checked = false;
             minDateBox.Format = DateTimePickerFormat.Short;
             minDateBox.Location = new Point(243, 3);
             minDateBox.MinDate = new DateTime(2016, 1, 1, 0, 0, 0, 0);
@@ -135,6 +133,7 @@
             // 
             // maxDateBox
             // 
+            maxDateBox.Checked = false;
             maxDateBox.Format = DateTimePickerFormat.Short;
             maxDateBox.Location = new Point(372, 3);
             maxDateBox.MinDate = new DateTime(2016, 1, 1, 0, 0, 0, 0);

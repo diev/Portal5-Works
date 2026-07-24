@@ -19,6 +19,7 @@ limitations under the License.
 
 using System.Diagnostics;
 
+using Diev.Portal5.API.Messages;
 using Diev.Portal5.API.Tools;
 using Diev.Portal5.Interfaces;
 
@@ -28,7 +29,9 @@ namespace Portal5;
 
 public partial class MessagesForm : Form
 {
+    private readonly bool _autoRefresh = false;
     private readonly IPortalService _portal;
+    private readonly MessagesFilter _filter;
     private List<Diev.Portal5.API.Messages.Message> _messages = [];
     private string _downloadPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
@@ -45,7 +48,7 @@ public partial class MessagesForm : Form
         messagesGrid.ContextMenuStrip = contextMenu;
 
         var s = messagesFilterSettings.Value;
-        var filter = new MessagesFilter(
+        _filter = new MessagesFilter(
             task: s.Task,
             tasks: s.Tasks,
             notasks: s.NoTasks,
@@ -61,14 +64,32 @@ public partial class MessagesForm : Form
             status: s.Status,
             page: s.Page
             );
+
         inBox.Checked = s.Inbox;
         outBox.Checked = s.Outbox;
-        minDateBox.Value = filter.MinDateTime ?? DateTime.Today;
-        maxDateBox.Value = filter.MaxDateTime ?? DateTime.Today.AddDays(1);
+
+        if (_filter.MinDateTime.HasValue)
+        {
+            minDateBox.Checked = true;
+            minDateBox.Value = (DateTime)_filter.MinDateTime;
+        }
+
+        if (_filter.MaxDateTime.HasValue)
+        {
+            maxDateBox.Checked = true;
+            maxDateBox.Value = (DateTime)_filter.MaxDateTime;
+        }
+        else
+        {
+            maxDateBox.Value = DateTime.Today;
+        }
 
         string text = "Все задачи";
         taskBox.Items.Add(text);
-        taskBox.SelectedItem = text; //RefreshGrid();
+        taskBox.SelectedItem = text;
+
+        _autoRefresh = true;
+        RefreshGrid();
 
         //messagesGrid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         FitColumnsToWidthNoScroll(messagesGrid);
@@ -81,24 +102,23 @@ public partial class MessagesForm : Form
 
     private async void RefreshGrid()
     {
+        if (!_autoRefresh)
+            return;
+
         StatusLabel.Text = "Загрузка...";
         Cursor = Cursors.WaitCursor;
 
-        var filter = new MessagesFilter(
-            task: taskBox.Text == "Все задачи" ? null : taskBox.Text,
-            tasks: null,
-            notasks: null,
-            before: null,
-            days: null,
-            day: null,
-            minDateTime: minDateBox.Checked ? minDateBox.Value.Date : null,
-            maxDateTime: maxDateBox.Checked ? maxDateBox.Value.Date.AddDays(1) : null,
-            minSize: null,
-            maxSize: null,
-            inbox: inBox.Checked,
-            outbox: outBox.Checked,
-            status: null,
-            page: null);
+        var filter = new MessagesFilter(_filter)
+        {
+            Task = taskBox.Text == "Все задачи" ? null : taskBox.Text,
+            MinDateTime = minDateBox.Checked ? minDateBox.Value.Date : null,
+            MaxDateTime = maxDateBox.Checked ? maxDateBox.Value.Date.AddDays(1) : null,
+            Type = inBox.Checked == outBox.Checked
+                ? null
+                : inBox.Checked
+                    ? MessageType.Inbox
+                    : MessageType.Outbox
+        };
 
         var result = await _portal.GetMessagesAsync(filter);
 
@@ -124,6 +144,7 @@ public partial class MessagesForm : Form
                 //x.CorrelationId
             }).ToArray();
 
+            messagesGrid.DataSource = null;
             messagesGrid.DataSource = rows;
             SetupSortableColumns(messagesGrid);
             messagesGrid.AutoResizeColumns();
@@ -402,5 +423,35 @@ public partial class MessagesForm : Form
             // Для простых типов (string, int, DateTime) достаточно Programmatic
             col.SortMode = DataGridViewColumnSortMode.Automatic;
         }
+    }
+
+    private void messagesGrid_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+    {
+        // Пропускаем заголовки и пустые ячейки
+        if (e.RowIndex < 0 || e.Value == null)
+            return;
+
+        string status = _messages[e.RowIndex].Status;
+
+        Color foreColor = status switch
+        {
+            //"OK" => Color.LightGreen,
+            //"Warning" => Color.LightYellow,
+            //"Error" => Color.LightCoral,
+            //_ => Color.White
+
+            "draft" => Color.Gray,
+            "sent" => Color.Gray,
+            "delivered" => Color.Blue,
+            "processing" => Color.Blue,
+            "registered" => Color.Green,
+            "success" => Color.Green,
+            "rejected" => Color.Brown,
+            "error" => Color.Red,
+            _ => Color.Black
+        };
+
+        // Применяем стиль к строке целиком
+        messagesGrid.Rows[e.RowIndex].DefaultCellStyle.ForeColor = foreColor;
     }
 }

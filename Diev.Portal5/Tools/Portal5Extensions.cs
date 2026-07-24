@@ -99,7 +99,7 @@ public static class Portal5Extensions
                 }
 
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
-                client.Timeout = TimeSpan.FromMinutes(1);
+                client.Timeout = TimeSpan.FromMinutes(3);
             })
 
             // Logging

@@ -313,16 +313,19 @@ public class PortalService(
 
         List<string> tasks = [];
 
-        if (filter.Task is not null)
+        if (filter.Task is null) // "Все задачи"
+        {
+            // Use config filter
+            if (filter.Tasks is not null && filter.Tasks.Count > 0)
+                tasks.AddRange(filter.Tasks);
+        }
+        else // TaskName selected
         {
             if (filter.Task.Contains(','))
                 tasks.AddRange(filter.Task.Split(','));
             else
                 tasks.Add(filter.Task);
         }
-
-        if (filter.Tasks is not null)
-            tasks.AddRange(filter.Tasks);
 
         if (tasks.Count == 0)
             tasks.Add(string.Empty);
@@ -362,10 +365,15 @@ public class PortalService(
             }
         }
 
-        if (filter.NoTasks is not null)
+        if (filter.NoTasks is not null && filter.NoTasks.Count > 0)
         {
             var noSet = new HashSet<string>(filter.NoTasks);
             messages.RemoveAll(message => noSet.Contains(message.TaskName));
+        }
+
+        if (tasks.Count > 1)
+        {
+            messages = [.. messages.OrderBy(x => x.CreationDate)];
         }
 
         return ApiResult<List<Message>>.CreateOK(messages);

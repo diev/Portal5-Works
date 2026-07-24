@@ -146,7 +146,7 @@ internal class CliService : ICliService
                 p.GetValue(idOption),
             // or
             new MessagesFilter(
-                p.GetValue(taskOption),
+                p.GetValue(taskOption), null, null,
                 p.GetValue(beforeOption), p.GetValue(daysOption), p.GetValue(dayOption),
                 p.GetValue(minDateTimeOption), p.GetValue(maxDateTimeOption),
                 p.GetValue(minSizeOption), p.GetValue(maxSizeOption),
@@ -179,7 +179,7 @@ internal class CliService : ICliService
                 p.GetValue(idOption),
             // or
             new MessagesFilter(
-                p.GetValue(taskOption),
+                p.GetValue(taskOption), null, null,
                 p.GetValue(beforeOption), p.GetValue(daysOption), p.GetValue(dayOption),
                 p.GetValue(minDateTimeOption), p.GetValue(maxDateTimeOption),
                 p.GetValue(minSizeOption), p.GetValue(maxSizeOption),

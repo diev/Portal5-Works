@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <Authors>Diev</Authors>
-    <Version>10.2026.722</Version>
+    <Version>10.2026.724</Version>
     <Description>GUI viewer for Portal5.</Description>
     <Copyright>Copyright 2022-2026 Dmitrii Evdokimov</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

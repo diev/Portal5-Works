@@ -23,7 +23,6 @@ using Diev.Extensions.CredentialManager;
 using Diev.Extensions.Crypto;
 using Diev.Extensions.Exec;
 using Diev.Extensions.Loggers;
-using Diev.Portal5.API.Tools;
 using Diev.Portal5.Tools;
 
 using Microsoft.Extensions.Configuration;
